@@ -46,6 +46,7 @@ PACKAGES = [
     "gallery_dl.extractor",
     "gallery_dl.downloader",
     "gallery_dl.postprocessor",
+    "reddit_dl",
 ]
 
 DESCRIPTION = ("Command-line program to download image galleries and "
@@ -122,6 +123,7 @@ def build_setuptools():
         entry_points={
             "console_scripts": [
                 "gallery-dl = gallery_dl:main",
+                "reddit-dl = reddit_dl:main",
             ],
         },
         packages=PACKAGES,
