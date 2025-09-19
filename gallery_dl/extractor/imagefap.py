@@ -16,11 +16,11 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.|beta\.)?imagefap\.com"
 
 class ImagefapExtractor(Extractor):
     """Base class for imagefap extractors"""
+
     category = "imagefap"
     root = "https://www.imagefap.com"
     directory_fmt = ("{category}", "{gallery_id} {title}")
-    filename_fmt = ("{category}_{gallery_id}_{num:?/_/>04}"
-                    "{filename}.{extension}")
+    filename_fmt = "{category}_{gallery_id}_{num:?/_/>04}" "{filename}.{extension}"
     archive_fmt = "{gallery_id}_{image_id}"
     request_interval = (2.0, 4.0)
 
@@ -28,7 +28,7 @@ class ImagefapExtractor(Extractor):
         response = Extractor.request(self, url, **kwargs)
 
         if response.history and response.url.endswith("/human-verification"):
-            if msg := text.extr(response.text, '<div class="mt-4', '<'):
+            if msg := text.extr(response.text, '<div class="mt-4', "<"):
                 msg = " ".join(msg.partition(">")[2].split())
                 raise exception.AbortExtraction(f"'{msg}'")
             self.log.warning("HTTP redirect to %s", response.url)
@@ -38,6 +38,7 @@ class ImagefapExtractor(Extractor):
 
 class ImagefapGalleryExtractor(ImagefapExtractor):
     """Extractor for image galleries from imagefap.com"""
+
     subcategory = "gallery"
     pattern = BASE_PATTERN + r"/(?:gallery\.php\?gid=|gallery/|pictures/)(\d+)"
     example = "https://www.imagefap.com/gallery/12345"
@@ -64,13 +65,12 @@ class ImagefapGalleryExtractor(ImagefapExtractor):
             "gallery_id": text.parse_int(self.gid),
             "uploader": extr("porn picture gallery by ", " to see hottest"),
             "title": text.unescape(extr("<title>", "<")),
-            "description": text.unescape(extr(
-                'id="gdesc_text"', '<').partition(">")[2]),
-            "categories": text.split_html(extr(
-                'id="cnt_cats"', '</div>'))[1::2],
-            "tags": text.split_html(extr(
-                'id="cnt_tags"', '</div>'))[1::2],
-            "count": text.parse_int(extr(' 1 of ', ' pics"')),
+            "description": text.unescape(
+                extr('id="gdesc_text"', "<").partition(">")[2]
+            ),
+            "categories": text.split_html(extr('id="cnt_cats"', "</div>"))[1::2],
+            "tags": text.split_html(extr('id="cnt_tags"', "</div>"))[1::2],
+            "count": text.parse_int(extr(" 1 of ", ' pics"')),
         }
 
         self.image_id = extr('id="img_ed_', '"')
@@ -85,7 +85,7 @@ class ImagefapGalleryExtractor(ImagefapExtractor):
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
             "X-Requested-With": "XMLHttpRequest",
-            "Referer": f"{url}?pgid=&gid={self.image_id}&page=0"
+            "Referer": f"{url}?pgid=&gid={self.image_id}&page=0",
         }
 
         num = 0
@@ -109,6 +109,7 @@ class ImagefapGalleryExtractor(ImagefapExtractor):
 
 class ImagefapImageExtractor(ImagefapExtractor):
     """Extractor for single images from imagefap.com"""
+
     subcategory = "image"
     pattern = BASE_PATTERN + r"/photo/(\d+)"
     example = "https://www.imagefap.com/photo/12345"
@@ -126,31 +127,34 @@ class ImagefapImageExtractor(ImagefapExtractor):
         url = f"{self.root}/photo/{self.image_id}/"
         page = self.request(url).text
 
-        url, pos = text.extract(
-            page, 'original="', '"')
-        image_id, pos = text.extract(
-            page, 'id="imageid_input" value="', '"', pos)
-        gallery_id, pos = text.extract(
-            page, 'id="galleryid_input" value="', '"', pos)
+        url, pos = text.extract(page, 'original="', '"')
+        image_id, pos = text.extract(page, 'id="imageid_input" value="', '"', pos)
+        gallery_id, pos = text.extract(page, 'id="galleryid_input" value="', '"', pos)
         info = self._extract_jsonld(page)
 
-        return url, text.nameext_from_url(url, {
-            "title": text.unescape(info["name"]),
-            "uploader": info["author"],
-            "date": info["datePublished"],
-            "width": text.parse_int(info["width"]),
-            "height": text.parse_int(info["height"]),
-            "gallery_id": text.parse_int(gallery_id),
-            "image_id": text.parse_int(image_id),
-        })
+        return url, text.nameext_from_url(
+            url,
+            {
+                "title": text.unescape(info["name"]),
+                "uploader": info["author"],
+                "date": info["datePublished"],
+                "width": text.parse_int(info["width"]),
+                "height": text.parse_int(info["height"]),
+                "gallery_id": text.parse_int(gallery_id),
+                "image_id": text.parse_int(image_id),
+            },
+        )
 
 
 class ImagefapFolderExtractor(ImagefapExtractor):
     """Extractor for imagefap user folders"""
+
     subcategory = "folder"
-    pattern = (BASE_PATTERN + r"/(?:organizer/|"
-               r"(?:usergallery\.php\?user(id)?=([^&#]+)&"
-               r"|profile/([^/?#]+)/galleries\?)folderid=)(\d+|-1)")
+    pattern = (
+        BASE_PATTERN + r"/(?:organizer/|"
+        r"(?:usergallery\.php\?user(id)?=([^&#]+)&"
+        r"|profile/([^/?#]+)/galleries\?)folderid=)(\d+|-1)"
+    )
     example = "https://www.imagefap.com/organizer/12345"
 
     def __init__(self, match):
@@ -163,8 +167,8 @@ class ImagefapFolderExtractor(ImagefapExtractor):
             url = f"{self.root}/gallery/{gallery_id}"
             data = {
                 "gallery_id": gallery_id,
-                "title"     : text.unescape(name),
-                "folder"    : text.unescape(folder),
+                "title": text.unescape(name),
+                "folder": text.unescape(folder),
                 "_extractor": ImagefapGalleryExtractor,
             }
             yield Message.Queue, url, data
@@ -174,8 +178,7 @@ class ImagefapFolderExtractor(ImagefapExtractor):
         if folder_id == "-1":
             folder_name = "Uncategorized"
             if self._id:
-                url = (f"{self.root}/usergallery.php"
-                       f"?userid={self.user}&folderid=-1")
+                url = f"{self.root}/usergallery.php" f"?userid={self.user}&folderid=-1"
             else:
                 url = f"{self.root}/profile/{self.user}/galleries?folderid=-1"
         else:
@@ -205,10 +208,12 @@ class ImagefapFolderExtractor(ImagefapExtractor):
 
 class ImagefapUserExtractor(ImagefapExtractor):
     """Extractor for an imagefap user profile"""
+
     subcategory = "user"
-    pattern = (BASE_PATTERN +
-               r"/(?:profile(?:\.php\?user=|/)([^/?#]+)(?:/galleries)?"
-               r"|usergallery\.php\?userid=(\d+))(?:$|#)")
+    pattern = (
+        BASE_PATTERN + r"/(?:profile(?:\.php\?user=|/)([^/?#]+)(?:/galleries)?"
+        r"|usergallery\.php\?userid=(\d+))(?:$|#)"
+    )
     example = "https://www.imagefap.com/profile/USER"
 
     def __init__(self, match):

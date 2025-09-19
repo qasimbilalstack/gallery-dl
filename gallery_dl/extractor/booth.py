@@ -14,6 +14,7 @@ from .. import text, util
 
 class BoothExtractor(Extractor):
     """Base class for booth extractors"""
+
     category = "booth"
     root = "https://booth.pm"
     directory_fmt = ("{category}", "{shop[name]}", "{id} {name}")
@@ -65,13 +66,14 @@ class BoothItemExtractor(BoothExtractor):
         else:
             page = self.request(url).text
             headers["X-CSRF-Token"] = text.extr(
-                page, 'name="csrf-token" content="', '"')
-            item = self.request_json(
-                url + ".json", headers=headers, interval=False)
+                page, 'name="csrf-token" content="', '"'
+            )
+            item = self.request_json(url + ".json", headers=headers, interval=False)
 
         item["booth_category"] = item.pop("category", None)
         item["date"] = text.parse_datetime(
-            item["published_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
+            item["published_at"], "%Y-%m-%dT%H:%M:%S.%f%z"
+        )
         item["tags"] = [t["name"] for t in item["tags"]]
 
         shop = item["shop"]
@@ -96,15 +98,16 @@ class BoothItemExtractor(BoothExtractor):
             files = []
             for image in item.pop("images"):
                 url = image["original"].replace("_base_resized", "")
-                files.append({
-                    "url"      : url,
-                    "_fallback": _fallback(url),
-                })
+                files.append(
+                    {
+                        "url": url,
+                        "_fallback": _fallback(url),
+                    }
+                )
             return files
 
         del item["images"]
-        return [{"url": url}
-                for url in text.extract_iter(page, 'data-origin="', '"')]
+        return [{"url": url} for url in text.extract_iter(page, 'data-origin="', '"')]
 
 
 class BoothShopExtractor(BoothExtractor):

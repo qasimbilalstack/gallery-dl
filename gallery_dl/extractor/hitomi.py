@@ -17,6 +17,7 @@ import string
 
 class HitomiExtractor(Extractor):
     """Base class for hitomi extractors"""
+
     category = "hitomi"
     root = "https://hitomi.la"
     domain = "gold-usergeneratedcontent.net"
@@ -34,8 +35,10 @@ class HitomiExtractor(Extractor):
         else:
             ns = f"{ns}/"
 
-        url = (f"https://ltn.{self.domain}/n/{ns}"
-               f"/{tag.replace('_', ' ')}-{language}.nozomi")
+        url = (
+            f"https://ltn.{self.domain}/n/{ns}"
+            f"/{tag.replace('_', ' ')}-{language}.nozomi"
+        )
         if headers is None:
             headers = {}
         headers["Origin"] = self.root
@@ -45,9 +48,12 @@ class HitomiExtractor(Extractor):
 
 class HitomiGalleryExtractor(HitomiExtractor, GalleryExtractor):
     """Extractor for hitomi.la galleries"""
-    pattern = (r"(?:https?://)?hitomi\.la"
-               r"/(?:manga|doujinshi|cg|gamecg|imageset|galleries|reader)"
-               r"/(?:[^/?#]+-)?(\d+)")
+
+    pattern = (
+        r"(?:https?://)?hitomi\.la"
+        r"/(?:manga|doujinshi|cg|gamecg|imageset|galleries|reader)"
+        r"/(?:[^/?#]+-)?(\d+)"
+    )
     example = "https://hitomi.la/manga/TITLE-867789.html"
 
     def __init__(self, match):
@@ -79,17 +85,17 @@ class HitomiGalleryExtractor(HitomiExtractor, GalleryExtractor):
 
         return {
             "gallery_id": text.parse_int(info["id"]),
-            "title"     : info["title"],
-            "title_jpn" : info.get("japanese_title") or "",
-            "type"      : info["type"].capitalize(),
-            "language"  : language,
-            "lang"      : util.language_to_code(language),
-            "date"      : text.parse_datetime(date, "%Y-%m-%d %H:%M:%S%z"),
-            "tags"      : tags,
-            "artist"    : [o["artist"] for o in iget("artists") or ()],
-            "group"     : [o["group"] for o in iget("groups") or ()],
-            "parody"    : [o["parody"] for o in iget("parodys") or ()],
-            "characters": [o["character"] for o in iget("characters") or ()]
+            "title": info["title"],
+            "title_jpn": info.get("japanese_title") or "",
+            "type": info["type"].capitalize(),
+            "language": language,
+            "lang": util.language_to_code(language),
+            "date": text.parse_datetime(date, "%Y-%m-%d %H:%M:%S%z"),
+            "tags": tags,
+            "artist": [o["artist"] for o in iget("artists") or ()],
+            "group": [o["group"] for o in iget("groups") or ()],
+            "parody": [o["parody"] for o in iget("parodys") or ()],
+            "characters": [o["character"] for o in iget("characters") or ()],
         }
 
     def images(self, _):
@@ -97,7 +103,7 @@ class HitomiGalleryExtractor(HitomiExtractor, GalleryExtractor):
         gg_m, gg_b, gg_default = _parse_gg(self)
 
         fmt = ext = self.config("format") or "webp"
-        check = (fmt != "webp")
+        check = fmt != "webp"
 
         results = []
         for image in self.info["files"]:
@@ -110,18 +116,23 @@ class HitomiGalleryExtractor(HitomiExtractor, GalleryExtractor):
 
             # https://ltn.gold-usergeneratedcontent.net/common.js
             inum = int(ihash[-1] + ihash[-3:-1], 16)
-            url = (f"https://{ext[0]}{gg_m.get(inum, gg_default) + 1}."
-                   f"{self.domain}/{gg_b}/{inum}/{ihash}.{ext}")
+            url = (
+                f"https://{ext[0]}{gg_m.get(inum, gg_default) + 1}."
+                f"{self.domain}/{gg_b}/{inum}/{ihash}.{ext}"
+            )
             results.append((url, idata))
         return results
 
 
 class HitomiTagExtractor(HitomiExtractor):
     """Extractor for galleries from tag searches on hitomi.la"""
+
     subcategory = "tag"
-    pattern = (r"(?:https?://)?hitomi\.la"
-               r"/(tag|artist|group|series|type|character)"
-               r"/([^/?#]+)\.html")
+    pattern = (
+        r"(?:https?://)?hitomi\.la"
+        r"/(tag|artist|group|series|type|character)"
+        r"/([^/?#]+)\.html"
+    )
     example = "https://hitomi.la/tag/TAG-LANG.html"
 
     def __init__(self, match):
@@ -146,8 +157,9 @@ class HitomiTagExtractor(HitomiExtractor):
         offset = 0
         total = None
         while True:
-            headers["Referer"] = (f"{self.root}/{self.type}/{self.tag}.html"
-                                  f"?page={offset // 100 + 1}")
+            headers["Referer"] = (
+                f"{self.root}/{self.type}/{self.tag}.html" f"?page={offset // 100 + 1}"
+            )
             headers["Range"] = f"bytes={offset}-{offset + 99}"
             response = self.request(nozomi_url, headers=headers)
 
@@ -158,13 +170,15 @@ class HitomiTagExtractor(HitomiExtractor):
             offset += 100
             if total is None:
                 total = text.parse_int(
-                    response.headers["content-range"].rpartition("/")[2])
+                    response.headers["content-range"].rpartition("/")[2]
+                )
             if offset >= total:
                 return
 
 
 class HitomiIndexExtractor(HitomiTagExtractor):
     """Extractor for galleries from index searches on hitomi.la"""
+
     subcategory = "index"
     pattern = r"(?:https?://)?hitomi\.la/(\w+)-(\w+)\.html"
     example = "https://hitomi.la/index-LANG.html"
@@ -175,8 +189,7 @@ class HitomiIndexExtractor(HitomiTagExtractor):
 
     def items(self):
         data = {"_extractor": HitomiGalleryExtractor}
-        nozomi_url = (f"https://ltn.{self.domain}"
-                      f"/{self.tag}-{self.language}.nozomi")
+        nozomi_url = f"https://ltn.{self.domain}" f"/{self.tag}-{self.language}.nozomi"
         headers = {
             "Origin": self.root,
             "Cache-Control": "max-age=0",
@@ -185,8 +198,10 @@ class HitomiIndexExtractor(HitomiTagExtractor):
         offset = 0
         total = None
         while True:
-            headers["Referer"] = (f"{self.root}/{self.tag}-{self.language}"
-                                  f".html?page={offset // 100 + 1}")
+            headers["Referer"] = (
+                f"{self.root}/{self.tag}-{self.language}"
+                f".html?page={offset // 100 + 1}"
+            )
             headers["Range"] = f"bytes={offset}-{offset + 99}"
             response = self.request(nozomi_url, headers=headers)
 
@@ -197,13 +212,15 @@ class HitomiIndexExtractor(HitomiTagExtractor):
             offset += 100
             if total is None:
                 total = text.parse_int(
-                    response.headers["content-range"].rpartition("/")[2])
+                    response.headers["content-range"].rpartition("/")[2]
+                )
             if offset >= total:
                 return
 
 
 class HitomiSearchExtractor(HitomiExtractor):
     """Extractor for galleries from multiple tag searches on hitomi.la"""
+
     subcategory = "search"
     pattern = r"(?:https?://)?hitomi\.la/search\.html\?([^#]+)"
     example = "https://hitomi.la/search.html?QUERY"
@@ -254,8 +271,7 @@ def _parse_gg(extr):
     m = {}
 
     keys = []
-    for match in util.re_compile(
-            r"case\s+(\d+):(?:\s*o\s*=\s*(\d+))?").finditer(page):
+    for match in util.re_compile(r"case\s+(\d+):(?:\s*o\s*=\s*(\d+))?").finditer(page):
         key, value = match.groups()
         keys.append(int(key))
 
@@ -266,7 +282,8 @@ def _parse_gg(extr):
             keys.clear()
 
     for match in util.re_compile(
-            r"if\s+\(g\s*===?\s*(\d+)\)[\s{]*o\s*=\s*(\d+)").finditer(page):
+        r"if\s+\(g\s*===?\s*(\d+)\)[\s{]*o\s*=\s*(\d+)"
+    ).finditer(page):
         m[int(match[1])] = int(match[2])
 
     d = util.re_compile(r"(?:var\s|default:)\s*o\s*=\s*(\d+)").search(page)

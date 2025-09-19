@@ -14,6 +14,7 @@ from .. import text
 
 class ArchitizerProjectExtractor(GalleryExtractor):
     """Extractor for project pages on architizer.com"""
+
     category = "architizer"
     subcategory = "project"
     root = "https://architizer.com"
@@ -32,34 +33,36 @@ class ArchitizerProjectExtractor(GalleryExtractor):
         extr('id="Pages"', "")
 
         return {
-            "title"      : extr("data-name='", "'"),
-            "slug"       : extr("data-slug='", "'"),
-            "gid"        : extr("data-gid='", "'").rpartition(".")[2],
-            "firm"       : extr("data-firm-leaders-str='", "'"),
-            "location"   : extr("<h2>", "<").strip(),
-            "type"       : text.unescape(text.remove_html(extr(
-                '<div class="title">Type</div>', '<br'))),
-            "status"     : text.remove_html(extr(
-                '<div class="title">STATUS</div>', '</')),
-            "year"       : text.remove_html(extr(
-                '<div class="title">YEAR</div>', '</')),
-            "size"       : text.remove_html(extr(
-                '<div class="title">SIZE</div>', '</')),
-            "description": text.unescape(extr(
-                '<span class="copy js-copy">', '</span></div>')
-                .replace("<br />", "\n")),
+            "title": extr("data-name='", "'"),
+            "slug": extr("data-slug='", "'"),
+            "gid": extr("data-gid='", "'").rpartition(".")[2],
+            "firm": extr("data-firm-leaders-str='", "'"),
+            "location": extr("<h2>", "<").strip(),
+            "type": text.unescape(
+                text.remove_html(extr('<div class="title">Type</div>', "<br"))
+            ),
+            "status": text.remove_html(extr('<div class="title">STATUS</div>', "</")),
+            "year": text.remove_html(extr('<div class="title">YEAR</div>', "</")),
+            "size": text.remove_html(extr('<div class="title">SIZE</div>', "</")),
+            "description": text.unescape(
+                extr('<span class="copy js-copy">', "</span></div>").replace(
+                    "<br />", "\n"
+                )
+            ),
         }
 
     def images(self, page):
         return [
             (url, None)
             for url in text.extract_iter(
-                page, 'property="og:image:secure_url" content="', "?")
+                page, 'property="og:image:secure_url" content="', "?"
+            )
         ]
 
 
 class ArchitizerFirmExtractor(Extractor):
     """Extractor for all projects of a firm"""
+
     category = "architizer"
     subcategory = "firm"
     root = "https://architizer.com"

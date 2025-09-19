@@ -7,7 +7,7 @@
 # published by the Free Software Foundation.
 
 
-class Message():
+class Message:
     """Enum for message identifiers
 
     Extractors yield their results as message-tuples, where the first element

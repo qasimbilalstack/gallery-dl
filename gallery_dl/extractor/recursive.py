@@ -14,6 +14,7 @@ from .. import text, util
 
 class RecursiveExtractor(Extractor):
     """Extractor that fetches URLs from a remote or local source"""
+
     category = "recursive"
     pattern = r"r(?:ecursive)?:"
     example = "recursive:https://pastebin.com/raw/FLwrCYsT"

@@ -15,6 +15,7 @@ USER_PATTERN = BASE_PATTERN + r"/@([^/?#]+)"
 
 class SkebExtractor(Extractor):
     """Base class for skeb extractors"""
+
     category = "skeb"
     directory_fmt = ("{category}", "{creator[screen_name]}")
     filename_fmt = "{post_num}_{file_id}.{extension}"
@@ -37,8 +38,7 @@ class SkebExtractor(Extractor):
         if "request_key" in response.cookies:
             return True
 
-        request_key = text.extr(
-            response.text, "request_key=", ";")
+        request_key = text.extr(response.text, "request_key=", ";")
         if request_key:
             self.cookies.set("request_key", request_key, domain="skeb.jp")
             return True
@@ -49,8 +49,9 @@ class SkebExtractor(Extractor):
             try:
                 response, post = self._get_post_data(user_name, post_num)
             except Exception as exc:
-                self.log.error("@%s/%s: %s: %s", user_name, post_num,
-                               exc.__class__.__name__, exc)
+                self.log.error(
+                    "@%s/%s: %s: %s", user_name, post_num, exc.__class__.__name__, exc
+                )
                 continue
             if metadata:
                 post.update(metadata)
@@ -79,8 +80,7 @@ class SkebExtractor(Extractor):
         params["offset"] = 0
 
         while True:
-            posts = self.request_json(
-                url, params=params, headers=self.headers)
+            posts = self.request_json(url, params=params, headers=self.headers)
 
             for post in posts:
                 parts = post["path"].split("/")
@@ -88,8 +88,7 @@ class SkebExtractor(Extractor):
                 post_num = parts[3]
 
                 if post["private"]:
-                    self.log.debug("Skipping @%s/%s (private)",
-                                   user_name, post_num)
+                    self.log.debug("Skipping @%s/%s (private)", user_name, post_num)
                     continue
                 yield user_name, post_num
 
@@ -103,8 +102,7 @@ class SkebExtractor(Extractor):
         params["limit"] = 90
 
         while True:
-            data = self.request_json(
-                url, params=params, headers=self.headers)
+            data = self.request_json(url, params=params, headers=self.headers)
             yield from data
 
             if len(data) < params["limit"]:
@@ -116,35 +114,35 @@ class SkebExtractor(Extractor):
         resp = self.request_json(url, headers=self.headers)
         creator = resp["creator"]
         post = {
-            "post_id"          : resp["id"],
-            "post_num"         : post_num,
-            "post_url"         : self.root + resp["path"],
-            "body"             : resp["body"],
-            "source_body"      : resp["source_body"],
-            "translated_body"  : resp["translated"],
-            "nsfw"             : resp["nsfw"],
-            "anonymous"        : resp["anonymous"],
-            "tags"             : resp["tag_list"],
-            "genre"            : resp["genre"],
-            "thanks"           : resp["thanks"],
-            "source_thanks"    : resp["source_thanks"],
+            "post_id": resp["id"],
+            "post_num": post_num,
+            "post_url": self.root + resp["path"],
+            "body": resp["body"],
+            "source_body": resp["source_body"],
+            "translated_body": resp["translated"],
+            "nsfw": resp["nsfw"],
+            "anonymous": resp["anonymous"],
+            "tags": resp["tag_list"],
+            "genre": resp["genre"],
+            "thanks": resp["thanks"],
+            "source_thanks": resp["source_thanks"],
             "translated_thanks": resp["translated_thanks"],
             "creator": {
-                "id"           : creator["id"],
-                "name"         : creator["name"],
-                "screen_name"  : creator["screen_name"],
-                "avatar_url"   : creator["avatar_url"],
-                "header_url"   : creator["header_url"],
-            }
+                "id": creator["id"],
+                "name": creator["name"],
+                "screen_name": creator["screen_name"],
+                "avatar_url": creator["avatar_url"],
+                "header_url": creator["header_url"],
+            },
         }
         if not resp["anonymous"] and "client" in resp:
             client = resp["client"]
             post["client"] = {
-                "id"           : client["id"],
-                "name"         : client["name"],
-                "screen_name"  : client["screen_name"],
-                "avatar_url"   : client["avatar_url"],
-                "header_url"   : client["header_url"],
+                "id": client["id"],
+                "name": client["name"],
+                "screen_name": client["screen_name"],
+                "avatar_url": client["avatar_url"],
+                "header_url": client["header_url"],
             }
         return resp, post
 
@@ -152,47 +150,54 @@ class SkebExtractor(Extractor):
         files = []
 
         if self.thumbnails and "og_image_url" in resp:
-            files.append({
-                "content_category": "thumb",
-                "file_id" : "thumb",
-                "_file_id": str(resp["id"]) + "t",
-                "file_url": resp["og_image_url"],
-            })
+            files.append(
+                {
+                    "content_category": "thumb",
+                    "file_id": "thumb",
+                    "_file_id": str(resp["id"]) + "t",
+                    "file_url": resp["og_image_url"],
+                }
+            )
 
         if self.article and "article_image_url" in resp:
             if url := resp["article_image_url"]:
-                files.append({
-                    "content_category": "article",
-                    "file_id" : "article",
-                    "_file_id": str(resp["id"]) + "a",
-                    "file_url": url,
-                })
+                files.append(
+                    {
+                        "content_category": "article",
+                        "file_id": "article",
+                        "_file_id": str(resp["id"]) + "a",
+                        "file_url": url,
+                    }
+                )
 
         for preview in resp["previews"]:
             info = preview["information"]
-            files.append({
-                "content_category": "preview",
-                "file_id" : preview["id"],
-                "_file_id": preview["id"],
-                "file_url": preview["url"],
-                "original": {
-                    "width"     : info["width"],
-                    "height"    : info["height"],
-                    "byte_size" : info["byte_size"],
-                    "duration"  : info["duration"],
-                    "frame_rate": info.get("frame_rate"),
-                    "software"  : info["software"],
-                    "extension" : info["extension"],
-                    "is_movie"  : info["is_movie"],
-                    "transcoder": info["transcoder"],
-                },
-            })
+            files.append(
+                {
+                    "content_category": "preview",
+                    "file_id": preview["id"],
+                    "_file_id": preview["id"],
+                    "file_url": preview["url"],
+                    "original": {
+                        "width": info["width"],
+                        "height": info["height"],
+                        "byte_size": info["byte_size"],
+                        "duration": info["duration"],
+                        "frame_rate": info.get("frame_rate"),
+                        "software": info["software"],
+                        "extension": info["extension"],
+                        "is_movie": info["is_movie"],
+                        "transcoder": info["transcoder"],
+                    },
+                }
+            )
 
         return files
 
 
 class SkebPostExtractor(SkebExtractor):
     """Extractor for a single skeb post"""
+
     subcategory = "post"
     pattern = USER_PATTERN + r"/works/(\d+)"
     example = "https://skeb.jp/@USER/works/123"
@@ -203,6 +208,7 @@ class SkebPostExtractor(SkebExtractor):
 
 class SkebWorksExtractor(SkebExtractor):
     """Extractor for a skeb user's works"""
+
     subcategory = "works"
     pattern = USER_PATTERN + r"/works"
     example = "https://skeb.jp/@USER/works"
@@ -215,6 +221,7 @@ class SkebWorksExtractor(SkebExtractor):
 
 class SkebSentrequestsExtractor(SkebExtractor):
     """Extractor for a skeb user's sent requests"""
+
     subcategory = "sentrequests"
     pattern = USER_PATTERN + r"/sent[ _-]?requests"
     example = "https://skeb.jp/@USER/sentrequests"
@@ -227,6 +234,7 @@ class SkebSentrequestsExtractor(SkebExtractor):
 
 class SkebUserExtractor(Dispatch, SkebExtractor):
     """Extractor for a skeb user profile"""
+
     pattern = USER_PATTERN + r"/?$"
     example = "https://skeb.jp/@USER"
 
@@ -237,14 +245,18 @@ class SkebUserExtractor(Dispatch, SkebExtractor):
             default = ("works",)
 
         base = f"{self.root}/@{self.groups[0]}/"
-        return self._dispatch_extractors((
-            (SkebWorksExtractor       , base + "works"),
-            (SkebSentrequestsExtractor, base + "sentrequests"),
-        ), default)
+        return self._dispatch_extractors(
+            (
+                (SkebWorksExtractor, base + "works"),
+                (SkebSentrequestsExtractor, base + "sentrequests"),
+            ),
+            default,
+        )
 
 
 class SkebSearchExtractor(SkebExtractor):
     """Extractor for skeb search results"""
+
     subcategory = "search"
     pattern = BASE_PATTERN + r"/search\?q=([^&#]+)"
     example = "https://skeb.jp/search?q=QUERY"
@@ -265,8 +277,10 @@ class SkebSearchExtractor(SkebExtractor):
 
         filters = self.config("filters")
         if filters is None:
-            filters = ("genre:art OR genre:voice OR genre:novel OR "
-                       "genre:video OR genre:music OR genre:correction")
+            filters = (
+                "genre:art OR genre:voice OR genre:novel OR "
+                "genre:video OR genre:music OR genre:correction"
+            )
         elif not isinstance(filters, str):
             filters = " OR ".join(filters)
 
@@ -282,7 +296,11 @@ class SkebSearchExtractor(SkebExtractor):
 
         while True:
             result = self.request_json(
-                url, method="POST", params=params, headers=headers, json=data,
+                url,
+                method="POST",
+                params=params,
+                headers=headers,
+                json=data,
             )["results"][0]
 
             for post in result["hits"]:
@@ -297,6 +315,7 @@ class SkebSearchExtractor(SkebExtractor):
 
 class SkebFollowingExtractor(SkebExtractor):
     """Extractor for all creators followed by a skeb user"""
+
     subcategory = "following"
     pattern = USER_PATTERN + r"/following_creators"
     example = "https://skeb.jp/@USER/following_creators"
@@ -311,6 +330,7 @@ class SkebFollowingExtractor(SkebExtractor):
 
 class SkebFollowingUsersExtractor(SkebExtractor):
     """Extractor for your followed users"""
+
     subcategory = "following-users"
     pattern = BASE_PATTERN + r"/following_users"
     example = "https://skeb.jp/following_users"

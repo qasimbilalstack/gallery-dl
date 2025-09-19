@@ -12,13 +12,15 @@ from .common import Extractor, Message, Dispatch
 from .. import text, util, exception
 from ..cache import cache, memcache
 
-BASE_PATTERN = (r"(?:https?://)?"
-                r"(?:(?:www\.)?(?:c|[fv]x)?bs[ky]y[ex]?\.app|main\.bsky\.dev)")
+BASE_PATTERN = (
+    r"(?:https?://)?" r"(?:(?:www\.)?(?:c|[fv]x)?bs[ky]y[ex]?\.app|main\.bsky\.dev)"
+)
 USER_PATTERN = BASE_PATTERN + r"/profile/([^/?#]+)"
 
 
 class BlueskyExtractor(Extractor):
     """Base class for bluesky extractors"""
+
     category = "bluesky"
     directory_fmt = ("{category}", "{author[handle]}")
     filename_fmt = "{createdAt[:19]}_{post_id}_{num}.{extension}"
@@ -31,8 +33,8 @@ class BlueskyExtractor(Extractor):
                 meta = meta.replace(" ", "").split(",")
             elif not isinstance(meta, (list, tuple)):
                 meta = ("user", "facets")
-        self._metadata_user = ("user" in meta)
-        self._metadata_facets = ("facets" in meta)
+        self._metadata_user = "user" in meta
+        self._metadata_facets = "facets" in meta
 
         self.api = BlueskyAPI(self)
         self._user = self._user_did = None
@@ -61,8 +63,10 @@ class BlueskyExtractor(Extractor):
                 yield Message.Directory, post
                 if files:
                     did = post["author"]["did"]
-                    base = (f"{self.api.service_endpoint(did)}/xrpc"
-                            f"/com.atproto.sync.getBlob?did={did}&cid=")
+                    base = (
+                        f"{self.api.service_endpoint(did)}/xrpc"
+                        f"/com.atproto.sync.getBlob?did={did}&cid="
+                    )
                     for post["num"], file in enumerate(files, 1):
                         post.update(file)
                         yield Message.Url, base + file["filename"], post
@@ -98,8 +102,12 @@ class BlueskyExtractor(Extractor):
                 pass  # deleted post
             except Exception as exc:
                 self.log.debug(record, exc_info=exc)
-                self.log.warning("Failed to extract %s (%s: %s)",
-                                 uri or "record", exc.__class__.__name__, exc)
+                self.log.warning(
+                    "Failed to extract %s (%s: %s)",
+                    uri or "record",
+                    exc.__class__.__name__,
+                    exc,
+                )
 
     def _pid(self, post):
         return post["uri"].rpartition("/")[2]
@@ -133,8 +141,7 @@ class BlueskyExtractor(Extractor):
 
         post["instance"] = self.instance
         post["post_id"] = self._pid(post)
-        post["date"] = text.parse_datetime(
-            post["createdAt"][:19], "%Y-%m-%dT%H:%M:%S")
+        post["date"] = text.parse_datetime(post["createdAt"][:19], "%Y-%m-%dT%H:%M:%S")
 
     def _extract_files(self, post):
         if "embed" not in post:
@@ -171,10 +178,10 @@ class BlueskyExtractor(Extractor):
 
         return {
             "description": media.get("alt") or "",
-            "width"      : width,
-            "height"     : height,
-            "filename"   : cid,
-            "extension"  : data["mimeType"].rpartition("/")[2],
+            "width": width,
+            "height": height,
+            "filename": cid,
+            "extension": data["mimeType"].rpartition("/")[2],
         }
 
     def _make_post(self, actor, kind):
@@ -185,27 +192,33 @@ class BlueskyExtractor(Extractor):
             return ()
         cid = profile[kind].rpartition("/")[2].partition("@")[0]
 
-        return ({
-            "post": {
-                "embed": {"images": [{
-                    "alt": kind,
-                    "image": {
-                        "$type"   : "blob",
-                        "ref"     : {"$link": cid},
-                        "mimeType": "image/jpeg",
-                        "size"    : 0,
+        return (
+            {
+                "post": {
+                    "embed": {
+                        "images": [
+                            {
+                                "alt": kind,
+                                "image": {
+                                    "$type": "blob",
+                                    "ref": {"$link": cid},
+                                    "mimeType": "image/jpeg",
+                                    "size": 0,
+                                },
+                                "aspectRatio": {
+                                    "width": 1000,
+                                    "height": 1000,
+                                },
+                            }
+                        ]
                     },
-                    "aspectRatio": {
-                        "width" : 1000,
-                        "height": 1000,
-                    },
-                }]},
-                "author"   : profile,
-                "record"   : (),
-                "createdAt": "",
-                "uri"      : cid,
+                    "author": profile,
+                    "record": (),
+                    "createdAt": "",
+                    "uri": cid,
+                },
             },
-        },)
+        )
 
 
 class BlueskyUserExtractor(Dispatch, BlueskyExtractor):
@@ -214,18 +227,24 @@ class BlueskyUserExtractor(Dispatch, BlueskyExtractor):
 
     def items(self):
         base = f"{self.root}/profile/{self.groups[0]}/"
-        default = ("posts" if self.config("quoted", False) or
-                   self.config("reposts", False) else "media")
-        return self._dispatch_extractors((
-            (BlueskyInfoExtractor      , base + "info"),
-            (BlueskyAvatarExtractor    , base + "avatar"),
-            (BlueskyBackgroundExtractor, base + "banner"),
-            (BlueskyPostsExtractor     , base + "posts"),
-            (BlueskyRepliesExtractor   , base + "replies"),
-            (BlueskyMediaExtractor     , base + "media"),
-            (BlueskyVideoExtractor     , base + "video"),
-            (BlueskyLikesExtractor     , base + "likes"),
-        ), (default,))
+        default = (
+            "posts"
+            if self.config("quoted", False) or self.config("reposts", False)
+            else "media"
+        )
+        return self._dispatch_extractors(
+            (
+                (BlueskyInfoExtractor, base + "info"),
+                (BlueskyAvatarExtractor, base + "avatar"),
+                (BlueskyBackgroundExtractor, base + "banner"),
+                (BlueskyPostsExtractor, base + "posts"),
+                (BlueskyRepliesExtractor, base + "replies"),
+                (BlueskyMediaExtractor, base + "media"),
+                (BlueskyVideoExtractor, base + "video"),
+                (BlueskyLikesExtractor, base + "likes"),
+            ),
+            (default,),
+        )
 
 
 class BlueskyPostsExtractor(BlueskyExtractor):
@@ -234,8 +253,7 @@ class BlueskyPostsExtractor(BlueskyExtractor):
     example = "https://bsky.app/profile/HANDLE/posts"
 
     def posts(self):
-        return self.api.get_author_feed(
-            self.groups[0], "posts_and_author_threads")
+        return self.api.get_author_feed(self.groups[0], "posts_and_author_threads")
 
 
 class BlueskyRepliesExtractor(BlueskyExtractor):
@@ -244,8 +262,7 @@ class BlueskyRepliesExtractor(BlueskyExtractor):
     example = "https://bsky.app/profile/HANDLE/replies"
 
     def posts(self):
-        return self.api.get_author_feed(
-            self.groups[0], "posts_with_replies")
+        return self.api.get_author_feed(self.groups[0], "posts_with_replies")
 
 
 class BlueskyMediaExtractor(BlueskyExtractor):
@@ -254,8 +271,7 @@ class BlueskyMediaExtractor(BlueskyExtractor):
     example = "https://bsky.app/profile/HANDLE/media"
 
     def posts(self):
-        return self.api.get_author_feed(
-            self.groups[0], "posts_with_media")
+        return self.api.get_author_feed(self.groups[0], "posts_with_media")
 
 
 class BlueskyVideoExtractor(BlueskyExtractor):
@@ -264,8 +280,7 @@ class BlueskyVideoExtractor(BlueskyExtractor):
     example = "https://bsky.app/profile/HANDLE/video"
 
     def posts(self):
-        return self.api.get_author_feed(
-            self.groups[0], "posts_with_video")
+        return self.api.get_author_feed(self.groups[0], "posts_with_video")
 
 
 class BlueskyLikesExtractor(BlueskyExtractor):
@@ -369,10 +384,10 @@ class BlueskyHashtagExtractor(BlueskyExtractor):
 
     def posts(self):
         hashtag, order = self.groups
-        return self.api.search_posts("#"+hashtag, order)
+        return self.api.search_posts("#" + hashtag, order)
 
 
-class BlueskyAPI():
+class BlueskyAPI:
     """Interface for the Bluesky API
 
     https://docs.bsky.app/docs/category/http-reference
@@ -401,16 +416,15 @@ class BlueskyAPI():
     def get_author_feed(self, actor, filter="posts_and_author_threads"):
         endpoint = "app.bsky.feed.getAuthorFeed"
         params = {
-            "actor" : self._did_from_actor(actor, True),
+            "actor": self._did_from_actor(actor, True),
             "filter": filter,
-            "limit" : "100",
+            "limit": "100",
         }
         return self._pagination(endpoint, params)
 
     def get_feed(self, actor, feed):
         endpoint = "app.bsky.feed.getFeed"
-        uri = (f"at://{self._did_from_actor(actor)}"
-               f"/app.bsky.feed.generator/{feed}")
+        uri = f"at://{self._did_from_actor(actor)}" f"/app.bsky.feed.generator/{feed}"
         params = {"feed": uri, "limit": "100"}
         return self._pagination(endpoint, params)
 
@@ -425,20 +439,19 @@ class BlueskyAPI():
     def get_list_feed(self, actor, list):
         endpoint = "app.bsky.feed.getListFeed"
         uri = f"at://{self._did_from_actor(actor)}/app.bsky.graph.list/{list}"
-        params = {"list" : uri, "limit": "100"}
+        params = {"list": uri, "limit": "100"}
         return self._pagination(endpoint, params)
 
     def get_post_thread(self, actor, post_id):
-        uri = (f"at://{self._did_from_actor(actor)}"
-               f"/app.bsky.feed.post/{post_id}")
+        uri = f"at://{self._did_from_actor(actor)}" f"/app.bsky.feed.post/{post_id}"
         depth = self.extractor.config("depth", "0")
         return self.get_post_thread_uri(uri, depth)
 
     def get_post_thread_uri(self, uri, depth="0"):
         endpoint = "app.bsky.feed.getPostThread"
         params = {
-            "uri"         : uri,
-            "depth"       : depth,
+            "uri": uri,
+            "depth": depth,
             "parentHeight": "0",
         }
 
@@ -465,13 +478,14 @@ class BlueskyAPI():
         endpoint = "com.atproto.repo.listRecords"
         actor_did = self._did_from_actor(actor)
         params = {
-            "repo"      : actor_did,
+            "repo": actor_did,
             "collection": collection,
-            "limit"     : "100",
+            "limit": "100",
             #  "reverse"   : "false",
         }
-        return self._pagination(endpoint, params, "records",
-                                self.service_endpoint(actor_did))
+        return self._pagination(
+            endpoint, params, "records", self.service_endpoint(actor_did)
+        )
 
     @memcache(keyarg=1)
     def resolve_handle(self, handle):
@@ -481,7 +495,7 @@ class BlueskyAPI():
 
     @memcache(keyarg=1)
     def service_endpoint(self, did):
-        if did.startswith('did:web:'):
+        if did.startswith("did:web:"):
             url = "https://" + did[8:] + "/.well-known/did.json"
         else:
             url = "https://plc.directory/" + did
@@ -498,9 +512,9 @@ class BlueskyAPI():
     def search_posts(self, query, sort=None):
         endpoint = "app.bsky.feed.searchPosts"
         params = {
-            "q"    : query,
+            "q": query,
             "limit": "100",
-            "sort" : sort,
+            "sort": sort,
         }
         return self._pagination(endpoint, params, "posts")
 
@@ -537,18 +551,20 @@ class BlueskyAPI():
             headers = None
             data = {
                 "identifier": username,
-                "password"  : self.password,
+                "password": self.password,
             }
 
         url = f"{self.root}/xrpc/{endpoint}"
         response = self.extractor.request(
-            url, method="POST", headers=headers, json=data, fatal=None)
+            url, method="POST", headers=headers, json=data, fatal=None
+        )
         data = response.json()
 
         if response.status_code != 200:
             self.log.debug("Server response: %s", data)
             raise exception.AuthenticationError(
-                f"\"{data.get('error')}: {data.get('message')}\"")
+                f"\"{data.get('error')}: {data.get('message')}\""
+            )
 
         _refresh_token_cache.update(self.username, data["refreshJwt"])
         return "Bearer " + data["accessJwt"]
@@ -561,7 +577,8 @@ class BlueskyAPI():
         while True:
             self.authenticate()
             response = self.extractor.request(
-                url, params=params, headers=self.headers, fatal=None)
+                url, params=params, headers=self.headers, fatal=None
+            )
 
             if response.status_code < 400:
                 return response.json()
@@ -580,8 +597,7 @@ class BlueskyAPI():
             self.extractor.log.debug("Server response: %s", response.text)
             raise exception.AbortExtraction(msg)
 
-    def _pagination(self, endpoint, params,
-                    key="feed", root=None, check_empty=False):
+    def _pagination(self, endpoint, params, key="feed", root=None, check_empty=False):
         while True:
             data = self._call(endpoint, params, root)
 
@@ -595,6 +611,6 @@ class BlueskyAPI():
             params["cursor"] = cursor
 
 
-@cache(maxage=84*86400, keyarg=0)
+@cache(maxage=84 * 86400, keyarg=0)
 def _refresh_token_cache(username):
     return None

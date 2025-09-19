@@ -15,10 +15,10 @@ BASE_PATTERN = r"(?:https?://)?discord\.com"
 
 class DiscordExtractor(Extractor):
     """Base class for Discord extractors"""
+
     category = "discord"
     root = "https://discord.com"
-    directory_fmt = ("{category}", "{server_id}_{server}",
-                     "{channel_id}_{channel}")
+    directory_fmt = ("{category}", "{server_id}_{server}", "{channel_id}_{channel}")
     filename_fmt = "{message_id}_{num:>02}_{filename}.{extension}"
     archive_fmt = "{message_id}_{num}"
 
@@ -65,45 +65,52 @@ class DiscordExtractor(Extractor):
             message_metadata = {}
             message_metadata.update(self.server_metadata)
             message_metadata.update(
-                self.server_channels_metadata[message["channel_id"]])
-            message_metadata.update({
-                "author": message["author"]["username"],
-                "author_id": message["author"]["id"],
-                "author_files": [],
-                "message": self.extract_message_text(message),
-                "message_id": message["id"],
-                "date": text.parse_datetime(
-                    message["timestamp"], "%Y-%m-%dT%H:%M:%S.%f%z"
-                ),
-                "files": []
-            })
+                self.server_channels_metadata[message["channel_id"]]
+            )
+            message_metadata.update(
+                {
+                    "author": message["author"]["username"],
+                    "author_id": message["author"]["id"],
+                    "author_files": [],
+                    "message": self.extract_message_text(message),
+                    "message_id": message["id"],
+                    "date": text.parse_datetime(
+                        message["timestamp"], "%Y-%m-%dT%H:%M:%S.%f%z"
+                    ),
+                    "files": [],
+                }
+            )
 
-            for icon_type, icon_path in (
-                ("avatar", "avatars"),
-                ("banner", "banners")
-            ):
+            for icon_type, icon_path in (("avatar", "avatars"), ("banner", "banners")):
                 if message["author"].get(icon_type):
-                    message_metadata["author_files"].append({
-                        "url": (f"https://cdn.discordapp.com/{icon_path}/"
+                    message_metadata["author_files"].append(
+                        {
+                            "url": (
+                                f"https://cdn.discordapp.com/{icon_path}/"
                                 f"{message_metadata['author_id']}/"
                                 f"{message['author'][icon_type]}.png"
-                                f"?size=4096"),
-                        "filename": icon_type,
-                        "extension": "png",
-                    })
+                                f"?size=4096"
+                            ),
+                            "filename": icon_type,
+                            "extension": "png",
+                        }
+                    )
 
             message_snapshots = [message]
             message_snapshots.extend(
-                msg["message"] for msg in message.get("message_snapshots", [])
+                msg["message"]
+                for msg in message.get("message_snapshots", [])
                 if msg["message"]["type"] in (0, 19, 21)
             )
 
             for snapshot in message_snapshots:
                 for attachment in snapshot["attachments"]:
-                    message_metadata["files"].append({
-                        "url": attachment["url"],
-                        "type": "attachment",
-                    })
+                    message_metadata["files"].append(
+                        {
+                            "url": attachment["url"],
+                            "type": "attachment",
+                        }
+                    )
 
                 for embed in snapshot["embeds"]:
                     if embed["type"] in self.enabled_embeds:
@@ -112,10 +119,12 @@ class DiscordExtractor(Extractor):
                                 continue
                             url = embed[field].get("proxy_url")
                             if url is not None:
-                                message_metadata["files"].append({
-                                    "url": url,
-                                    "type": "embed",
-                                })
+                                message_metadata["files"].append(
+                                    {
+                                        "url": url,
+                                        "type": "embed",
+                                    }
+                                )
                                 break
 
                 for num, file in enumerate(message_metadata["files"], start=1):
@@ -143,9 +152,7 @@ class DiscordExtractor(Extractor):
             if channel_id not in self.server_channels_metadata:
                 self.parse_channel(self.api.get_channel(channel_id))
 
-            channel_type = (
-                self.server_channels_metadata[channel_id]["channel_type"]
-            )
+            channel_type = self.server_channels_metadata[channel_id]["channel_type"]
 
             # https://discord.com/developers/docs/resources/channel#channel-object-channel-types
             if channel_type in (0, 5):
@@ -160,11 +167,10 @@ class DiscordExtractor(Extractor):
                 for channel in self.server_channels_metadata.copy().values():
                     if channel["parent_id"] == channel_id:
                         yield from self.extract_channel(
-                            channel["channel_id"], safe=True)
+                            channel["channel_id"], safe=True
+                        )
             elif not safe:
-                raise exception.AbortExtraction(
-                    "This channel type is not supported."
-                )
+                raise exception.AbortExtraction("This channel type is not supported.")
         except exception.HttpError as exc:
             if not (exc.status == 403 and safe):
                 raise
@@ -177,26 +183,28 @@ class DiscordExtractor(Extractor):
             "channel_type": channel.get("type"),
             "channel_topic": channel.get("topic", ""),
             "parent_id": parent_id,
-            "is_thread": "thread_metadata" in channel
+            "is_thread": "thread_metadata" in channel,
         }
 
         if parent_id in self.server_channels_metadata:
             parent_metadata = self.server_channels_metadata[parent_id]
-            channel_metadata.update({
-                "parent": parent_metadata["channel"],
-                "parent_type": parent_metadata["channel_type"]
-            })
+            channel_metadata.update(
+                {
+                    "parent": parent_metadata["channel"],
+                    "parent_type": parent_metadata["channel_type"],
+                }
+            )
 
         if channel_metadata["channel_type"] in (1, 3):
-            channel_metadata.update({
-                "channel": "DMs",
-                "recipients": (
-                    [user["username"] for user in channel["recipients"]]
-                ),
-                "recipients_id": (
-                    [user["id"] for user in channel["recipients"]]
-                )
-            })
+            channel_metadata.update(
+                {
+                    "channel": "DMs",
+                    "recipients": (
+                        [user["username"] for user in channel["recipients"]]
+                    ),
+                    "recipients_id": ([user["id"] for user in channel["recipients"]]),
+                }
+            )
 
         channel_id = channel_metadata["channel_id"]
 
@@ -208,23 +216,27 @@ class DiscordExtractor(Extractor):
             "server": server["name"],
             "server_id": server["id"],
             "server_files": [],
-            "owner_id": server["owner_id"]
+            "owner_id": server["owner_id"],
         }
 
         for icon_type, icon_path in (
             ("icon", "icons"),
             ("banner", "banners"),
             ("splash", "splashes"),
-            ("discovery_splash", "discovery-splashes")
+            ("discovery_splash", "discovery-splashes"),
         ):
             if server.get(icon_type):
-                self.server_metadata["server_files"].append({
-                    "url": (f"https://cdn.discordapp.com/{icon_path}/"
+                self.server_metadata["server_files"].append(
+                    {
+                        "url": (
+                            f"https://cdn.discordapp.com/{icon_path}/"
                             f"{self.server_metadata['server_id']}/"
-                            f"{server[icon_type]}.png?size=4096"),
-                    "filename": icon_type,
-                    "extension": "png",
-                })
+                            f"{server[icon_type]}.png?size=4096"
+                        ),
+                        "filename": icon_type,
+                        "extension": "png",
+                    }
+                )
 
         return self.server_metadata
 
@@ -232,8 +244,7 @@ class DiscordExtractor(Extractor):
         self.parse_server(self.api.get_server(server_id))
 
         for channel in sorted(
-            self.api.get_server_channels(server_id),
-            key=lambda ch: ch["type"] != 4
+            self.api.get_server_channels(server_id), key=lambda ch: ch["type"] != 4
         ):
             self.parse_channel(channel)
 
@@ -264,8 +275,7 @@ class DiscordMessageExtractor(DiscordExtractor):
         if channel_id not in self.server_channels_metadata:
             self.parse_channel(self.api.get_channel(channel_id))
 
-        return self.extract_message(
-            self.api.get_message(channel_id, message_id))
+        return self.extract_message(self.api.get_message(channel_id, message_id))
 
 
 class DiscordServerExtractor(DiscordExtractor):
@@ -280,14 +290,12 @@ class DiscordServerExtractor(DiscordExtractor):
 
         for channel in self.server_channels_metadata.copy().values():
             if channel["channel_type"] in (0, 5, 15, 16):
-                yield from self.extract_channel(
-                    channel["channel_id"], safe=True)
+                yield from self.extract_channel(channel["channel_id"], safe=True)
 
 
 class DiscordDirectMessagesExtractor(DiscordExtractor):
     subcategory = "direct-messages"
-    directory_fmt = ("{category}", "Direct Messages",
-                     "{channel_id}_{recipients:J,}")
+    directory_fmt = ("{category}", "Direct Messages", "{channel_id}_{recipients:J,}")
     pattern = BASE_PATTERN + r"/channels/@me/(\d+)/?$"
     example = "https://discord.com/channels/@me/1234567890"
 
@@ -297,8 +305,7 @@ class DiscordDirectMessagesExtractor(DiscordExtractor):
 
 class DiscordDirectMessageExtractor(DiscordExtractor):
     subcategory = "direct-message"
-    directory_fmt = ("{category}", "Direct Messages",
-                     "{channel_id}_{recipients:J,}")
+    directory_fmt = ("{category}", "Direct Messages", "{channel_id}_{recipients:J,}")
     pattern = BASE_PATTERN + r"/channels/@me/(\d+)/(\d+)/?$"
     example = "https://discord.com/channels/@me/1234567890/9876543210"
 
@@ -307,11 +314,10 @@ class DiscordDirectMessageExtractor(DiscordExtractor):
 
         self.parse_channel(self.api.get_channel(channel_id))
 
-        return self.extract_message(
-            self.api.get_message(channel_id, message_id))
+        return self.extract_message(self.api.get_message(channel_id, message_id))
 
 
-class DiscordAPI():
+class DiscordAPI:
     """Interface for the Discord API v10
 
     https://discord.com/developers/docs/reference
@@ -339,12 +345,15 @@ class DiscordAPI():
         THREADS_BATCH = 25
 
         def _method(offset):
-            return self._call("/channels/" + channel_id + "/threads/search", {
-                "sort_by": "last_message_time",
-                "sort_order": "desc",
-                "limit": THREADS_BATCH,
-                "offset": + offset,
-            }).get("threads", [])
+            return self._call(
+                "/channels/" + channel_id + "/threads/search",
+                {
+                    "sort_by": "last_message_time",
+                    "sort_order": "desc",
+                    "limit": THREADS_BATCH,
+                    "offset": +offset,
+                },
+            ).get("threads", [])
 
         return self._pagination(_method, THREADS_BATCH)
 
@@ -356,10 +365,10 @@ class DiscordAPI():
 
         def _method(_):
             nonlocal before
-            messages = self._call("/channels/" + channel_id + "/messages", {
-                "limit": MESSAGES_BATCH,
-                "before": before
-            })
+            messages = self._call(
+                "/channels/" + channel_id + "/messages",
+                {"limit": MESSAGES_BATCH, "before": before},
+            )
             if messages:
                 before = messages[-1]["id"]
             return messages
@@ -368,16 +377,14 @@ class DiscordAPI():
 
     def get_message(self, channel_id, message_id):
         """Get message information"""
-        return self._call("/channels/" + channel_id + "/messages", {
-            "limit": 1,
-            "around": message_id
-        })[0]
+        return self._call(
+            "/channels/" + channel_id + "/messages", {"limit": 1, "around": message_id}
+        )[0]
 
     def _call(self, endpoint, params=None):
         url = self.root + endpoint
         try:
-            response = self.extractor.request(
-                url, params=params, headers=self.headers)
+            response = self.extractor.request(url, params=params, headers=self.headers)
         except exception.HttpError as exc:
             if exc.status == 401:
                 self._raise_invalid_token()
@@ -394,7 +401,8 @@ class DiscordAPI():
             offset += len(data)
 
     def _raise_invalid_token(self):
-        raise exception.AuthenticationError("""Invalid or missing token.
+        raise exception.AuthenticationError(
+            """Invalid or missing token.
 Please provide a valid token following these instructions:
 
 1) Open Discord in your browser (https://discord.com/app);
@@ -403,4 +411,5 @@ Please provide a valid token following these instructions:
 4) In the "Headers" tab, look for an entry beginning with "Authorization: ";
 5) Right-click the entry and click "Copy Value";
 6) Paste the token in your configuration file under "extractor.discord.token",
-or run this command with the -o "token=[your token]" argument.""")
+or run this command with the -o "token=[your token]" argument."""
+        )

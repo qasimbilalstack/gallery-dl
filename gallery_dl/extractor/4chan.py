@@ -14,13 +14,13 @@ from .. import text
 
 class _4chanThreadExtractor(Extractor):
     """Extractor for 4chan threads"""
+
     category = "4chan"
     subcategory = "thread"
     directory_fmt = ("{category}", "{board}", "{thread} {title}")
     filename_fmt = "{tim} {filename}.{extension}"
     archive_fmt = "{board}_{thread}_{tim}"
-    pattern = (r"(?:https?://)?boards\.4chan(?:nel)?\.org"
-               r"/([^/]+)/thread/(\d+)")
+    pattern = r"(?:https?://)?boards\.4chan(?:nel)?\.org" r"/([^/]+)/thread/(\d+)"
     example = "https://boards.4channel.org/a/thread/12345/"
 
     def __init__(self, match):
@@ -33,9 +33,9 @@ class _4chanThreadExtractor(Extractor):
         title = posts[0].get("sub") or text.remove_html(posts[0]["com"])
 
         data = {
-            "board" : self.board,
+            "board": self.board,
             "thread": self.thread,
-            "title" : text.unescape(title)[:50],
+            "title": text.unescape(title)[:50],
         }
 
         yield Message.Directory, data
@@ -45,8 +45,9 @@ class _4chanThreadExtractor(Extractor):
                 post["extension"] = post["ext"][1:]
                 post["filename"] = text.unescape(post["filename"])
                 post["_http_signature"] = _detect_null_byte
-                url = (f"https://i.4cdn.org"
-                       f"/{post['board']}/{post['tim']}{post['ext']}")
+                url = (
+                    f"https://i.4cdn.org" f"/{post['board']}/{post['tim']}{post['ext']}"
+                )
                 yield Message.Url, url, post
 
 
@@ -63,6 +64,7 @@ def _detect_null_byte(signature):
 
 class _4chanBoardExtractor(Extractor):
     """Extractor for 4chan boards"""
+
     category = "4chan"
     subcategory = "board"
     pattern = r"(?:https?://)?boards\.4chan(?:nel)?\.org/([^/?#]+)/\d*$"
@@ -78,8 +80,9 @@ class _4chanBoardExtractor(Extractor):
 
         for page in threads:
             for thread in page["threads"]:
-                url = (f"https://boards.4chan.org"
-                       f"/{self.board}/thread/{thread['no']}/")
+                url = (
+                    f"https://boards.4chan.org" f"/{self.board}/thread/{thread['no']}/"
+                )
                 thread["page"] = page["page"]
                 thread["_extractor"] = _4chanThreadExtractor
                 yield Message.Queue, url, thread

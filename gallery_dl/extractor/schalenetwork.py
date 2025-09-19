@@ -23,6 +23,7 @@ BASE_PATTERN = (
 
 class SchalenetworkExtractor(Extractor):
     """Base class for schale.network extractors"""
+
     category = "schalenetwork"
     root = "https://niyaniya.moe"
     root_api = "https://api.schale.network"
@@ -32,9 +33,9 @@ class SchalenetworkExtractor(Extractor):
 
     def _init(self):
         self.headers = {
-            "Accept" : "*/*",
+            "Accept": "*/*",
             "Referer": self.root + "/",
-            "Origin" : self.root,
+            "Origin": self.root,
         }
 
     def _pagination(self, endpoint, params):
@@ -42,8 +43,7 @@ class SchalenetworkExtractor(Extractor):
         cls = self.extr_class
 
         while True:
-            data = self.request_json(
-                url_api, params=params, headers=self.headers)
+            data = self.request_json(url_api, params=params, headers=self.headers)
 
             try:
                 entries = data["entries"]
@@ -88,11 +88,13 @@ class SchalenetworkExtractor(Extractor):
         else:
             msg = f"{exc.status} {exc.response.reason}"
         raise exception.AuthRequired(
-            "'crt' query parameter & matching '--user-agent'", None, msg)
+            "'crt' query parameter & matching '--user-agent'", None, msg
+        )
 
 
 class SchalenetworkGalleryExtractor(SchalenetworkExtractor, GalleryExtractor):
     """Extractor for schale.network galleries"""
+
     filename_fmt = "{num:>03}.{extension}"
     directory_fmt = ("{category}", "{id} {title}")
     archive_fmt = "{id}_{num}"
@@ -101,16 +103,16 @@ class SchalenetworkGalleryExtractor(SchalenetworkExtractor, GalleryExtractor):
     example = "https://niyaniya.moe/g/12345/67890abcde/"
 
     TAG_TYPES = {
-        0 : "general",
-        1 : "artist",
-        2 : "circle",
-        3 : "parody",
-        4 : "magazine",
-        5 : "character",
-        6 : "",
-        7 : "uploader",
-        8 : "male",
-        9 : "female",
+        0: "general",
+        1: "artist",
+        2: "circle",
+        3: "parody",
+        4: "magazine",
+        5: "character",
+        6: "",
+        7: "uploader",
+        8: "male",
+        9: "female",
         10: "mixed",
         11: "language",
         12: "other",
@@ -134,7 +136,7 @@ class SchalenetworkGalleryExtractor(SchalenetworkExtractor, GalleryExtractor):
 
         if self.config("tags", False):
             tags = collections.defaultdict(list)
-            for tag in tags_data    :
+            for tag in tags_data:
                 tags[tag.get("namespace", 0)].append(tag["name"])
             for type, values in tags.items():
                 data["tags_" + types[type]] = values
@@ -158,8 +160,10 @@ class SchalenetworkGalleryExtractor(SchalenetworkExtractor, GalleryExtractor):
 
         fmt = self._select_format(data["data"])
 
-        url = (f"{self.root_api}/books/data/{gid}/{gkey}"
-               f"/{fmt['id']}/{fmt['key']}/{fmt['w']}?crt={crt}")
+        url = (
+            f"{self.root_api}/books/data/{gid}/{gkey}"
+            f"/{fmt['id']}/{fmt['key']}/{fmt['w']}?crt={crt}"
+        )
         data = self.request_json(url, headers=self.headers)
         base = data["base"]
 
@@ -167,7 +171,7 @@ class SchalenetworkGalleryExtractor(SchalenetworkExtractor, GalleryExtractor):
         for entry in data["entries"]:
             dimensions = entry["dimensions"]
             info = {
-                "width" : dimensions[0],
+                "width": dimensions[0],
                 "height": dimensions[1],
                 "_http_headers": self.headers,
             }
@@ -192,8 +196,7 @@ class SchalenetworkGalleryExtractor(SchalenetworkExtractor, GalleryExtractor):
                 if fmt["id"]:
                     break
             except KeyError:
-                self.log.debug("%s: Format %s is not available",
-                               self.groups[1], fmtid)
+                self.log.debug("%s: Format %s is not available", self.groups[1], fmtid)
         else:
             raise exception.NotFoundError("format")
 
@@ -204,6 +207,7 @@ class SchalenetworkGalleryExtractor(SchalenetworkExtractor, GalleryExtractor):
 
 class SchalenetworkSearchExtractor(SchalenetworkExtractor):
     """Extractor for schale.network search results"""
+
     subcategory = "search"
     pattern = rf"{BASE_PATTERN}/(?:tag/([^/?#]+)|browse)?(?:/?\?([^#]*))?$"
     example = "https://niyaniya.moe/browse?s=QUERY"
@@ -229,6 +233,7 @@ class SchalenetworkSearchExtractor(SchalenetworkExtractor):
 
 class SchalenetworkFavoriteExtractor(SchalenetworkExtractor):
     """Extractor for schale.network favorites"""
+
     subcategory = "favorite"
     pattern = rf"{BASE_PATTERN}/favorites(?:\?([^#]*))?"
     example = "https://niyaniya.moe/favorites"

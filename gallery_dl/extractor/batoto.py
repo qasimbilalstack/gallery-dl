@@ -10,11 +10,13 @@ from .common import Extractor, ChapterExtractor, MangaExtractor
 from .. import text, util
 from ..cache import memcache
 
-BASE_PATTERN = (r"(?:https?://)?("
-                r"(?:ba|d|f|h|j|m|w)to\.to|"
-                r"(?:(?:manga|read)toto|batocomic|[xz]bato)\.(?:com|net|org)|"
-                r"comiko\.(?:net|org)|"
-                r"bat(?:otoo|o?two)\.com)")
+BASE_PATTERN = (
+    r"(?:https?://)?("
+    r"(?:ba|d|f|h|j|m|w)to\.to|"
+    r"(?:(?:manga|read)toto|batocomic|[xz]bato)\.(?:com|net|org)|"
+    r"comiko\.(?:net|org)|"
+    r"bat(?:otoo|o?two)\.com)"
+)
 
 #  https://rentry.co/batoto
 DOMAINS = {
@@ -50,8 +52,9 @@ LEGACY_DOMAINS = {
 }
 
 
-class BatotoBase():
+class BatotoBase:
     """Base class for batoto extractors"""
+
     category = "batoto"
     root = "https://xbato.org"
     _warn_legacy = True
@@ -79,6 +82,7 @@ class BatotoBase():
 
 class BatotoChapterExtractor(BatotoBase, ChapterExtractor):
     """Extractor for batoto manga chapters"""
+
     archive_fmt = "{chapter_id}_{page}"
     pattern = BASE_PATTERN + r"/(?:title/[^/?#]+|chapter)/(\d+)"
     example = "https://xbato.org/title/12345-MANGA/54321"
@@ -96,8 +100,7 @@ class BatotoChapterExtractor(BatotoBase, ChapterExtractor):
         except ValueError:
             manga = info = None
 
-        manga_id = text.extr(
-            extr('rel="canonical" href="', '"'), "/title/", "/")
+        manga_id = text.extr(extr('rel="canonical" href="', '"'), "/title/", "/")
 
         if not manga:
             manga = extr('link-hover">', "<")
@@ -106,7 +109,8 @@ class BatotoChapterExtractor(BatotoBase, ChapterExtractor):
 
         match = util.re(
             r"(?i)(?:(?:Volume|S(?:eason)?)\s*(\d+)\s+)?"
-            r"(?:Chapter|Episode)\s*(\d+)([\w.]*)").match(info)
+            r"(?:Chapter|Episode)\s*(\d+)([\w.]*)"
+        ).match(info)
         if match:
             volume, chapter, minor = match.groups()
         else:
@@ -115,32 +119,32 @@ class BatotoChapterExtractor(BatotoBase, ChapterExtractor):
 
         return {
             **_manga_info(self, manga_id),
-            "chapter_url"   : extr(self.chapter_id + "-ch_", '"'),
-            "title"         : text.unescape(text.remove_html(extr(
-                "selected>", "</option")).partition(" : ")[2]),
-            "volume"        : text.parse_int(volume),
-            "chapter"       : text.parse_int(chapter),
-            "chapter_minor" : minor,
+            "chapter_url": extr(self.chapter_id + "-ch_", '"'),
+            "title": text.unescape(
+                text.remove_html(extr("selected>", "</option")).partition(" : ")[2]
+            ),
+            "volume": text.parse_int(volume),
+            "chapter": text.parse_int(chapter),
+            "chapter_minor": minor,
             "chapter_string": info,
-            "chapter_id"    : text.parse_int(self.chapter_id),
-            "date"          : text.parse_timestamp(extr(' time="', '"')[:-3]),
+            "chapter_id": text.parse_int(self.chapter_id),
+            "date": text.parse_timestamp(extr(' time="', '"')[:-3]),
         }
 
     def images(self, page):
-        images_container = text.extr(page, 'pageOpts', ':[0,0]}"')
+        images_container = text.extr(page, "pageOpts", ':[0,0]}"')
         images_container = text.unescape(images_container)
         return [
-            (url, None)
-            for url in text.extract_iter(images_container, r"\"", r"\"")
+            (url, None) for url in text.extract_iter(images_container, r"\"", r"\"")
         ]
 
 
 class BatotoMangaExtractor(BatotoBase, MangaExtractor):
     """Extractor for batoto manga"""
+
     reverse = False
     chapterclass = BatotoChapterExtractor
-    pattern = (BASE_PATTERN +
-               r"/(?:title/(\d+)[^/?#]*|series/(\d+)(?:/[^/?#]*)?)/?$")
+    pattern = BASE_PATTERN + r"/(?:title/(\d+)[^/?#]*|series/(\d+)(?:/[^/?#]*)?)/?$"
     example = "https://xbato.org/title/12345-MANGA/"
 
     def __init__(self, match):
@@ -168,7 +172,8 @@ class BatotoMangaExtractor(BatotoBase, MangaExtractor):
             data["chapter"] = text.parse_int(chapter)
             data["chapter_minor"] = sep + minor
             data["date"] = text.parse_datetime(
-                extr('time="', '"'), "%Y-%m-%dT%H:%M:%S.%fZ")
+                extr('time="', '"'), "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
 
             url = f"{self.root}/title/{href}"
             results.append((url, data.copy()))
@@ -185,24 +190,22 @@ def _manga_info(self, manga_id, page=None):
     data = util.json_loads(text.unescape(props))["data"][1]
 
     return {
-        "manga"      : data["name"][1],
-        "manga_id"   : text.parse_int(manga_id),
-        "manga_slug" : data["slug"][1],
-        "manga_date" : text.parse_timestamp(
-            data["dateCreate"][1] // 1000),
-        "manga_date_updated": text.parse_timestamp(
-            data["dateUpdate"][1] / 1000),
-        "author"     : json_list(data["authors"]),
-        "artist"     : json_list(data["artists"]),
-        "genre"      : json_list(data["genres"]),
-        "lang"       : data["tranLang"][1],
-        "lang_orig"  : data["origLang"][1],
-        "status"     : data["originalStatus"][1],
-        "published"  : data["originalPubFrom"][1],
+        "manga": data["name"][1],
+        "manga_id": text.parse_int(manga_id),
+        "manga_slug": data["slug"][1],
+        "manga_date": text.parse_timestamp(data["dateCreate"][1] // 1000),
+        "manga_date_updated": text.parse_timestamp(data["dateUpdate"][1] / 1000),
+        "author": json_list(data["authors"]),
+        "artist": json_list(data["artists"]),
+        "genre": json_list(data["genres"]),
+        "lang": data["tranLang"][1],
+        "lang_orig": data["origLang"][1],
+        "status": data["originalStatus"][1],
+        "published": data["originalPubFrom"][1],
         "description": data["summary"][1]["code"][1],
-        "cover"      : data["urlCoverOri"][1],
-        "uploader"   : data["userId"][1],
-        "score"      : data["stat_score_avg"][1],
+        "cover": data["urlCoverOri"][1],
+        "uploader": data["userId"][1],
+        "score": data["stat_score_avg"][1],
     }
 
 

@@ -16,12 +16,14 @@ BASE_PATTERN = r"(?:https?://)?manga\.madokami\.al"
 
 class MadokamiExtractor(Extractor):
     """Base class for madokami extractors"""
+
     category = "madokami"
     root = "https://manga.madokami.al"
 
 
 class MadokamiMangaExtractor(MadokamiExtractor):
     """Extractor for madokami manga"""
+
     subcategory = "manga"
     directory_fmt = ("{category}", "{manga}")
     archive_fmt = "{chapter_id}"
@@ -42,33 +44,36 @@ class MadokamiMangaExtractor(MadokamiExtractor):
         while True:
             if not (cid := extr('<tr data-record="', '"')):
                 break
-            chapters.append({
-                "chapter_id": text.parse_int(cid),
-                "path": text.unescape(extr('href="', '"')),
-                "chapter_string": text.unescape(extr(">", "<")),
-                "size": text.parse_bytes(extr("<td>", "</td>")),
-                "date": text.parse_datetime(
-                    extr("<td>", "</td>").strip(), "%Y-%m-%d %H:%M"),
-            })
+            chapters.append(
+                {
+                    "chapter_id": text.parse_int(cid),
+                    "path": text.unescape(extr('href="', '"')),
+                    "chapter_string": text.unescape(extr(">", "<")),
+                    "size": text.parse_bytes(extr("<td>", "</td>")),
+                    "date": text.parse_datetime(
+                        extr("<td>", "</td>").strip(), "%Y-%m-%d %H:%M"
+                    ),
+                }
+            )
 
         if self.config("chapter-reverse"):
             chapters.reverse()
 
-        self.kwdict.update({
-            "manga" : text.unescape(extr('itemprop="name">', "<")),
-            "year"  : text.parse_int(extr(
-                'itemprop="datePublished" content="', "-")),
-            "author": text.split_html(extr('<p class="staff', "</p>"))[1::2],
-            "genre" : text.split_html(extr("<h3>Genres</h3>", "</div>")),
-            "tags"  : text.split_html(extr("<h3>Tags</h3>", "</div>")),
-            "complete": extr('span class="scanstatus">', "<").lower() == "yes",
-        })
+        self.kwdict.update(
+            {
+                "manga": text.unescape(extr('itemprop="name">', "<")),
+                "year": text.parse_int(extr('itemprop="datePublished" content="', "-")),
+                "author": text.split_html(extr('<p class="staff', "</p>"))[1::2],
+                "genre": text.split_html(extr("<h3>Genres</h3>", "</div>")),
+                "tags": text.split_html(extr("<h3>Tags</h3>", "</div>")),
+                "complete": extr('span class="scanstatus">', "<").lower() == "yes",
+            }
+        )
 
         search_chstr = text.re(
-            r"(?i)((?:v(?:ol)?\.?\s*(\d+))"
-            r"(?:\s+ch?\.?\s*(\d+)(?:-(\d+))?)?)").search
-        search_chstr_min = text.re(
-            r"(?i)(ch?\.?\s*(\d+)(?:-(\d+))?)").search
+            r"(?i)((?:v(?:ol)?\.?\s*(\d+))" r"(?:\s+ch?\.?\s*(\d+)(?:-(\d+))?)?)"
+        ).search
+        search_chstr_min = text.re(r"(?i)(ch?\.?\s*(\d+)(?:-(\d+))?)").search
 
         for ch in chapters:
 

@@ -14,6 +14,7 @@ BASE_PATTERN = r"(?:https?://)?2ch\.(su|life|hk)"
 
 class _2chThreadExtractor(Extractor):
     """Extractor for 2ch threads"""
+
     category = "2ch"
     subcategory = "thread"
     root = "https://2ch.su"
@@ -37,9 +38,9 @@ class _2chThreadExtractor(Extractor):
         title = op.get("subject") or text.remove_html(op["comment"])
 
         thread = {
-            "board" : board,
+            "board": board,
             "thread": thread,
-            "title" : text.unescape(title)[:50],
+            "title": text.unescape(title)[:50],
         }
 
         yield Message.Directory, thread
@@ -55,14 +56,14 @@ class _2chThreadExtractor(Extractor):
                     file.update(post)
 
                     file["filename"] = file["fullname"].rpartition(".")[0]
-                    file["tim"], _, file["extension"] = \
-                        file["name"].rpartition(".")
+                    file["tim"], _, file["extension"] = file["name"].rpartition(".")
 
                     yield Message.Url, self.root + file["path"], file
 
 
 class _2chBoardExtractor(Extractor):
     """Extractor for 2ch boards"""
+
     category = "2ch"
     subcategory = "board"
     root = "https://2ch.su"

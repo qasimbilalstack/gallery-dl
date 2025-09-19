@@ -15,8 +15,9 @@ import binascii
 BASE_PATTERN = r"(?i)(?:https?://)?(?:www\.)?readcomiconline\.(?:li|to)"
 
 
-class ReadcomiconlineBase():
+class ReadcomiconlineBase:
     """Base class for readcomiconline extractors"""
+
     category = "readcomiconline"
     directory_fmt = ("{category}", "{comic}", "{issue:>03}")
     filename_fmt = "{comic}_{issue:>03}_{page:>03}.{extension}"
@@ -33,16 +34,20 @@ class ReadcomiconlineBase():
             if self.config("captcha", "stop") == "wait":
                 self.log.warning(
                     "Redirect to \n%s\nVisit this URL in your browser, solve "
-                    "the CAPTCHA, and press ENTER to continue", response.url)
+                    "the CAPTCHA, and press ENTER to continue",
+                    response.url,
+                )
                 self.input()
             else:
                 raise exception.AbortExtraction(
                     f"Redirect to \n{response.url}\nVisit this URL in your "
-                    f"browser and solve the CAPTCHA to continue")
+                    f"browser and solve the CAPTCHA to continue"
+                )
 
 
 class ReadcomiconlineIssueExtractor(ReadcomiconlineBase, ChapterExtractor):
     """Extractor for comic-issues from readcomiconline.li"""
+
     subcategory = "issue"
     pattern = BASE_PATTERN + r"(/Comic/[^/?#]+/[^/?#]+\?)([^#]+)"
     example = "https://readcomiconline.li/Comic/TITLE/Issue-123?id=12345"
@@ -77,11 +82,12 @@ class ReadcomiconlineIssueExtractor(ReadcomiconlineBase, ChapterExtractor):
         results = []
         referer = {"_http_headers": {"Referer": self.page_url}}
         root, pos = text.extract(page, "return baeu(l, '", "'")
-        _   , pos = text.extract(page, "var pth = '", "", pos)
-        var , pos = text.extract(page, "var ", "= '", pos)
+        _, pos = text.extract(page, "var pth = '", "", pos)
+        var, pos = text.extract(page, "var ", "= '", pos)
 
-        replacements = text.re(
-            r"l = l\.replace\(/([^/]+)/g, [\"']([^\"']*)").findall(page)
+        replacements = text.re(r"l = l\.replace\(/([^/]+)/g, [\"']([^\"']*)").findall(
+            page
+        )
 
         for path in page.split(var)[2:]:
             path = text.extr(path, "= '", "'")
@@ -96,6 +102,7 @@ class ReadcomiconlineIssueExtractor(ReadcomiconlineBase, ChapterExtractor):
 
 class ReadcomiconlineComicExtractor(ReadcomiconlineBase, MangaExtractor):
     """Extractor for comics from readcomiconline.li"""
+
     chapterclass = ReadcomiconlineIssueExtractor
     subcategory = "comic"
     pattern = BASE_PATTERN + r"(/Comic/[^/?#]+/?)$"
@@ -103,23 +110,30 @@ class ReadcomiconlineComicExtractor(ReadcomiconlineBase, MangaExtractor):
 
     def chapters(self, page):
         results = []
-        comic, pos = text.extract(page, ' class="barTitle">', '<')
-        page , pos = text.extract(page, ' class="listing">', '</table>', pos)
+        comic, pos = text.extract(page, ' class="barTitle">', "<")
+        page, pos = text.extract(page, ' class="listing">', "</table>", pos)
 
         comic = comic.rpartition("information")[0].strip()
         needle = f' title="Read {comic} '
         comic = text.unescape(comic)
 
-        for item in text.extract_iter(page, ' href="', ' comic online '):
+        for item in text.extract_iter(page, ' href="', " comic online "):
             url, _, issue = item.partition(needle)
             url = url.rpartition('"')[0]
-            if issue.startswith('Issue #'):
+            if issue.startswith("Issue #"):
                 issue = issue[7:]
-            results.append((self.root + url, {
-                "comic": comic, "issue": issue,
-                "issue_id": text.parse_int(url.rpartition("=")[2]),
-                "lang": "en", "language": "English",
-            }))
+            results.append(
+                (
+                    self.root + url,
+                    {
+                        "comic": comic,
+                        "issue": issue,
+                        "issue_id": text.parse_int(url.rpartition("=")[2]),
+                        "lang": "en",
+                        "language": "English",
+                    },
+                )
+            )
         return results
 
 
@@ -137,7 +151,7 @@ def baeu(url, root="", root_blogspot="https://2.bp.blogspot.com"):
     path, sep, query = url.partition("?")
 
     contains_s0 = "=s0" in path
-    path = path[:-3 if contains_s0 else -6]
+    path = path[: -3 if contains_s0 else -6]
     path = path[15:33] + path[50:]  # step1()
     path = path[0:-11] + path[-2:]  # step2()
     path = binascii.a2b_base64(path).decode()  # atob()

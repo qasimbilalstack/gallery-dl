@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?unsplash\.com"
 
 class UnsplashExtractor(Extractor):
     """Base class for unsplash extractors"""
+
     category = "unsplash"
     directory_fmt = ("{category}", "{user[username]}")
     filename_fmt = "{id}.{extension}"
@@ -34,7 +35,8 @@ class UnsplashExtractor(Extractor):
 
         for photo in self.photos():
             util.delete_items(
-                photo, ("current_user_collections", "related_collections"))
+                photo, ("current_user_collections", "related_collections")
+            )
             url = photo["urls"][fmt]
             text.nameext_from_url(url, photo)
 
@@ -73,6 +75,7 @@ class UnsplashExtractor(Extractor):
 
 class UnsplashImageExtractor(UnsplashExtractor):
     """Extractor for a single unsplash photo"""
+
     subcategory = "image"
     pattern = BASE_PATTERN + r"/photos/([^/?#]+)"
     example = "https://unsplash.com/photos/ID"
@@ -84,6 +87,7 @@ class UnsplashImageExtractor(UnsplashExtractor):
 
 class UnsplashUserExtractor(UnsplashExtractor):
     """Extractor for all photos of an unsplash user"""
+
     subcategory = "user"
     pattern = BASE_PATTERN + r"/@(\w+)/?$"
     example = "https://unsplash.com/@USER"
@@ -96,6 +100,7 @@ class UnsplashUserExtractor(UnsplashExtractor):
 
 class UnsplashFavoriteExtractor(UnsplashExtractor):
     """Extractor for all likes of an unsplash user"""
+
     subcategory = "favorite"
     pattern = BASE_PATTERN + r"/@(\w+)/likes"
     example = "https://unsplash.com/@USER/likes"
@@ -108,6 +113,7 @@ class UnsplashFavoriteExtractor(UnsplashExtractor):
 
 class UnsplashCollectionExtractor(UnsplashExtractor):
     """Extractor for an unsplash collection"""
+
     subcategory = "collection"
     pattern = BASE_PATTERN + r"/collections/([^/?#]+)(?:/([^/?#]+))?"
     example = "https://unsplash.com/collections/12345/TITLE"
@@ -127,6 +133,7 @@ class UnsplashCollectionExtractor(UnsplashExtractor):
 
 class UnsplashSearchExtractor(UnsplashExtractor):
     """Extractor for unsplash search results"""
+
     subcategory = "search"
     pattern = BASE_PATTERN + r"/s/photos/([^/?#]+)(?:\?([^#]+))?"
     example = "https://unsplash.com/s/photos/QUERY"
@@ -137,7 +144,7 @@ class UnsplashSearchExtractor(UnsplashExtractor):
 
     def photos(self):
         url = self.root + "/napi/search/photos"
-        params = {"query": text.unquote(self.item.replace('-', ' '))}
+        params = {"query": text.unquote(self.item.replace("-", " "))}
         if self.query:
             params.update(text.parse_query(self.query))
         return self._pagination(url, params, True)

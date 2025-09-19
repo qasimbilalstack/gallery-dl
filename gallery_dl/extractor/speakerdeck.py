@@ -14,6 +14,7 @@ from .. import text, util
 
 class SpeakerdeckPresentationExtractor(GalleryExtractor):
     """Extractor for images from a presentation on speakerdeck.com"""
+
     category = "speakerdeck"
     subcategory = "presentation"
     directory_fmt = ("{category}", "{user}")
@@ -33,7 +34,8 @@ class SpeakerdeckPresentationExtractor(GalleryExtractor):
         data = self.request_json(url, params=params)
 
         self.presentation_id = text.extr(
-            data["html"], 'src="//speakerdeck.com/player/', '"')
+            data["html"], 'src="//speakerdeck.com/player/', '"'
+        )
 
         return {
             "user": user,

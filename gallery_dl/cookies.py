@@ -25,17 +25,26 @@ from . import aes, text, util
 
 
 SUPPORTED_BROWSERS_CHROMIUM = {
-    "brave", "chrome", "chromium", "edge", "opera", "thorium", "vivaldi"}
+    "brave",
+    "chrome",
+    "chromium",
+    "edge",
+    "opera",
+    "thorium",
+    "vivaldi",
+}
 SUPPORTED_BROWSERS_FIREFOX = {"firefox", "librewolf", "zen"}
-SUPPORTED_BROWSERS = \
+SUPPORTED_BROWSERS = (
     SUPPORTED_BROWSERS_CHROMIUM | SUPPORTED_BROWSERS_FIREFOX | {"safari"}
+)
 
 logger = logging.getLogger("cookies")
 
 
 def load_cookies(browser_specification):
-    browser_name, profile, keyring, container, domain = \
-        _parse_browser_specification(*browser_specification)
+    browser_name, profile, keyring, container, domain = _parse_browser_specification(
+        *browser_specification
+    )
     if browser_name in SUPPORTED_BROWSERS_FIREFOX:
         return load_cookies_firefox(browser_name, profile, container, domain)
     elif browser_name == "safari":
@@ -46,13 +55,10 @@ def load_cookies(browser_specification):
         raise ValueError(f"unknown browser '{browser_name}'")
 
 
-def load_cookies_firefox(browser_name, profile=None,
-                         container=None, domain=None):
-    path, container_id = _firefox_cookies_database(browser_name,
-                                                   profile, container)
+def load_cookies_firefox(browser_name, profile=None, container=None, domain=None):
+    path, container_id = _firefox_cookies_database(browser_name, profile, container)
 
-    sql = ("SELECT name, value, host, path, isSecure, expiry "
-           "FROM moz_cookies")
+    sql = "SELECT name, value, host, path, isSecure, expiry " "FROM moz_cookies"
     conditions = []
     parameters = []
 
@@ -77,18 +83,29 @@ def load_cookies_firefox(browser_name, profile=None,
     with DatabaseConnection(path) as db:
         cookies = [
             Cookie(
-                0, name, value, None, False,
-                domain, True if domain else False,
+                0,
+                name,
+                value,
+                None,
+                False,
+                domain,
+                True if domain else False,
                 domain[0] == "." if domain else False,
-                path, True if path else False, secure, expires,
-                False, None, None, {},
+                path,
+                True if path else False,
+                secure,
+                expires,
+                False,
+                None,
+                None,
+                {},
             )
             for name, value, domain, path, secure, expires in db.execute(
-                sql, parameters)
+                sql, parameters
+            )
         ]
 
-    _log_info("Extracted %s cookies from %s",
-              len(cookies), browser_name.capitalize())
+    _log_info("Extracted %s cookies from %s", len(cookies), browser_name.capitalize())
     return cookies
 
 
@@ -112,8 +129,7 @@ def load_cookies_safari(profile=None, domain=None):
     return cookies
 
 
-def load_cookies_chromium(browser_name, profile=None,
-                          keyring=None, domain=None):
+def load_cookies_chromium(browser_name, profile=None, keyring=None, domain=None):
     config = _chromium_browser_settings(browser_name)
     path = _chromium_cookies_database(profile, config)
     _log_debug("Extracting cookies from %s", path)
@@ -134,26 +150,37 @@ def load_cookies_chromium(browser_name, profile=None,
         cursor = db.cursor()
 
         try:
-            meta_version = int(cursor.execute(
-                "SELECT value FROM meta WHERE key = 'version'").fetchone()[0])
+            meta_version = int(
+                cursor.execute(
+                    "SELECT value FROM meta WHERE key = 'version'"
+                ).fetchone()[0]
+            )
         except Exception as exc:
-            _log_warning("Failed to get cookie database meta version (%s: %s)",
-                         exc.__class__.__name__, exc)
+            _log_warning(
+                "Failed to get cookie database meta version (%s: %s)",
+                exc.__class__.__name__,
+                exc,
+            )
             meta_version = 0
 
         try:
             rows = cursor.execute(
                 "SELECT host_key, name, value, encrypted_value, path, "
-                "expires_utc, is_secure FROM cookies" + condition, parameters)
+                "expires_utc, is_secure FROM cookies" + condition,
+                parameters,
+            )
         except sqlite3.OperationalError:
             rows = cursor.execute(
                 "SELECT host_key, name, value, encrypted_value, path, "
-                "expires_utc, secure FROM cookies" + condition, parameters)
+                "expires_utc, secure FROM cookies" + condition,
+                parameters,
+            )
 
         failed_cookies = 0
         unencrypted_cookies = 0
         decryptor = _chromium_cookie_decryptor(
-            config["directory"], config["keyring"], keyring, meta_version)
+            config["directory"], config["keyring"], keyring, meta_version
+        )
 
         cookies = []
         for domain, name, value, enc_value, path, expires, secure in rows:
@@ -177,21 +204,38 @@ def load_cookies_chromium(browser_name, profile=None,
             path = path.decode()
             name = name.decode()
 
-            cookies.append(Cookie(
-                0, name, value, None, False,
-                domain, True if domain else False,
-                domain[0] == "." if domain else False,
-                path, True if path else False, secure, expires,
-                False, None, None, {},
-            ))
+            cookies.append(
+                Cookie(
+                    0,
+                    name,
+                    value,
+                    None,
+                    False,
+                    domain,
+                    True if domain else False,
+                    domain[0] == "." if domain else False,
+                    path,
+                    True if path else False,
+                    secure,
+                    expires,
+                    False,
+                    None,
+                    None,
+                    {},
+                )
+            )
 
     if failed_cookies > 0:
         failed_message = f" ({failed_cookies} could not be decrypted)"
     else:
         failed_message = ""
 
-    _log_info("Extracted %s cookies from %s%s",
-              len(cookies), browser_name.capitalize(), failed_message)
+    _log_info(
+        "Extracted %s cookies from %s%s",
+        len(cookies),
+        browser_name.capitalize(),
+        failed_message,
+    )
     counts = decryptor.cookie_counts
     counts["unencrypted"] = unencrypted_cookies
     _log_debug("version breakdown: %s", counts)
@@ -201,19 +245,21 @@ def load_cookies_chromium(browser_name, profile=None,
 # --------------------------------------------------------------------
 # firefox
 
+
 def _firefox_cookies_database(browser_name, profile=None, container=None):
     if not profile:
         search_root = _firefox_browser_directory(browser_name)
     elif _is_path(profile):
         search_root = profile
     else:
-        search_root = os.path.join(
-            _firefox_browser_directory(browser_name), profile)
+        search_root = os.path.join(_firefox_browser_directory(browser_name), profile)
 
     path = _find_most_recently_used_file(search_root, "cookies.sqlite")
     if path is None:
-        raise FileNotFoundError(f"Unable to find {browser_name.capitalize()} "
-                                f"cookies database in {search_root}")
+        raise FileNotFoundError(
+            f"Unable to find {browser_name.capitalize()} "
+            f"cookies database in {search_root}"
+        )
 
     _log_debug("Extracting cookies from %s", path)
 
@@ -225,28 +271,30 @@ def _firefox_cookies_database(browser_name, profile=None, container=None):
         container_id = None
 
     else:
-        containers_path = os.path.join(
-            os.path.dirname(path), "containers.json")
+        containers_path = os.path.join(os.path.dirname(path), "containers.json")
 
         try:
             with open(containers_path) as fp:
                 identities = util.json_loads(fp.read())["identities"]
         except OSError:
-            _log_error("Unable to read Firefox container database at '%s'",
-                       containers_path)
+            _log_error(
+                "Unable to read Firefox container database at '%s'", containers_path
+            )
             raise
         except KeyError:
             identities = ()
 
         for context in identities:
             if container == context.get("name") or container == text.extr(
-                    context.get("l10nID", ""), "userContext", ".label"):
+                context.get("l10nID", ""), "userContext", ".label"
+            ):
                 container_id = context["userContextId"]
                 break
         else:
             raise ValueError(f"Unable to find Firefox container '{container}'")
-        _log_debug("Only loading cookies from container '%s' (ID %s)",
-                   container, container_id)
+        _log_debug(
+            "Only loading cookies from container '%s' (ID %s)", container, container_id
+        )
 
     return path, container_id
 
@@ -257,28 +305,29 @@ def _firefox_browser_directory(browser_name):
     if sys.platform in ("win32", "cygwin"):
         appdata = os.path.expandvars("%APPDATA%")
         return {
-            "firefox"  : join(appdata, R"Mozilla\Firefox\Profiles"),
+            "firefox": join(appdata, R"Mozilla\Firefox\Profiles"),
             "librewolf": join(appdata, R"librewolf\Profiles"),
-            "zen"      : join(appdata, R"zen\Profiles"),
+            "zen": join(appdata, R"zen\Profiles"),
         }[browser_name]
     elif sys.platform == "darwin":
         appdata = os.path.expanduser("~/Library/Application Support")
         return {
-            "firefox"  : join(appdata, R"Firefox/Profiles"),
+            "firefox": join(appdata, R"Firefox/Profiles"),
             "librewolf": join(appdata, R"librewolf/Profiles"),
-            "zen"      : join(appdata, R"zen/Profiles"),
+            "zen": join(appdata, R"zen/Profiles"),
         }[browser_name]
     else:
         home = os.path.expanduser("~")
         return {
-            "firefox"  : join(home, R".mozilla/firefox"),
+            "firefox": join(home, R".mozilla/firefox"),
             "librewolf": join(home, R".librewolf"),
-            "zen"      : join(home, R".zen"),
+            "zen": join(home, R".zen"),
         }[browser_name]
 
 
 # --------------------------------------------------------------------
 # safari
+
 
 def _safari_cookies_database():
     try:
@@ -286,8 +335,10 @@ def _safari_cookies_database():
         return open(path, "rb")
     except FileNotFoundError:
         _log_debug("Trying secondary cookie location")
-        path = os.path.expanduser("~/Library/Containers/com.apple.Safari/Data"
-                                  "/Library/Cookies/Cookies.binarycookies")
+        path = os.path.expanduser(
+            "~/Library/Containers/com.apple.Safari/Data"
+            "/Library/Cookies/Cookies.binarycookies"
+        )
         return open(path, "rb")
 
 
@@ -295,8 +346,7 @@ def _safari_parse_cookies_header(data):
     p = DataParser(data)
     p.expect_bytes(b"cook", "database signature")
     number_of_pages = p.read_uint(big_endian=True)
-    page_sizes = [p.read_uint(big_endian=True)
-                  for _ in range(number_of_pages)]
+    page_sizes = [p.read_uint(big_endian=True) for _ in range(number_of_pages)]
     return page_sizes, p.cursor
 
 
@@ -314,7 +364,8 @@ def _safari_parse_cookies_page(data, cookies, domain=None):
     for i, record_offset in enumerate(record_offsets):
         p.skip_to(record_offset, "space between records")
         record_length = _safari_parse_cookies_record(
-            data[record_offset:], cookies, domain)
+            data[record_offset:], cookies, domain
+        )
         p.read_bytes(record_length)
     p.skip_to_end("space in between pages")
 
@@ -360,13 +411,26 @@ def _safari_parse_cookies_record(data, cookies, host=None):
 
     p.skip_to(record_size, "space at the end of the record")
 
-    cookies.append(Cookie(
-        0, name, value, None, False,
-        domain, True if domain else False,
-        domain[0] == "." if domain else False,
-        path, True if path else False, is_secure, expiration_date,
-        False, None, None, {},
-    ))
+    cookies.append(
+        Cookie(
+            0,
+            name,
+            value,
+            None,
+            False,
+            domain,
+            True if domain else False,
+            domain[0] == "." if domain else False,
+            path,
+            True if path else False,
+            is_secure,
+            expiration_date,
+            False,
+            None,
+            None,
+            {},
+        )
+    )
 
     return record_size
 
@@ -374,13 +438,15 @@ def _safari_parse_cookies_record(data, cookies, host=None):
 # --------------------------------------------------------------------
 # chromium
 
+
 def _chromium_cookies_database(profile, config):
     if profile is None:
         search_root = config["directory"]
     elif _is_path(profile):
         search_root = profile
-        config["directory"] = (os.path.dirname(profile)
-                               if config["profiles"] else profile)
+        config["directory"] = (
+            os.path.dirname(profile) if config["profiles"] else profile
+        )
     elif config["profiles"]:
         search_root = os.path.join(config["directory"], profile)
     else:
@@ -389,8 +455,10 @@ def _chromium_cookies_database(profile, config):
 
     path = _find_most_recently_used_file(search_root, "Cookies")
     if path is None:
-        raise FileNotFoundError(f"Unable to find {config['browser']} cookies "
-                                f"database in '{search_root}'")
+        raise FileNotFoundError(
+            f"Unable to find {config['browser']} cookies "
+            f"database in '{search_root}'"
+        )
     return path
 
 
@@ -403,76 +471,71 @@ def _chromium_browser_settings(browser_name):
         appdata_local = os.path.expandvars("%LOCALAPPDATA%")
         appdata_roaming = os.path.expandvars("%APPDATA%")
         browser_dir = {
-            "brave"   : join(appdata_local,
-                             R"BraveSoftware\Brave-Browser\User Data"),
-            "chrome"  : join(appdata_local, R"Google\Chrome\User Data"),
+            "brave": join(appdata_local, R"BraveSoftware\Brave-Browser\User Data"),
+            "chrome": join(appdata_local, R"Google\Chrome\User Data"),
             "chromium": join(appdata_local, R"Chromium\User Data"),
-            "edge"    : join(appdata_local, R"Microsoft\Edge\User Data"),
-            "opera"   : join(appdata_roaming, R"Opera Software\Opera Stable"),
-            "thorium" : join(appdata_local, R"Thorium\User Data"),
-            "vivaldi" : join(appdata_local, R"Vivaldi\User Data"),
+            "edge": join(appdata_local, R"Microsoft\Edge\User Data"),
+            "opera": join(appdata_roaming, R"Opera Software\Opera Stable"),
+            "thorium": join(appdata_local, R"Thorium\User Data"),
+            "vivaldi": join(appdata_local, R"Vivaldi\User Data"),
         }[browser_name]
 
     elif sys.platform == "darwin":
         appdata = os.path.expanduser("~/Library/Application Support")
         browser_dir = {
-            "brave"   : join(appdata, "BraveSoftware/Brave-Browser"),
-            "chrome"  : join(appdata, "Google/Chrome"),
+            "brave": join(appdata, "BraveSoftware/Brave-Browser"),
+            "chrome": join(appdata, "Google/Chrome"),
             "chromium": join(appdata, "Chromium"),
-            "edge"    : join(appdata, "Microsoft Edge"),
-            "opera"   : join(appdata, "com.operasoftware.Opera"),
-            "thorium" : join(appdata, "Thorium"),
-            "vivaldi" : join(appdata, "Vivaldi"),
+            "edge": join(appdata, "Microsoft Edge"),
+            "opera": join(appdata, "com.operasoftware.Opera"),
+            "thorium": join(appdata, "Thorium"),
+            "vivaldi": join(appdata, "Vivaldi"),
         }[browser_name]
 
     else:
-        config = (os.environ.get("XDG_CONFIG_HOME") or
-                  os.path.expanduser("~/.config"))
+        config = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
         browser_dir = {
-            "brave"   : join(config, "BraveSoftware/Brave-Browser"),
-            "chrome"  : join(config, "google-chrome"),
+            "brave": join(config, "BraveSoftware/Brave-Browser"),
+            "chrome": join(config, "google-chrome"),
             "chromium": join(config, "chromium"),
-            "edge"    : join(config, "microsoft-edge"),
-            "opera"   : join(config, "opera"),
-            "thorium" : join(config, "Thorium"),
-            "vivaldi" : join(config, "vivaldi"),
+            "edge": join(config, "microsoft-edge"),
+            "opera": join(config, "opera"),
+            "thorium": join(config, "Thorium"),
+            "vivaldi": join(config, "vivaldi"),
         }[browser_name]
 
     # Linux keyring names can be determined by snooping on dbus
     # while opening the browser in KDE:
     # dbus-monitor "interface="org.kde.KWallet"" "type=method_return"
     keyring_name = {
-        "brave"   : "Brave",
-        "chrome"  : "Chrome",
+        "brave": "Brave",
+        "chrome": "Chrome",
         "chromium": "Chromium",
-        "edge"    : "Microsoft Edge" if sys.platform == "darwin" else
-                    "Chromium",
-        "opera"   : "Opera" if sys.platform == "darwin" else "Chromium",
-        "thorium" : "Thorium",
-        "vivaldi" : "Vivaldi" if sys.platform == "darwin" else "Chrome",
+        "edge": "Microsoft Edge" if sys.platform == "darwin" else "Chromium",
+        "opera": "Opera" if sys.platform == "darwin" else "Chromium",
+        "thorium": "Thorium",
+        "vivaldi": "Vivaldi" if sys.platform == "darwin" else "Chrome",
     }[browser_name]
 
     browsers_without_profiles = {"opera"}
 
     return {
-        "browser"  : browser_name,
+        "browser": browser_name,
         "directory": browser_dir,
-        "keyring"  : keyring_name,
-        "profiles" : browser_name not in browsers_without_profiles
+        "keyring": keyring_name,
+        "profiles": browser_name not in browsers_without_profiles,
     }
 
 
 def _chromium_cookie_decryptor(
-        browser_root, browser_keyring_name, keyring=None, meta_version=0):
+    browser_root, browser_keyring_name, keyring=None, meta_version=0
+):
     if sys.platform in ("win32", "cygwin"):
-        return WindowsChromiumCookieDecryptor(
-            browser_root, meta_version)
+        return WindowsChromiumCookieDecryptor(browser_root, meta_version)
     elif sys.platform == "darwin":
-        return MacChromiumCookieDecryptor(
-            browser_keyring_name, meta_version)
+        return MacChromiumCookieDecryptor(browser_keyring_name, meta_version)
     else:
-        return LinuxChromiumCookieDecryptor(
-            browser_keyring_name, keyring, meta_version)
+        return LinuxChromiumCookieDecryptor(browser_keyring_name, keyring, meta_version)
 
 
 class ChromiumCookieDecryptor:
@@ -520,14 +583,13 @@ class LinuxChromiumCookieDecryptor(ChromiumCookieDecryptor):
         self._v10_key = self.derive_key(b"peanuts")
         self._v11_key = None if password is None else self.derive_key(password)
         self._cookie_counts = {"v10": 0, "v11": 0, "other": 0}
-        self._offset = (32 if meta_version >= 24 else 0)
+        self._offset = 32 if meta_version >= 24 else 0
 
     def derive_key(self, password):
         # values from
         # https://chromium.googlesource.com/chromium/src/+/refs/heads
         # /main/components/os_crypt/os_crypt_linux.cc
-        return pbkdf2_sha1(password, salt=b"saltysalt",
-                           iterations=1, key_length=16)
+        return pbkdf2_sha1(password, salt=b"saltysalt", iterations=1, key_length=16)
 
     @property
     def cookie_counts(self):
@@ -564,14 +626,13 @@ class MacChromiumCookieDecryptor(ChromiumCookieDecryptor):
         password = _get_mac_keyring_password(browser_keyring_name)
         self._v10_key = None if password is None else self.derive_key(password)
         self._cookie_counts = {"v10": 0, "other": 0}
-        self._offset = (32 if meta_version >= 24 else 0)
+        self._offset = 32 if meta_version >= 24 else 0
 
     def derive_key(self, password):
         # values from
         # https://chromium.googlesource.com/chromium/src/+/refs/heads
         # /main/components/os_crypt/os_crypt_mac.mm
-        return pbkdf2_sha1(password, salt=b"saltysalt",
-                           iterations=1003, key_length=16)
+        return pbkdf2_sha1(password, salt=b"saltysalt", iterations=1003, key_length=16)
 
     @property
     def cookie_counts(self):
@@ -601,7 +662,7 @@ class WindowsChromiumCookieDecryptor(ChromiumCookieDecryptor):
     def __init__(self, browser_root, meta_version=0):
         self._v10_key = _get_windows_v10_key(browser_root)
         self._cookie_counts = {"v10": 0, "other": 0}
-        self._offset = (32 if meta_version >= 24 else 0)
+        self._offset = 32 if meta_version >= 24 else 0
 
     @property
     def cookie_counts(self):
@@ -627,13 +688,12 @@ class WindowsChromiumCookieDecryptor(ChromiumCookieDecryptor):
 
             raw_ciphertext = ciphertext
             nonce = raw_ciphertext[:nonce_length]
-            ciphertext = raw_ciphertext[
-                nonce_length:-authentication_tag_length]
+            ciphertext = raw_ciphertext[nonce_length:-authentication_tag_length]
             authentication_tag = raw_ciphertext[-authentication_tag_length:]
 
             return _decrypt_aes_gcm(
-                ciphertext, self._v10_key, nonce, authentication_tag,
-                self._offset)
+                ciphertext, self._v10_key, nonce, authentication_tag, self._offset
+            )
 
         else:
             self._cookie_counts["other"] += 1
@@ -645,6 +705,7 @@ class WindowsChromiumCookieDecryptor(ChromiumCookieDecryptor):
 
 # --------------------------------------------------------------------
 # keyring
+
 
 def _choose_linux_keyring():
     """
@@ -662,7 +723,7 @@ def _choose_linux_keyring():
 
 
 def _get_kwallet_network_wallet():
-    """ The name of the wallet used to store network passwords.
+    """The name of the wallet used to store network passwords.
 
     https://chromium.googlesource.com/chromium/src/+/refs/heads
     /main/components/os_crypt/kwallet_dbus.cc
@@ -674,10 +735,12 @@ def _get_kwallet_network_wallet():
     default_wallet = "kdewallet"
     try:
         proc, stdout = Popen_communicate(
-            "dbus-send", "--session", "--print-reply=literal",
+            "dbus-send",
+            "--session",
+            "--print-reply=literal",
             "--dest=org.kde.kwalletd5",
             "/modules/kwalletd5",
-            "org.kde.KWallet.networkWallet"
+            "org.kde.KWallet.networkWallet",
         )
 
         if proc.returncode != 0:
@@ -688,8 +751,9 @@ def _get_kwallet_network_wallet():
             _log_debug("NetworkWallet = '%s'", network_wallet)
             return network_wallet
     except Exception as exc:
-        _log_warning("Error while obtaining NetworkWallet (%s: %s)",
-                     exc.__class__.__name__, exc)
+        _log_warning(
+            "Error while obtaining NetworkWallet (%s: %s)", exc.__class__.__name__, exc
+        )
         return default_wallet
 
 
@@ -700,7 +764,8 @@ def _get_kwallet_password(browser_keyring_name):
         _log_error(
             "kwallet-query command not found. KWallet and kwallet-query "
             "must be installed to read from KWallet. kwallet-query should be "
-            "included in the kwallet package for your distribution")
+            "included in the kwallet package for your distribution"
+        )
         return b""
 
     network_wallet = _get_kwallet_network_wallet()
@@ -708,20 +773,25 @@ def _get_kwallet_password(browser_keyring_name):
     try:
         proc, stdout = Popen_communicate(
             "kwallet-query",
-            "--read-password", browser_keyring_name + " Safe Storage",
-            "--folder", browser_keyring_name + " Keys",
+            "--read-password",
+            browser_keyring_name + " Safe Storage",
+            "--folder",
+            browser_keyring_name + " Keys",
             network_wallet,
         )
 
         if proc.returncode != 0:
-            _log_error(f"kwallet-query failed with return code "
-                       f"{proc.returncode}. Please consult the kwallet-query "
-                       f"man page for details")
+            _log_error(
+                f"kwallet-query failed with return code "
+                f"{proc.returncode}. Please consult the kwallet-query "
+                f"man page for details"
+            )
             return b""
 
         if stdout.lower().startswith(b"failed to read"):
-            _log_debug("Failed to read password from kwallet. "
-                       "Using empty string instead")
+            _log_debug(
+                "Failed to read password from kwallet. " "Using empty string instead"
+            )
             # This sometimes occurs in KDE because chrome does not check
             # hasEntry and instead just tries to read the value (which
             # kwallet returns "") whereas kwallet-query checks hasEntry.
@@ -736,8 +806,9 @@ def _get_kwallet_password(browser_keyring_name):
                 stdout = stdout[:-1]
             return stdout
     except Exception as exc:
-        _log_warning("Error when running kwallet-query (%s: %s)",
-                     exc.__class__.__name__, exc)
+        _log_warning(
+            "Error when running kwallet-query (%s: %s)", exc.__class__.__name__, exc
+        )
         return b""
 
 
@@ -791,22 +862,27 @@ def _get_linux_keyring_password(browser_keyring_name, keyring):
 
 
 def _get_mac_keyring_password(browser_keyring_name):
-    _log_debug("Using find-generic-password to obtain "
-               "password from OSX keychain")
+    _log_debug("Using find-generic-password to obtain " "password from OSX keychain")
     try:
         proc, stdout = Popen_communicate(
-            "security", "find-generic-password",
+            "security",
+            "find-generic-password",
             "-w",  # write password to stdout
-            "-a", browser_keyring_name,  # match "account"
-            "-s", browser_keyring_name + " Safe Storage",  # match "service"
+            "-a",
+            browser_keyring_name,  # match "account"
+            "-s",
+            browser_keyring_name + " Safe Storage",  # match "service"
         )
 
         if stdout[-1:] == b"\n":
             stdout = stdout[:-1]
         return stdout
     except Exception as exc:
-        _log_warning("Error when using find-generic-password (%s: %s)",
-                     exc.__class__.__name__, exc)
+        _log_warning(
+            "Error when using find-generic-password (%s: %s)",
+            exc.__class__.__name__,
+            exc,
+        )
         return None
 
 
@@ -828,11 +904,12 @@ def _get_windows_v10_key(browser_root):
     if not encrypted_key.startswith(prefix):
         _log_error("Invalid Local State key")
         return None
-    return _decrypt_windows_dpapi(encrypted_key[len(prefix):])
+    return _decrypt_windows_dpapi(encrypted_key[len(prefix) :])
 
 
 # --------------------------------------------------------------------
 # utility
+
 
 class ParserError(Exception):
     pass
@@ -849,15 +926,16 @@ class DataParser:
         end = self.cursor + num_bytes
         if end > len(self._data):
             raise ParserError("reached end of input")
-        data = self._data[self.cursor:end]
+        data = self._data[self.cursor : end]
         self.cursor = end
         return data
 
     def expect_bytes(self, expected_value, message):
         value = self.read_bytes(len(expected_value))
         if value != expected_value:
-            raise ParserError(f"unexpected value: {value} != {expected_value} "
-                              f"({message})")
+            raise ParserError(
+                f"unexpected value: {value} != {expected_value} " f"({message})"
+            )
 
     def read_uint(self, big_endian=False):
         data_format = ">I" if big_endian else "<I"
@@ -878,8 +956,10 @@ class DataParser:
 
     def skip(self, num_bytes, description="unknown"):
         if num_bytes > 0:
-            _log_debug(f"Skipping {num_bytes} bytes ({description}): "
-                       f"{self.read_bytes(num_bytes)!r}")
+            _log_debug(
+                f"Skipping {num_bytes} bytes ({description}): "
+                f"{self.read_bytes(num_bytes)!r}"
+            )
         elif num_bytes < 0:
             raise ParserError(f"Invalid skip of {num_bytes} bytes")
 
@@ -890,7 +970,7 @@ class DataParser:
         self.skip_to(len(self._data), description)
 
 
-class DatabaseConnection():
+class DatabaseConnection:
 
     def __init__(self, path):
         self.path = path
@@ -906,18 +986,23 @@ class DatabaseConnection():
 
             uri = f"file:{path}?mode=ro&immutable=1"
             self.database = sqlite3.connect(
-                uri, uri=True, isolation_level=None, check_same_thread=False)
+                uri, uri=True, isolation_level=None, check_same_thread=False
+            )
             return self.database
         except Exception as exc:
-            _log_debug("Falling back to temporary database copy (%s: %s)",
-                       exc.__class__.__name__, exc)
+            _log_debug(
+                "Falling back to temporary database copy (%s: %s)",
+                exc.__class__.__name__,
+                exc,
+            )
 
         try:
             self.directory = tempfile.TemporaryDirectory(prefix="gallery-dl-")
             path_copy = os.path.join(self.directory.name, "copy.sqlite")
             shutil.copyfile(self.path, path_copy)
             self.database = sqlite3.connect(
-                path_copy, isolation_level=None, check_same_thread=False)
+                path_copy, isolation_level=None, check_same_thread=False
+            )
             return self.database
         except BaseException:
             if self.directory:
@@ -931,8 +1016,7 @@ class DatabaseConnection():
 
 
 def Popen_communicate(*args):
-    proc = util.Popen(
-        args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    proc = util.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     try:
         stdout, stderr = proc.communicate()
     except BaseException:  # Including KeyboardInterrupt
@@ -974,8 +1058,7 @@ def _get_linux_desktop_environment(env):
     desktop_session = env.get("DESKTOP_SESSION")
 
     if xdg_current_desktop:
-        xdg_current_desktop = (xdg_current_desktop.partition(":")[0]
-                               .strip().lower())
+        xdg_current_desktop = xdg_current_desktop.partition(":")[0].strip().lower()
 
         if xdg_current_desktop == "unity":
             if desktop_session and "gnome-fallback" in desktop_session:
@@ -1017,10 +1100,10 @@ def pbkdf2_sha1(password, salt, iterations, key_length):
     return pbkdf2_hmac("sha1", password, salt, iterations, key_length)
 
 
-def _decrypt_aes_cbc(ciphertext, key, offset=0,
-                     initialization_vector=b" " * 16):
-    plaintext = aes.unpad_pkcs7(aes.aes_cbc_decrypt_bytes(
-        ciphertext, key, initialization_vector))
+def _decrypt_aes_cbc(ciphertext, key, offset=0, initialization_vector=b" " * 16):
+    plaintext = aes.unpad_pkcs7(
+        aes.aes_cbc_decrypt_bytes(ciphertext, key, initialization_vector)
+    )
     if offset:
         plaintext = plaintext[offset:]
     try:
@@ -1032,7 +1115,8 @@ def _decrypt_aes_cbc(ciphertext, key, offset=0,
 def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, offset=0):
     try:
         plaintext = aes.aes_gcm_decrypt_and_verify_bytes(
-            ciphertext, key, authentication_tag, nonce)
+            ciphertext, key, authentication_tag, nonce
+        )
         if offset:
             plaintext = plaintext[offset:]
         return plaintext.decode()
@@ -1052,8 +1136,7 @@ def _decrypt_windows_dpapi(ciphertext):
     from ctypes.wintypes import DWORD
 
     class DATA_BLOB(ctypes.Structure):
-        _fields_ = [("cbData", DWORD),
-                    ("pbData", ctypes.POINTER(ctypes.c_char))]
+        _fields_ = [("cbData", DWORD), ("pbData", ctypes.POINTER(ctypes.c_char))]
 
     buffer = ctypes.create_string_buffer(ciphertext)
     blob_in = DATA_BLOB(ctypes.sizeof(buffer), buffer)
@@ -1065,7 +1148,7 @@ def _decrypt_windows_dpapi(ciphertext):
         None,  # pvReserved: must be NULL
         None,  # pPromptStruct: information about prompts to display
         0,  # dwFlags
-        ctypes.byref(blob_out)  # pDataOut
+        ctypes.byref(blob_out),  # pDataOut
     )
     if not ret:
         _log_warning("Failed to decrypt cookie (DPAPI)")
@@ -1099,7 +1182,8 @@ def _is_path(value):
 
 
 def _parse_browser_specification(
-        browser, profile=None, keyring=None, container=None, domain=None):
+    browser, profile=None, keyring=None, container=None, domain=None
+):
     browser = browser.lower()
     if browser not in SUPPORTED_BROWSERS:
         raise ValueError(f"Unsupported browser '{browser}'")

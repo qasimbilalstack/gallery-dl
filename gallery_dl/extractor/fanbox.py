@@ -20,6 +20,7 @@ USER_PATTERN = (
 
 class FanboxExtractor(Extractor):
     """Base class for Fanbox extractors"""
+
     category = "fanbox"
     root = "https://www.fanbox.cc"
     directory_fmt = ("{category}", "{creatorId}")
@@ -30,10 +31,10 @@ class FanboxExtractor(Extractor):
 
     def _init(self):
         self.headers = {
-            "Accept" : "application/json, text/plain, */*",
-            "Origin" : "https://www.fanbox.cc",
+            "Accept": "application/json, text/plain, */*",
+            "Origin": "https://www.fanbox.cc",
             "Referer": "https://www.fanbox.cc/",
-            "Cookie" : None,
+            "Cookie": None,
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-site",
@@ -45,9 +46,9 @@ class FanboxExtractor(Extractor):
                 includes = includes.split(",")
             elif not isinstance(includes, (list, tuple)):
                 includes = ("user", "plan")
-            self._meta_user = ("user" in includes)
-            self._meta_plan = ("plan" in includes)
-            self._meta_comments = ("comments" in includes)
+            self._meta_user = "user" in includes
+            self._meta_plan = "plan" in includes
+            self._meta_comments = "comments" in includes
         else:
             self._meta_user = self._meta_plan = self._meta_comments = False
 
@@ -64,8 +65,12 @@ class FanboxExtractor(Extractor):
 
         for item in self.posts():
             if fee_max is not None and fee_max < item["feeRequired"]:
-                self.log.warning("Skipping post %s (feeRequired of %s > %s)",
-                                 item["id"], item["feeRequired"], fee_max)
+                self.log.warning(
+                    "Skipping post %s (feeRequired of %s > %s)",
+                    item["id"],
+                    item["feeRequired"],
+                    fee_max,
+                )
                 continue
 
             try:
@@ -73,8 +78,9 @@ class FanboxExtractor(Extractor):
                 body = self.request_json(url, headers=self.headers)["body"]
                 content_body, post = self._extract_post(body)
             except Exception as exc:
-                self.log.warning("Skipping post %s (%s: %s)",
-                                 item["id"], exc.__class__.__name__, exc)
+                self.log.warning(
+                    "Skipping post %s (%s: %s)", item["id"], exc.__class__.__name__, exc
+                )
                 continue
 
             yield Message.Directory, post
@@ -103,8 +109,8 @@ class FanboxExtractor(Extractor):
                 post["articleBody"] = content_body.copy()
             if "blocks" in content_body:
                 content = []  # text content
-                images = []   # image IDs in 'body' order
-                files = []    # file IDs in 'body' order
+                images = []  # image IDs in 'body' order
+                files = []  # file IDs in 'body' order
 
                 for block in content_body["blocks"]:
                     if "text" in block:
@@ -159,11 +165,7 @@ class FanboxExtractor(Extractor):
         if not orig:
             return {} if orig is None else orig
 
-        body[key] = new = {
-            id: orig[id]
-            for id in ids
-            if id in orig
-        }
+        body[key] = new = {id: orig[id] for id in ids if id in orig}
 
         return new
 
@@ -184,16 +186,18 @@ class FanboxExtractor(Extractor):
         params = {"creatorId": creator_id}
         data = self.request_json(url, params=params, headers=self.headers)
 
-        plans = {0: {
-            "id"             : "",
-            "title"          : "",
-            "fee"            : 0,
-            "description"    : "",
-            "coverImageUrl"  : "",
-            "creatorId"      : creator_id,
-            "hasAdultContent": None,
-            "paymentMethod"  : None,
-        }}
+        plans = {
+            0: {
+                "id": "",
+                "title": "",
+                "fee": 0,
+                "description": "",
+                "coverImageUrl": "",
+                "creatorId": creator_id,
+                "hasAdultContent": None,
+                "paymentMethod": None,
+            }
+        }
         for plan in data["body"]:
             del plan["user"]
             plans[plan["fee"]] = plan
@@ -201,8 +205,7 @@ class FanboxExtractor(Extractor):
         return plans
 
     def _get_comment_data(self, post_id):
-        url = ("https://api.fanbox.cc/post.getComments"
-               "?limit=10&postId=" + post_id)
+        url = "https://api.fanbox.cc/post.getComments" "?limit=10&postId=" + post_id
 
         comments = []
         while url:
@@ -236,8 +239,9 @@ class FanboxExtractor(Extractor):
                     html_urls.append(href)
                 elif "downloads.fanbox.cc" in href:
                     html_urls.append(href)
-            for src in text.extract_iter(content_body["html"],
-                                         'data-src-original="', '"'):
+            for src in text.extract_iter(
+                content_body["html"], 'data-src-original="', '"'
+            ):
                 html_urls.append(src)
 
             for url in html_urls:
@@ -310,32 +314,38 @@ class FanboxExtractor(Extractor):
         is_video = False
 
         if provider == "soundcloud":
-            url = prefix+"https://soundcloud.com/"+content_id
+            url = prefix + "https://soundcloud.com/" + content_id
             is_video = True
         elif provider == "youtube":
-            url = prefix+"https://youtube.com/watch?v="+content_id
+            url = prefix + "https://youtube.com/watch?v=" + content_id
             is_video = True
         elif provider == "vimeo":
-            url = prefix+"https://vimeo.com/"+content_id
+            url = prefix + "https://vimeo.com/" + content_id
             is_video = True
         elif provider == "fanbox":
             # this is an old URL format that redirects
             # to a proper Fanbox URL
-            url = "https://www.pixiv.net/fanbox/"+content_id
+            url = "https://www.pixiv.net/fanbox/" + content_id
             # resolve redirect
             try:
                 url = self.request_location(url)
             except Exception as exc:
                 url = None
-                self.log.warning("Unable to extract fanbox embed %s (%s: %s)",
-                                 content_id, exc.__class__.__name__, exc)
+                self.log.warning(
+                    "Unable to extract fanbox embed %s (%s: %s)",
+                    content_id,
+                    exc.__class__.__name__,
+                    exc,
+                )
             else:
                 final_post["_extractor"] = FanboxPostExtractor
         elif provider == "twitter":
-            url = "https://twitter.com/_/status/"+content_id
+            url = "https://twitter.com/_/status/" + content_id
         elif provider == "google_forms":
-            url = (f"https://docs.google.com/forms/d/e/"
-                   f"{content_id}/viewform?usp=sf_link")
+            url = (
+                f"https://docs.google.com/forms/d/e/"
+                f"{content_id}/viewform?usp=sf_link"
+            )
         else:
             self.log.warning(f"service not recognized: {provider}")
 
@@ -351,6 +361,7 @@ class FanboxExtractor(Extractor):
 
 class FanboxCreatorExtractor(FanboxExtractor):
     """Extractor for a Fanbox creator's works"""
+
     subcategory = "creator"
     pattern = USER_PATTERN + r"(?:/posts)?/?$"
     example = "https://USER.fanbox.cc/"
@@ -369,6 +380,7 @@ class FanboxCreatorExtractor(FanboxExtractor):
 
 class FanboxPostExtractor(FanboxExtractor):
     """Extractor for media from a single Fanbox post"""
+
     subcategory = "post"
     pattern = USER_PATTERN + r"/posts/(\d+)"
     example = "https://USER.fanbox.cc/posts/12345"
@@ -379,6 +391,7 @@ class FanboxPostExtractor(FanboxExtractor):
 
 class FanboxHomeExtractor(FanboxExtractor):
     """Extractor for your Fanbox home feed"""
+
     subcategory = "home"
     pattern = BASE_PATTERN + r"/?$"
     example = "https://fanbox.cc/"
@@ -390,6 +403,7 @@ class FanboxHomeExtractor(FanboxExtractor):
 
 class FanboxSupportingExtractor(FanboxExtractor):
     """Extractor for your supported Fanbox users feed"""
+
     subcategory = "supporting"
     pattern = BASE_PATTERN + r"/home/supporting"
     example = "https://fanbox.cc/home/supporting"
@@ -401,6 +415,7 @@ class FanboxSupportingExtractor(FanboxExtractor):
 
 class FanboxRedirectExtractor(Extractor):
     """Extractor for pixiv redirects to fanbox.cc"""
+
     category = "fanbox"
     subcategory = "redirect"
     pattern = r"(?:https?://)?(?:www\.)?pixiv\.net/fanbox/creator/(\d+)"

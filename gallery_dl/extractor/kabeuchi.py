@@ -14,6 +14,7 @@ from .. import text, exception
 
 class KabeuchiUserExtractor(Extractor):
     """Extractor for all posts of a user on kabe-uchiroom.com"""
+
     category = "kabeuchi"
     subcategory = "user"
     directory_fmt = ("{category}", "{twitter_user_id} {twitter_id}")
@@ -32,8 +33,7 @@ class KabeuchiUserExtractor(Extractor):
             if post.get("is_ad") or not post["image1"]:
                 continue
 
-            post["date"] = text.parse_datetime(
-                post["created_at"], "%Y-%m-%d %H:%M:%S")
+            post["date"] = text.parse_datetime(post["created_at"], "%Y-%m-%d %H:%M:%S")
             yield Message.Directory, post
 
             for key in keys:
@@ -55,13 +55,13 @@ class KabeuchiUserExtractor(Extractor):
     def _pagination(self, target_id):
         url = f"{self.root}/get_posts.php"
         data = {
-            "user_id"    : "0",
-            "target_id"  : target_id,
-            "type"       : "uploads",
-            "sort_type"  : "0",
+            "user_id": "0",
+            "target_id": target_id,
+            "type": "uploads",
+            "sort_type": "0",
             "category_id": "all",
             "latest_post": "",
-            "page_num"   : 0,
+            "page_num": 0,
         }
 
         while True:

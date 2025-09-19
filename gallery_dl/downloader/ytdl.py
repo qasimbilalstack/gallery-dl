@@ -24,7 +24,7 @@ class YoutubeDLDownloader(DownloaderBase):
         extractor = job.extractor
         retries = self.config("retries", extractor._retries)
         self.ytdl_opts = {
-            "retries": retries+1 if retries >= 0 else float("inf"),
+            "retries": retries + 1 if retries >= 0 else float("inf"),
             "socket_timeout": self.config("timeout", extractor._timeout),
             "nocheckcertificate": not self.config("verify", extractor._verify),
             "proxy": self.proxies.get("http") if self.proxies else None,
@@ -47,8 +47,9 @@ class YoutubeDLDownloader(DownloaderBase):
                 try:
                     module = ytdl.import_module(self.config("module"))
                 except (ImportError, SyntaxError) as exc:
-                    self.log.error("Cannot import module '%s'",
-                                   getattr(exc, "name", ""))
+                    self.log.error(
+                        "Cannot import module '%s'", getattr(exc, "name", "")
+                    )
                     self.log.debug("", exc_info=exc)
                     self.download = lambda u, p: False
                     return False
@@ -60,12 +61,12 @@ class YoutubeDLDownloader(DownloaderBase):
                 self.log.debug("Using %s version %s", module, ytdl_version)
 
                 self.ytdl_instance = ytdl_instance = ytdl.construct_YoutubeDL(
-                    module, self, self.ytdl_opts)
+                    module, self, self.ytdl_opts
+                )
                 if self.outtmpl == "default":
                     self.outtmpl = module.DEFAULT_OUTTMPL
             if self.forward_cookies:
-                self.log.debug("Forwarding cookies to %s",
-                               ytdl_instance.__module__)
+                self.log.debug("Forwarding cookies to %s", ytdl_instance.__module__)
                 set_cookie = ytdl_instance.cookiejar.set_cookie
                 for cookie in self.session.cookies:
                     set_cookie(cookie)
@@ -84,10 +85,13 @@ class YoutubeDLDownloader(DownloaderBase):
             try:
                 if manifest := kwdict.pop("_ytdl_manifest", None):
                     info_dict = self._extract_manifest(
-                        ytdl_instance, url, manifest,
+                        ytdl_instance,
+                        url,
+                        manifest,
                         kwdict.pop("_ytdl_manifest_data", None),
                         kwdict.pop("_ytdl_manifest_headers", None),
-                        kwdict.pop("_ytdl_manifest_cookies", None))
+                        kwdict.pop("_ytdl_manifest_cookies", None),
+                    )
                 else:
                     info_dict = self._extract_info(ytdl_instance, url)
             except Exception as exc:
@@ -100,8 +104,7 @@ class YoutubeDLDownloader(DownloaderBase):
         if "entries" in info_dict:
             index = kwdict.get("_ytdl_index")
             if index is None:
-                return self._download_playlist(
-                    ytdl_instance, pathfmt, info_dict)
+                return self._download_playlist(ytdl_instance, pathfmt, info_dict)
             else:
                 info_dict = info_dict["entries"][index]
 
@@ -113,8 +116,7 @@ class YoutubeDLDownloader(DownloaderBase):
     def _download_video(self, ytdl_instance, pathfmt, info_dict):
         if "url" in info_dict:
             if "filename" in pathfmt.kwdict:
-                pathfmt.kwdict["extension"] = \
-                    text.ext_from_url(info_dict["url"])
+                pathfmt.kwdict["extension"] = text.ext_from_url(info_dict["url"])
             else:
                 text.nameext_from_url(info_dict["url"], pathfmt.kwdict)
 
@@ -129,12 +131,10 @@ class YoutubeDLDownloader(DownloaderBase):
 
         if self.outtmpl:
             self._set_outtmpl(ytdl_instance, self.outtmpl)
-            pathfmt.filename = filename = \
-                ytdl_instance.prepare_filename(info_dict)
+            pathfmt.filename = filename = ytdl_instance.prepare_filename(info_dict)
             pathfmt.extension = info_dict["ext"]
             pathfmt.path = pathfmt.directory + filename
-            pathfmt.realpath = pathfmt.temppath = (
-                pathfmt.realdirectory + filename)
+            pathfmt.realpath = pathfmt.temppath = pathfmt.realdirectory + filename
         else:
             pathfmt.set_extension(info_dict["ext"])
             pathfmt.build_path()
@@ -195,8 +195,9 @@ class YoutubeDLDownloader(DownloaderBase):
     def _extract_info(self, ytdl, url):
         return ytdl.extract_info(url, download=False)
 
-    def _extract_manifest(self, ytdl, url, manifest_type, manifest_data=None,
-                          headers=None, cookies=None):
+    def _extract_manifest(
+        self, ytdl, url, manifest_type, manifest_data=None, headers=None, cookies=None
+    ):
         extr = ytdl.get_info_extractor("Generic")
         video_id = extr._generic_id(url)
 
@@ -205,25 +206,43 @@ class YoutubeDLDownloader(DownloaderBase):
                 cookies = cookies.items()
             set_cookie = ytdl.cookiejar.set_cookie
             for name, value in cookies:
-                set_cookie(Cookie(
-                    0, name, value, None, False,
-                    "", False, False, "/", False,
-                    False, None, False, None, None, {},
-                ))
+                set_cookie(
+                    Cookie(
+                        0,
+                        name,
+                        value,
+                        None,
+                        False,
+                        "",
+                        False,
+                        False,
+                        "/",
+                        False,
+                        False,
+                        None,
+                        False,
+                        None,
+                        None,
+                        {},
+                    )
+                )
 
         if manifest_type == "hls":
             if manifest_data is None:
                 try:
                     fmts, subs = extr._extract_m3u8_formats_and_subtitles(
-                        url, video_id, "mp4", headers=headers)
+                        url, video_id, "mp4", headers=headers
+                    )
                 except AttributeError:
                     fmts = extr._extract_m3u8_formats(
-                        url, video_id, "mp4", headers=headers)
+                        url, video_id, "mp4", headers=headers
+                    )
                     subs = None
             else:
                 try:
                     fmts, subs = extr._parse_m3u8_formats_and_subtitles(
-                        url, video_id, "mp4")
+                        url, video_id, "mp4"
+                    )
                 except AttributeError:
                     fmts = extr._parse_m3u8_formats(url, video_id, "mp4")
                     subs = None
@@ -232,20 +251,20 @@ class YoutubeDLDownloader(DownloaderBase):
             if manifest_data is None:
                 try:
                     fmts, subs = extr._extract_mpd_formats_and_subtitles(
-                        url, video_id, headers=headers)
+                        url, video_id, headers=headers
+                    )
                 except AttributeError:
-                    fmts = extr._extract_mpd_formats(
-                        url, video_id, headers=headers)
+                    fmts = extr._extract_mpd_formats(url, video_id, headers=headers)
                     subs = None
             else:
                 if isinstance(manifest_data, str):
                     manifest_data = ElementTree.fromstring(manifest_data)
                 try:
                     fmts, subs = extr._parse_mpd_formats_and_subtitles(
-                        manifest_data, mpd_id="dash")
+                        manifest_data, mpd_id="dash"
+                    )
                 except AttributeError:
-                    fmts = extr._parse_mpd_formats(
-                        manifest_data, mpd_id="dash")
+                    fmts = extr._parse_mpd_formats(manifest_data, mpd_id="dash")
                     subs = None
 
         else:
@@ -254,16 +273,15 @@ class YoutubeDLDownloader(DownloaderBase):
 
         info_dict = {
             "extractor": "",
-            "id"       : video_id,
-            "title"    : video_id,
-            "formats"  : fmts,
+            "id": video_id,
+            "title": video_id,
+            "formats": fmts,
             "subtitles": subs,
         }
         return ytdl.process_ie_result(info_dict, download=False)
 
     def _progress_hook(self, info):
-        if info["status"] == "downloading" and \
-                info["elapsed"] >= self.progress:
+        if info["status"] == "downloading" and info["elapsed"] >= self.progress:
             total = info.get("total_bytes") or info.get("total_bytes_estimate")
             speed = info.get("speed")
             self.out.progress(

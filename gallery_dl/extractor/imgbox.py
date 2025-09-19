@@ -14,6 +14,7 @@ from .. import text, util, exception
 
 class ImgboxExtractor(Extractor):
     """Base class for imgbox extractors"""
+
     category = "imgbox"
     root = "https://imgbox.com"
 
@@ -40,11 +41,14 @@ class ImgboxExtractor(Extractor):
 
     def get_image_metadata(self, page):
         """Collect metadata for a downloadable file"""
-        return text.extract_all(page, (
-            ("num"      , '</a> &nbsp; ', ' of '),
-            (None       , 'class="image-container"', ''),
-            ("filename" , ' title="', '"'),
-        ))[0]
+        return text.extract_all(
+            page,
+            (
+                ("num", "</a> &nbsp; ", " of "),
+                (None, 'class="image-container"', ""),
+                ("filename", ' title="', '"'),
+            ),
+        )[0]
 
     def get_image_url(self, page):
         """Extract download-url"""
@@ -53,6 +57,7 @@ class ImgboxExtractor(Extractor):
 
 class ImgboxGalleryExtractor(AsynchronousMixin, ImgboxExtractor):
     """Extractor for image galleries from imgbox.com"""
+
     subcategory = "gallery"
     directory_fmt = ("{category}", "{title} - {gallery_key}")
     filename_fmt = "{num:>03}-{filename}.{extension}"
@@ -69,8 +74,7 @@ class ImgboxGalleryExtractor(AsynchronousMixin, ImgboxExtractor):
         page = self.request(self.root + "/g/" + self.gallery_key).text
         if "The specified gallery could not be found." in page:
             raise exception.NotFoundError("gallery")
-        self.image_keys = util.re(
-            r'<a href="/([^"]+)"><img alt="').findall(page)
+        self.image_keys = util.re(r'<a href="/([^"]+)"><img alt="').findall(page)
 
         title = text.extr(page, "<h1>", "</h1>")
         title, _, count = title.rpartition(" - ")
@@ -86,6 +90,7 @@ class ImgboxGalleryExtractor(AsynchronousMixin, ImgboxExtractor):
 
 class ImgboxImageExtractor(ImgboxExtractor):
     """Extractor for single images from imgbox.com"""
+
     subcategory = "image"
     archive_fmt = "{image_key}"
     pattern = r"(?:https?://)?(?:www\.)?imgbox\.com/([A-Za-z0-9]{8})"

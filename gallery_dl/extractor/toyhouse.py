@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?toyhou\.se"
 
 class ToyhouseExtractor(Extractor):
     """Base class for toyhouse extractors"""
+
     category = "toyhouse"
     root = "https://toyhou.se"
     directory_fmt = ("{category}", "{user|artists!S}")
@@ -51,19 +52,19 @@ class ToyhouseExtractor(Extractor):
         extr = text.extract_from(post)
         return {
             "url": extr(needle, '"'),
-            "date": text.parse_datetime(extr(
-                '</h2>\n            <div class="mb-1">', '<'),
-                "%d %b %Y, %I:%M:%S %p"),
+            "date": text.parse_datetime(
+                extr('</h2>\n            <div class="mb-1">', "<"),
+                "%d %b %Y, %I:%M:%S %p",
+            ),
             "artists": [
                 text.remove_html(artist)
                 for artist in extr(
-                    '<div class="artist-credit">',
-                    '</div>\n                    </div>').split(
-                    '<div class="ar tist-credit">')
+                    '<div class="artist-credit">', "</div>\n                    </div>"
+                ).split('<div class="ar tist-credit">')
             ],
-            "characters": text.split_html(extr(
-                '<div class="image-characters',
-                '<div class="image-comments">'))[2:],
+            "characters": text.split_html(
+                extr('<div class="image-characters', '<div class="image-comments">')
+            )[2:],
         }
 
     def _pagination(self, path):
@@ -74,8 +75,7 @@ class ToyhouseExtractor(Extractor):
             page = self.request(url, params=params).text
 
             cnt = 0
-            for post in text.extract_iter(
-                    page, '<li class="gallery-item">', '</li>'):
+            for post in text.extract_iter(page, '<li class="gallery-item">', "</li>"):
                 cnt += 1
                 yield self._parse_post(post)
 
@@ -91,18 +91,23 @@ class ToyhouseExtractor(Extractor):
     def _accept_content_warning(self, page):
         pos = page.find(' name="_token"') + 1
         token, pos = text.extract(page, ' value="', '"', pos)
-        user , pos = text.extract(page, ' value="', '"', pos)
+        user, pos = text.extract(page, ' value="', '"', pos)
         if not token or not user:
             return False
 
         data = {"_token": token, "user": user}
-        self.request(self.root + "/~account/warnings/accept",
-                     method="POST", data=data, allow_redirects=False)
+        self.request(
+            self.root + "/~account/warnings/accept",
+            method="POST",
+            data=data,
+            allow_redirects=False,
+        )
         return True
 
 
 class ToyhouseArtExtractor(ToyhouseExtractor):
     """Extractor for artworks of a toyhouse user"""
+
     subcategory = "art"
     pattern = BASE_PATTERN + r"/([^/?#]+)/art"
     example = "https://www.toyhou.se/USER/art"
@@ -116,14 +121,16 @@ class ToyhouseArtExtractor(ToyhouseExtractor):
 
 class ToyhouseImageExtractor(ToyhouseExtractor):
     """Extractor for individual toyhouse images"""
+
     subcategory = "image"
-    pattern = (r"(?:https?://)?(?:"
-               r"(?:www\.)?toyhou\.se/~images|"
-               r"f\d+\.toyhou\.se/file/[^/?#]+/(?:image|watermark)s"
-               r")/(\d+)")
+    pattern = (
+        r"(?:https?://)?(?:"
+        r"(?:www\.)?toyhou\.se/~images|"
+        r"f\d+\.toyhou\.se/file/[^/?#]+/(?:image|watermark)s"
+        r")/(\d+)"
+    )
     example = "https://toyhou.se/~images/12345"
 
     def posts(self):
         url = f"{self.root}/~images/{self.user}"
-        return (self._parse_post(
-            self.request(url).text, '<img class="mw-100" src="'),)
+        return (self._parse_post(self.request(url).text, '<img class="mw-100" src="'),)

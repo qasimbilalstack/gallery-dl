@@ -15,8 +15,7 @@ import random
 
 if config.get(("extractor", "bunkr"), "tlds"):
     BASE_PATTERN = (
-        r"(?:bunkr:(?:https?://)?([^/?#]+)|"
-        r"(?:https?://)?(?:app\.)?(bunkr+\.\w+))"
+        r"(?:bunkr:(?:https?://)?([^/?#]+)|" r"(?:https?://)?(?:app\.)?(bunkr+\.\w+))"
     )
 else:
     BASE_PATTERN = (
@@ -58,6 +57,7 @@ CF_DOMAINS = set()
 
 class BunkrAlbumExtractor(LolisafeAlbumExtractor):
     """Extractor for bunkr.si albums"""
+
     category = "bunkr"
     root = "https://bunkr.si"
     root_dl = "https://get.bunkrr.su"
@@ -106,8 +106,7 @@ class BunkrAlbumExtractor(LolisafeAlbumExtractor):
                 root, path = self._split(url)
                 if root not in CF_DOMAINS:
                     continue
-                self.log.debug("Redirect to known CF challenge domain '%s'",
-                               root)
+                self.log.debug("Redirect to known CF challenge domain '%s'", root)
 
             except exception.HttpError as exc:
                 if exc.status != 403:
@@ -125,7 +124,8 @@ class BunkrAlbumExtractor(LolisafeAlbumExtractor):
                 else:
                     if not DOMAINS:
                         raise exception.AbortExtraction(
-                            "All Bunkr domains require solving a CF challenge")
+                            "All Bunkr domains require solving a CF challenge"
+                        )
 
             # select alternative domain
             self.root = root = "https://" + random.choice(DOMAINS)
@@ -135,19 +135,18 @@ class BunkrAlbumExtractor(LolisafeAlbumExtractor):
     def fetch_album(self, album_id):
         # album metadata
         page = self.request(f"{self.root}/a/{album_id}?advanced=1").text
-        title = text.unescape(text.unescape(text.extr(
-            page, 'property="og:title" content="', '"')))
+        title = text.unescape(
+            text.unescape(text.extr(page, 'property="og:title" content="', '"'))
+        )
 
         # files
-        items = text.extr(
-            page, "window.albumFiles = [", "</script>").split("\n},\n")
+        items = text.extr(page, "window.albumFiles = [", "</script>").split("\n},\n")
 
         return self._extract_files(items), {
-            "album_id"   : album_id,
-            "album_name" : title,
-            "album_size" : text.extr(
-                page, '<span class="font-semibold">(', ')'),
-            "count"      : len(items),
+            "album_id": album_id,
+            "album_name": title,
+            "album_size": text.extr(page, '<span class="font-semibold">(', ")"),
+            "count": len(items),
         }
 
     def _extract_files(self, items):
@@ -159,16 +158,15 @@ class BunkrAlbumExtractor(LolisafeAlbumExtractor):
                 data_id = text.extr(item, " id: ", ",").strip()
                 file = self._extract_file(data_id)
 
-                file["name"] = util.json_loads(text.extr(
-                    item, 'original:', ',\n').replace("\\'", "'"))
-                file["slug"] = util.json_loads(text.extr(
-                    item, 'slug: ', ',\n'))
-                file["uuid"] = text.extr(
-                    item, 'name: "', ".")
-                file["size"] = text.parse_int(text.extr(
-                    item, "size:  ", " ,\n"))
-                file["date"] = text.parse_datetime(text.extr(
-                    item, 'timestamp: "', '"'), "%H:%M:%S %d/%m/%Y")
+                file["name"] = util.json_loads(
+                    text.extr(item, "original:", ",\n").replace("\\'", "'")
+                )
+                file["slug"] = util.json_loads(text.extr(item, "slug: ", ",\n"))
+                file["uuid"] = text.extr(item, 'name: "', ".")
+                file["size"] = text.parse_int(text.extr(item, "size:  ", " ,\n"))
+                file["date"] = text.parse_datetime(
+                    text.extr(item, 'timestamp: "', '"'), "%H:%M:%S %d/%m/%Y"
+                )
 
                 yield file
             except exception.ControlException:
@@ -180,8 +178,9 @@ class BunkrAlbumExtractor(LolisafeAlbumExtractor):
     def _extract_file(self, data_id):
         referer = f"{self.root_dl}/file/{data_id}"
         headers = {"Referer": referer, "Origin": self.root_dl}
-        data = self.request_json(self.endpoint, method="POST", headers=headers,
-                                 json={"id": data_id})
+        data = self.request_json(
+            self.endpoint, method="POST", headers=headers, json={"id": data_id}
+        )
 
         if data.get("encrypted"):
             key = f"SECRET_KEY_{data['timestamp'] // 3600}"
@@ -190,9 +189,9 @@ class BunkrAlbumExtractor(LolisafeAlbumExtractor):
             file_url = data["url"]
 
         return {
-            "file"          : file_url,
-            "id_url"        : data_id,
-            "_http_headers" : {"Referer": referer},
+            "file": file_url,
+            "id_url": data_id,
+            "_http_headers": {"Referer": referer},
             "_http_validate": self._validate,
         }
 
@@ -209,6 +208,7 @@ class BunkrAlbumExtractor(LolisafeAlbumExtractor):
 
 class BunkrMediaExtractor(BunkrAlbumExtractor):
     """Extractor for bunkr.si media links"""
+
     subcategory = "media"
     directory_fmt = ("{category}",)
     pattern = BASE_PATTERN + r"(/[fvid]/[^/?#]+)"
@@ -219,8 +219,9 @@ class BunkrMediaExtractor(BunkrAlbumExtractor):
             page = self.request(f"{self.root}{album_id}").text
             data_id = text.extr(page, 'data-file-id="', '"')
             file = self._extract_file(data_id)
-            file["name"] = text.unquote(text.unescape(text.extr(
-                page, "<h1", "<").rpartition(">")[2]))
+            file["name"] = text.unquote(
+                text.unescape(text.extr(page, "<h1", "<").rpartition(">")[2])
+            )
             file["slug"] = album_id.rpartition("/")[2]
             file["uuid"] = text.extr(page, "/thumbs/", ".")
         except Exception as exc:
@@ -228,9 +229,9 @@ class BunkrMediaExtractor(BunkrAlbumExtractor):
             return (), {}
 
         return (file,), {
-            "album_id"   : "",
-            "album_name" : "",
-            "album_size" : -1,
+            "album_id": "",
+            "album_name": "",
+            "album_size": -1,
             "description": "",
-            "count"      : 1,
+            "count": 1,
         }

@@ -17,6 +17,7 @@ import time
 
 class MangoxoExtractor(Extractor):
     """Base class for mangoxo extractors"""
+
     category = "mangoxo"
     root = "https://www.mangoxo.com"
     cookies_domain = "www.mangoxo.com"
@@ -29,10 +30,11 @@ class MangoxoExtractor(Extractor):
             self.cookies_update(self._login_impl(username, password))
         elif MangoxoExtractor._warning:
             MangoxoExtractor._warning = False
-            self.log.warning("Unauthenticated users cannot see "
-                             "more than 5 images per album")
+            self.log.warning(
+                "Unauthenticated users cannot see " "more than 5 images per album"
+            )
 
-    @cache(maxage=3*3600, keyarg=1)
+    @cache(maxage=3 * 3600, keyarg=1)
     def _login_impl(self, username, password):
         self.log.info("Logging in as %s", username)
 
@@ -56,9 +58,9 @@ class MangoxoExtractor(Extractor):
     def _sign_by_md5(self, username, password, token):
         # https://dns.mangoxo.com/libs/plugins/phoenix-ui/js/phoenix-ui.js
         params = [
-            ("username" , username),
-            ("password" , password),
-            ("token"    , token),
+            ("username", username),
+            ("password", password),
+            ("token", token),
             ("timestamp", str(int(time.time()))),
         ]
         query = "&".join("=".join(item) for item in sorted(params))
@@ -73,6 +75,7 @@ class MangoxoExtractor(Extractor):
 
 class MangoxoAlbumExtractor(MangoxoExtractor):
     """Extractor for albums on mangoxo.com"""
+
     subcategory = "album"
     filename_fmt = "{album[id]}_{num:>03}.{extension}"
     directory_fmt = ("{category}", "{channel[name]}", "{album[name]}")
@@ -106,9 +109,9 @@ class MangoxoAlbumExtractor(MangoxoExtractor):
         cid = extr('href="https://www.mangoxo.com/user/', '"')
         cname = extr('<img alt="', '"')
         cover = extr(' src="', '"')
-        count = extr('id="pic-count">', '<')
-        date = extr('class="fa fa-calendar"></i>', '<')
-        descr = extr('<pre>', '</pre>')
+        count = extr('id="pic-count">', "<")
+        date = extr('class="fa fa-calendar"></i>', "<")
+        descr = extr("<pre>", "</pre>")
 
         return {
             "channel": {
@@ -131,8 +134,7 @@ class MangoxoAlbumExtractor(MangoxoExtractor):
         num = 1
 
         while True:
-            yield from text.extract_iter(
-                page, 'class="lightgallery-item" href="', '"')
+            yield from text.extract_iter(page, 'class="lightgallery-item" href="', '"')
             if num >= total:
                 return
             num += 1
@@ -141,6 +143,7 @@ class MangoxoAlbumExtractor(MangoxoExtractor):
 
 class MangoxoChannelExtractor(MangoxoExtractor):
     """Extractor for all albums on a mangoxo channel"""
+
     subcategory = "channel"
     pattern = r"(?:https?://)?(?:www\.)?mangoxo\.com/(\w+)/album"
     example = "https://www.mangoxo.com/USER/album"
@@ -158,8 +161,7 @@ class MangoxoChannelExtractor(MangoxoExtractor):
         while True:
             page = self.request(url + str(num)).text
 
-            for album in text.extract_iter(
-                    page, '<a class="link black" href="', '"'):
+            for album in text.extract_iter(page, '<a class="link black" href="', '"'):
                 yield Message.Queue, album, data
 
             if num == 1:

@@ -25,21 +25,20 @@ class WeasylExtractor(Extractor):
         if "submission" in data["media"]:
             data["url"] = data["media"]["submission"][0]["url"]
             data["date"] = text.parse_datetime(
-                data["posted_at"][:19], "%Y-%m-%dT%H:%M:%S")
+                data["posted_at"][:19], "%Y-%m-%dT%H:%M:%S"
+            )
             text.nameext_from_url(data["url"], data)
             return True
         return False
 
     def _init(self):
-        self.session.headers['X-Weasyl-API-Key'] = self.config("api-key")
+        self.session.headers["X-Weasyl-API-Key"] = self.config("api-key")
 
     def request_submission(self, submitid):
-        return self.request_json(
-            f"{self.root}/api/submissions/{submitid}/view")
+        return self.request_json(f"{self.root}/api/submissions/{submitid}/view")
 
     def retrieve_journal(self, journalid):
-        data = self.request_json(
-            f"{self.root}/api/journals/{journalid}/view")
+        data = self.request_json(f"{self.root}/api/journals/{journalid}/view")
         data["extension"] = "html"
         data["html"] = "text:" + data["content"]
         data["date"] = text.parse_datetime(data["posted_at"])
@@ -49,7 +48,7 @@ class WeasylExtractor(Extractor):
         metadata = self.config("metadata")
         url = f"{self.root}/api/users/{owner_login}/gallery"
         params = {
-            "nextid"  : None,
+            "nextid": None,
             "folderid": folderid,
         }
 
@@ -57,8 +56,7 @@ class WeasylExtractor(Extractor):
             data = self.request_json(url, params=params)
             for submission in data["submissions"]:
                 if metadata:
-                    submission = self.request_submission(
-                        submission["submitid"])
+                    submission = self.request_submission(submission["submitid"])
                 if self.populate_submission(submission):
                     submission["folderid"] = folderid
                     # Do any submissions have more than one url? If so
@@ -152,7 +150,7 @@ class WeasylJournalsExtractor(WeasylExtractor):
 
         url = f"{self.root}/journals/{self.owner_login}"
         page = self.request(url).text
-        for journalid in text.extract_iter(page, 'href="/journal/', '/'):
+        for journalid in text.extract_iter(page, 'href="/journal/', "/"):
             data = self.retrieve_journal(journalid)
             yield Message.Url, data["html"], data
 
@@ -173,7 +171,7 @@ class WeasylFavoriteExtractor(WeasylExtractor):
         else:
             path = "/favorites"
         params = {
-            "userid" : userid,
+            "userid": userid,
             "feature": "submit",
         }
 

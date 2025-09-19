@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?tenor\.com/(?:\w\w(?:-\w\w)?/)?"
 
 class TenorExtractor(Extractor):
     """Base class for tenor extractors"""
+
     category = "tenor"
     root = "https://tenor.com"
     filename_fmt = "{id}{title:? //}.{extension}"
@@ -35,8 +36,7 @@ class TenorExtractor(Extractor):
         for gif in self.gifs():
 
             if not (fmt := self._extract_format(gif)):
-                self.log.warning("%s: Selected format(s) not available",
-                                 gif.get("id"))
+                self.log.warning("%s: Selected format(s) not available", gif.get("id"))
                 continue
 
             url = fmt["url"]
@@ -73,23 +73,23 @@ class TenorExtractor(Extractor):
             "limit": "50",
             "contentfilter": "low",
             "media_filter": "gif,gif_transparent,mediumgif,tinygif,"
-                            "tinygif_transparent,webp,webp_transparent,"
-                            "tinywebp,tinywebp_transparent,tinymp4,mp4,webm,"
-                            "originalgif,gifpreview",
+            "tinygif_transparent,webp,webp_transparent,"
+            "tinywebp,tinywebp_transparent,tinymp4,mp4,webm,"
+            "originalgif,gifpreview",
             "fields": "next,results.id,results.media_formats,results.title,"
-                      "results.h1_title,results.long_title,results.itemurl,"
-                      "results.url,results.created,results.user,"
-                      "results.shares,results.embed,results.hasaudio,"
-                      "results.policy_status,results.source_id,results.flags,"
-                      "results.tags,results.content_rating,results.bg_color,"
-                      "results.legacy_info,results.geographic_restriction,"
-                      "results.content_description",
+            "results.h1_title,results.long_title,results.itemurl,"
+            "results.url,results.created,results.user,"
+            "results.shares,results.embed,results.hasaudio,"
+            "results.policy_status,results.source_id,results.flags,"
+            "results.tags,results.content_rating,results.bg_color,"
+            "results.legacy_info,results.geographic_restriction,"
+            "results.content_description",
             "pos": None,
             "component": "web_desktop",
         }
         headers = {
             "Referer": self.root + "/",
-            "Origin" : self.root,
+            "Origin": self.root,
         }
 
         while True:

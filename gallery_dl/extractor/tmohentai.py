@@ -34,14 +34,12 @@ class TmohentaiGalleryExtractor(GalleryExtractor):
 
         return {
             "gallery_id": self.gallery_id,
-            "title"     : text.unescape(extr("<h3>", "<").strip()),
-            "artists"   : text.split_html(extr(
-                "<label>Artists and Artists Groups</label>", "</ul>")),
-            "genres"    : text.split_html(extr(
-                "<label>Genders</label>", "</ul>")),
-            "tags"      : text.split_html(extr(
-                "<label>Tags</label>", "</ul>")),
-            "uploader"  : text.remove_html(extr(
-                "<label>Uploaded By</label>", "</ul>")),
-            "language"  : extr("&nbsp;", "\n"),
+            "title": text.unescape(extr("<h3>", "<").strip()),
+            "artists": text.split_html(
+                extr("<label>Artists and Artists Groups</label>", "</ul>")
+            ),
+            "genres": text.split_html(extr("<label>Genders</label>", "</ul>")),
+            "tags": text.split_html(extr("<label>Tags</label>", "</ul>")),
+            "uploader": text.remove_html(extr("<label>Uploaded By</label>", "</ul>")),
+            "language": extr("&nbsp;", "\n"),
         }

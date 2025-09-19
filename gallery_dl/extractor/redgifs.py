@@ -15,9 +15,9 @@ from ..cache import memcache
 
 class RedgifsExtractor(Extractor):
     """Base class for redgifs extractors"""
+
     category = "redgifs"
-    filename_fmt = \
-        "{category}_{gallery:?//[:11]}{num:?_/_/>02}{id}.{extension}"
+    filename_fmt = "{category}_{gallery:?//[:11]}{num:?_/_/>02}{id}.{extension}"
     archive_fmt = "{id}"
     root = "https://www.redgifs.com"
 
@@ -59,8 +59,7 @@ class RedgifsExtractor(Extractor):
                 url = next(formats, None)
 
                 if not url:
-                    self.log.warning(
-                        "Skipping '%s' (format not available)", gif["id"])
+                    self.log.warning("Skipping '%s' (format not available)", gif["id"])
                     continue
 
                 gif["num"] = num
@@ -84,10 +83,12 @@ class RedgifsExtractor(Extractor):
 
 class RedgifsUserExtractor(RedgifsExtractor):
     """Extractor for redgifs user profiles"""
+
     subcategory = "user"
     directory_fmt = ("{category}", "{userName}")
-    pattern = (r"(?:https?://)?(?:\w+\.)?redgifs\.com/users/([^/?#]+)/?"
-               r"(?:\?([^#]+))?$")
+    pattern = (
+        r"(?:https?://)?(?:\w+\.)?redgifs\.com/users/([^/?#]+)/?" r"(?:\?([^#]+))?$"
+    )
     example = "https://www.redgifs.com/users/USER"
 
     def __init__(self, match):
@@ -104,12 +105,14 @@ class RedgifsUserExtractor(RedgifsExtractor):
 
 class RedgifsCollectionExtractor(RedgifsExtractor):
     """Extractor for an individual user collection"""
+
     subcategory = "collection"
-    directory_fmt = (
-        "{category}", "{collection[userName]}", "{collection[folderName]}")
+    directory_fmt = ("{category}", "{collection[userName]}", "{collection[folderName]}")
     archive_fmt = "{collection[folderId]}_{id}"
-    pattern = (r"(?:https?://)?(?:www\.)?redgifs\.com/users"
-               r"/([^/?#]+)/collections/([^/?#]+)")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?redgifs\.com/users"
+        r"/([^/?#]+)/collections/([^/?#]+)"
+    )
     example = "https://www.redgifs.com/users/USER/collections/ID"
 
     def __init__(self, match):
@@ -127,9 +130,9 @@ class RedgifsCollectionExtractor(RedgifsExtractor):
 
 class RedgifsCollectionsExtractor(RedgifsExtractor):
     """Extractor for redgifs user collections"""
+
     subcategory = "collections"
-    pattern = (r"(?:https?://)?(?:www\.)?redgifs\.com/users"
-               r"/([^/?#]+)/collections/?$")
+    pattern = r"(?:https?://)?(?:www\.)?redgifs\.com/users" r"/([^/?#]+)/collections/?$"
     example = "https://www.redgifs.com/users/USER/collections"
 
     def items(self):
@@ -142,9 +145,11 @@ class RedgifsCollectionsExtractor(RedgifsExtractor):
 
 class RedgifsNichesExtractor(RedgifsExtractor):
     """Extractor for redgifs niches"""
+
     subcategory = "niches"
-    pattern = (r"(?:https?://)?(?:www\.)?redgifs\.com/niches/([^/?#]+)/?"
-               r"(?:\?([^#]+))?$")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?redgifs\.com/niches/([^/?#]+)/?" r"(?:\?([^#]+))?$"
+    )
     example = "https://www.redgifs.com/niches/NAME"
 
     def __init__(self, match):
@@ -158,11 +163,14 @@ class RedgifsNichesExtractor(RedgifsExtractor):
 
 class RedgifsSearchExtractor(RedgifsExtractor):
     """Extractor for redgifs search results"""
+
     subcategory = "search"
     directory_fmt = ("{category}", "Search", "{search}")
-    pattern = (r"(?:https?://)?(?:\w+\.)?redgifs\.com"
-               r"/(?:gifs/([^/?#]+)|search(?:/gifs)?()|browse)"
-               r"(?:/?\?([^#]+))?")
+    pattern = (
+        r"(?:https?://)?(?:\w+\.)?redgifs\.com"
+        r"/(?:gifs/([^/?#]+)|search(?:/gifs)?()|browse)"
+        r"(?:/?\?([^#]+))?"
+    )
     example = "https://www.redgifs.com/gifs/TAG"
 
     def metadata(self):
@@ -172,10 +180,14 @@ class RedgifsSearchExtractor(RedgifsExtractor):
         if tag is not None:
             params["tags"] = text.unquote(tag)
 
-        return {"search": (params.get("query") or
-                           params.get("tags") or
-                           params.get("order") or
-                           "trending")}
+        return {
+            "search": (
+                params.get("query")
+                or params.get("tags")
+                or params.get("order")
+                or "trending"
+            )
+        }
 
     def gifs(self):
         if self.search is None:
@@ -186,19 +198,22 @@ class RedgifsSearchExtractor(RedgifsExtractor):
 
 class RedgifsImageExtractor(RedgifsExtractor):
     """Extractor for individual gifs from redgifs.com"""
+
     subcategory = "image"
-    pattern = (r"(?:https?://)?(?:"
-               r"(?:\w+\.)?redgifs\.com/(?:watch|ifr)|"
-               r"(?:\w+\.)?gfycat\.com(?:/gifs/detail|/\w+)?|"
-               r"(?:www\.)?gifdeliverynetwork\.com|"
-               r"i\.redgifs\.com/i)/([A-Za-z0-9]+)")
+    pattern = (
+        r"(?:https?://)?(?:"
+        r"(?:\w+\.)?redgifs\.com/(?:watch|ifr)|"
+        r"(?:\w+\.)?gfycat\.com(?:/gifs/detail|/\w+)?|"
+        r"(?:www\.)?gifdeliverynetwork\.com|"
+        r"i\.redgifs\.com/i)/([A-Za-z0-9]+)"
+    )
     example = "https://redgifs.com/watch/ID"
 
     def gifs(self):
         return (self.api.gif(self.key),)
 
 
-class RedgifsAPI():
+class RedgifsAPI:
     """https://api.redgifs.com/docs/index.html"""
 
     API_ROOT = "https://api.redgifs.com"
@@ -206,10 +221,10 @@ class RedgifsAPI():
     def __init__(self, extractor):
         self.extractor = extractor
         self.headers = {
-            "Accept"        : "application/json, text/plain, */*",
-            "Referer"       : extractor.root + "/",
-            "Authorization" : None,
-            "Origin"        : extractor.root,
+            "Accept": "application/json, text/plain, */*",
+            "Referer": extractor.root + "/",
+            "Authorization": None,
+            "Origin": extractor.root,
         }
 
     def gif(self, gif_id):
@@ -254,8 +269,7 @@ class RedgifsAPI():
     def _call(self, endpoint, params=None):
         url = self.API_ROOT + endpoint
         self.headers["Authorization"] = self._auth()
-        return self.extractor.request_json(
-            url, params=params, headers=self.headers)
+        return self.extractor.request_json(url, params=params, headers=self.headers)
 
     def _pagination(self, endpoint, params=None, key="gifs"):
         if params is None:
@@ -275,5 +289,6 @@ class RedgifsAPI():
         # https://github.com/Redgifs/api/wiki/Temporary-tokens
         url = self.API_ROOT + "/v2/auth/temporary"
         self.headers["Authorization"] = None
-        return "Bearer " + self.extractor.request_json(
-            url, headers=self.headers)["token"]
+        return (
+            "Bearer " + self.extractor.request_json(url, headers=self.headers)["token"]
+        )

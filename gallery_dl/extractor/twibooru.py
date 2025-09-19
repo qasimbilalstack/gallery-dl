@@ -17,6 +17,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?twibooru\.org"
 
 class TwibooruExtractor(BooruExtractor):
     """Base class for twibooru extractors"""
+
     category = "twibooru"
     basecategory = "philomena"
     root = "https://twibooru.org"
@@ -37,8 +38,7 @@ class TwibooruExtractor(BooruExtractor):
         return post["view_url"]
 
     def _prepare(self, post):
-        post["date"] = text.parse_datetime(
-            post["created_at"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        post["date"] = text.parse_datetime(post["created_at"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
         if "name" in post:
             name, sep, rest = post["name"].rpartition(".")
@@ -47,6 +47,7 @@ class TwibooruExtractor(BooruExtractor):
 
 class TwibooruPostExtractor(TwibooruExtractor):
     """Extractor for single twibooru posts"""
+
     subcategory = "post"
     request_interval = (0.5, 1.5)
     pattern = BASE_PATTERN + r"/(\d+)"
@@ -62,6 +63,7 @@ class TwibooruPostExtractor(TwibooruExtractor):
 
 class TwibooruSearchExtractor(TwibooruExtractor):
     """Extractor for twibooru search results"""
+
     subcategory = "search"
     directory_fmt = ("{category}", "{search_tags}")
     pattern = BASE_PATTERN + r"/(?:search/?\?([^#]+)|tags/([^/?#]+))"
@@ -73,10 +75,10 @@ class TwibooruSearchExtractor(TwibooruExtractor):
         if tag:
             q = tag.replace("+", " ")
             for old, new in (
-                ("-colon-"  , ":"),
-                ("-dash-"   , "-"),
-                ("-dot-"    , "."),
-                ("-plus-"   , "+"),
+                ("-colon-", ":"),
+                ("-dash-", "-"),
+                ("-dot-", "."),
+                ("-plus-", "+"),
                 ("-fwslash-", "/"),
                 ("-bwslash-", "\\"),
             ):
@@ -95,9 +97,9 @@ class TwibooruSearchExtractor(TwibooruExtractor):
 
 class TwibooruGalleryExtractor(TwibooruExtractor):
     """Extractor for twibooru galleries"""
+
     subcategory = "gallery"
-    directory_fmt = ("{category}", "galleries",
-                     "{gallery[id]} {gallery[title]}")
+    directory_fmt = ("{category}", "galleries", "{gallery[id]} {gallery[title]}")
     pattern = BASE_PATTERN + r"/galleries/(\d+)"
     example = "https://twibooru.org/galleries/12345"
 
@@ -110,11 +112,11 @@ class TwibooruGalleryExtractor(TwibooruExtractor):
 
     def posts(self):
         gallery_id = "gallery_id:" + self.gallery_id
-        params = {"sd": "desc", "sf": gallery_id, "q" : gallery_id}
+        params = {"sd": "desc", "sf": gallery_id, "q": gallery_id}
         return self.api.search(params)
 
 
-class TwibooruAPI():
+class TwibooruAPI:
     """Interface for the Twibooru API
 
     https://twibooru.org/pages/api
@@ -147,7 +149,8 @@ class TwibooruAPI():
 
             if response.status_code == 429:
                 until = text.parse_datetime(
-                    response.headers["X-RL-Reset"], "%Y-%m-%d %H:%M:%S %Z")
+                    response.headers["X-RL-Reset"], "%Y-%m-%d %H:%M:%S %Z"
+                )
                 # wait an extra minute, just to be safe
                 self.extractor.wait(until=until, adjust=60.0)
                 continue

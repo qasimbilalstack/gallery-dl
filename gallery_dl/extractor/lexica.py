@@ -14,6 +14,7 @@ from .. import text
 
 class LexicaSearchExtractor(Extractor):
     """Extractor for lexica.art search results"""
+
     category = "lexica"
     subcategory = "search"
     root = "https://lexica.art"
@@ -28,8 +29,7 @@ class LexicaSearchExtractor(Extractor):
         self.text = text.unquote(self.query).replace("+", " ")
 
     def items(self):
-        base = ("https://lexica-serve-encoded-images2.sharif.workers.dev"
-                "/full_jpg/")
+        base = "https://lexica-serve-encoded-images2.sharif.workers.dev" "/full_jpg/"
         tags = self.text
 
         for image in self.posts():
@@ -42,25 +42,21 @@ class LexicaSearchExtractor(Extractor):
     def posts(self):
         url = self.root + "/api/infinite-prompts"
         headers = {
-            "Accept" : "application/json, text/plain, */*",
+            "Accept": "application/json, text/plain, */*",
             "Referer": f"{self.root}/?q={self.query}",
         }
         json = {
-            "text"      : self.text,
+            "text": self.text,
             "searchMode": "images",
-            "source"    : "search",
-            "cursor"    : 0,
-            "model"     : "lexica-aperture-v2",
+            "source": "search",
+            "cursor": 0,
+            "model": "lexica-aperture-v2",
         }
 
         while True:
-            data = self.request_json(
-                url, method="POST", headers=headers, json=json)
+            data = self.request_json(url, method="POST", headers=headers, json=json)
 
-            prompts = {
-                prompt["id"]: prompt
-                for prompt in data["prompts"]
-            }
+            prompts = {prompt["id"]: prompt for prompt in data["prompts"]}
 
             for image in data["images"]:
                 image["prompt"] = prompts[image["promptid"]]

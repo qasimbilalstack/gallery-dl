@@ -12,6 +12,7 @@ from .. import text, util, exception
 
 class LofterExtractor(Extractor):
     """Base class for lofter extractors"""
+
     category = "lofter"
     root = "https://www.lofter.com"
     directory_fmt = ("{category}", "{blog_name}")
@@ -59,8 +60,8 @@ class LofterExtractor(Extractor):
             else:
                 image_urls = ()
                 self.log.warning(
-                    "%s: Unsupported post type '%s'.",
-                    post["id"], post_type)
+                    "%s: Unsupported post type '%s'.", post["id"], post_type
+                )
 
             post["count"] = len(image_urls)
             yield Message.Directory, post
@@ -73,6 +74,7 @@ class LofterExtractor(Extractor):
 
 class LofterPostExtractor(LofterExtractor):
     """Extractor for a lofter post"""
+
     subcategory = "post"
     pattern = r"(?:https?://)?[\w-]+\.lofter\.com/post/([0-9a-f]+)_([0-9a-f]+)"
     example = "https://BLOG.lofter.com/post/12345678_90abcdef"
@@ -85,13 +87,16 @@ class LofterPostExtractor(LofterExtractor):
 
 class LofterBlogPostsExtractor(LofterExtractor):
     """Extractor for a lofter blog's posts"""
+
     subcategory = "blog-posts"
-    pattern = (r"(?:https?://)?(?:"
-               # https://www.lofter.com/front/blog/home-page/<blog_name>
-               r"www\.lofter\.com/front/blog/home-page/([\w-]+)|"
-               # https://<blog_name>.lofter.com/
-               r"([\w-]+)\.lofter\.com"
-               r")/?(?:$|\?|#)")
+    pattern = (
+        r"(?:https?://)?(?:"
+        # https://www.lofter.com/front/blog/home-page/<blog_name>
+        r"www\.lofter\.com/front/blog/home-page/([\w-]+)|"
+        # https://<blog_name>.lofter.com/
+        r"([\w-]+)\.lofter\.com"
+        r")/?(?:$|\?|#)"
+    )
     example = "https://BLOG.lofter.com/"
 
     def posts(self):
@@ -99,7 +104,7 @@ class LofterBlogPostsExtractor(LofterExtractor):
         return self.api.blog_posts(blog_name)
 
 
-class LofterAPI():
+class LofterAPI:
 
     def __init__(self, extractor):
         self.extractor = extractor
@@ -124,11 +129,8 @@ class LofterAPI():
 
     def _call(self, endpoint, data):
         url = "https://api.lofter.com" + endpoint
-        params = {
-            'product': 'lofter-android-7.9.10'
-        }
-        response = self.extractor.request(
-            url, method="POST", params=params, data=data)
+        params = {"product": "lofter-android-7.9.10"}
+        response = self.extractor.request(url, method="POST", params=params, data=data)
         info = response.json()
 
         if info["meta"]["status"] == 4200:

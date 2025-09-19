@@ -17,6 +17,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?vipergirls\.to"
 
 class VipergirlsExtractor(Extractor):
     """Base class for vipergirls extractors"""
+
     category = "vipergirls"
     root = "https://vipergirls.to"
     request_interval = 0.5
@@ -29,7 +30,7 @@ class VipergirlsExtractor(Extractor):
             pos = domain.find("://")
             if pos >= 0:
                 self.root = domain.rstrip("/")
-                self.cookies_domain = "." + domain[pos+1:].strip("/")
+                self.cookies_domain = "." + domain[pos + 1 :].strip("/")
             else:
                 domain = domain.strip("/")
                 self.root = "https://" + domain
@@ -82,7 +83,7 @@ class VipergirlsExtractor(Extractor):
         if username:
             self.cookies_update(self._login_impl(username, password))
 
-    @cache(maxage=90*86400, keyarg=1)
+    @cache(maxage=90 * 86400, keyarg=1)
     def _login_impl(self, username, password):
         self.log.info("Logging in as %s", username)
 
@@ -90,22 +91,21 @@ class VipergirlsExtractor(Extractor):
         data = {
             "vb_login_username": username,
             "vb_login_password": password,
-            "do"               : "login",
-            "cookieuser"       : "1",
+            "do": "login",
+            "cookieuser": "1",
         }
 
         response = self.request(url, method="POST", data=data)
         if not response.cookies.get("vg_password"):
             raise exception.AuthenticationError()
 
-        return {cookie.name: cookie.value
-                for cookie in response.cookies}
+        return {cookie.name: cookie.value for cookie in response.cookies}
 
     def like(self, post, user_hash):
         url = self.root + "/post_thanks.php"
         params = {
-            "do"           : "post_thanks_add",
-            "p"            : post.get("id"),
+            "do": "post_thanks_add",
+            "p": post.get("id"),
             "securitytoken": user_hash,
         }
 
@@ -115,9 +115,9 @@ class VipergirlsExtractor(Extractor):
 
 class VipergirlsThreadExtractor(VipergirlsExtractor):
     """Extractor for vipergirls threads"""
+
     subcategory = "thread"
-    pattern = (BASE_PATTERN +
-               r"/threads/(\d+)(?:-[^/?#]+)?(/page\d+)?(?:$|#|\?(?!p=))")
+    pattern = BASE_PATTERN + r"/threads/(\d+)(?:-[^/?#]+)?(/page\d+)?(?:$|#|\?(?!p=))"
     example = "https://vipergirls.to/threads/12345-TITLE"
 
     def __init__(self, match):
@@ -131,9 +131,9 @@ class VipergirlsThreadExtractor(VipergirlsExtractor):
 
 class VipergirlsPostExtractor(VipergirlsExtractor):
     """Extractor for vipergirls posts"""
+
     subcategory = "post"
-    pattern = (BASE_PATTERN +
-               r"/threads/(\d+)(?:-[^/?#]+)?\?p=\d+[^#]*#post(\d+)")
+    pattern = BASE_PATTERN + r"/threads/(\d+)(?:-[^/?#]+)?\?p=\d+[^#]*#post(\d+)"
     example = "https://vipergirls.to/threads/12345-TITLE?p=23456#post23456"
 
     def __init__(self, match):

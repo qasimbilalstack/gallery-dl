@@ -11,13 +11,15 @@ from .. import text, util, exception
 from ..cache import memcache
 
 BASE_PATTERN = r"(?:https?://)?(?:[\w-]+\.)?facebook\.com"
-USER_PATTERN = (BASE_PATTERN +
-                r"/(?!media/|photo/|photo.php|watch/)"
-                r"(?:profile\.php\?id=|people/[^/?#]+/)?([^/?&#]+)")
+USER_PATTERN = (
+    BASE_PATTERN + r"/(?!media/|photo/|photo.php|watch/)"
+    r"(?:profile\.php\?id=|people/[^/?#]+/)?([^/?&#]+)"
+)
 
 
 class FacebookExtractor(Extractor):
     """Base class for Facebook extractors"""
+
     category = "facebook"
     root = "https://www.facebook.com"
     directory_fmt = ("{category}", "{username}", "{title} ({set_id})")
@@ -40,96 +42,81 @@ class FacebookExtractor(Extractor):
 
     def decode_all(self, txt):
         return text.unescape(
-            txt.encode().decode("unicode_escape")
-            .encode("utf_16", "surrogatepass").decode("utf_16")
+            txt.encode()
+            .decode("unicode_escape")
+            .encode("utf_16", "surrogatepass")
+            .decode("utf_16")
         ).replace("\\/", "/")
 
     def parse_set_page(self, set_page):
         directory = {
-            "set_id": text.extr(
-                set_page, '"mediaSetToken":"', '"'
-            ) or text.extr(
-                set_page, '"mediasetToken":"', '"'
-            ),
+            "set_id": text.extr(set_page, '"mediaSetToken":"', '"')
+            or text.extr(set_page, '"mediasetToken":"', '"'),
             "username": self.decode_all(
-                text.extr(
-                    set_page, '"user":{"__isProfile":"User","name":"', '","'
-                ) or text.extr(
-                    set_page, '"actors":[{"__typename":"User","name":"', '","'
-                )
+                text.extr(set_page, '"user":{"__isProfile":"User","name":"', '","')
+                or text.extr(set_page, '"actors":[{"__typename":"User","name":"', '","')
             ),
-            "user_id": text.extr(
-                set_page, '"owner":{"__typename":"User","id":"', '"'
-            ),
+            "user_id": text.extr(set_page, '"owner":{"__typename":"User","id":"', '"'),
             "user_pfbid": "",
-            "title": self.decode_all(text.extr(
-                set_page, '"title":{"text":"', '"'
-            )),
+            "title": self.decode_all(text.extr(set_page, '"title":{"text":"', '"')),
             "first_photo_id": text.extr(
                 set_page,
                 '{"__typename":"Photo","__isMedia":"Photo","',
-                '","creation_story"'
-            ).rsplit('"id":"', 1)[-1] or
-            text.extr(
-                set_page, '{"__typename":"Photo","id":"', '"'
-            )
+                '","creation_story"',
+            ).rsplit('"id":"', 1)[-1]
+            or text.extr(set_page, '{"__typename":"Photo","id":"', '"'),
         }
 
         if directory["user_id"].startswith("pfbid"):
             directory["user_pfbid"] = directory["user_id"]
             directory["user_id"] = (
-                text.extr(
-                    set_page, '"actors":[{"__typename":"User","id":"', '"') or
-                text.extr(
-                    set_page, '"userID":"', '"') or
-                directory["set_id"].split(".")[1])
+                text.extr(set_page, '"actors":[{"__typename":"User","id":"', '"')
+                or text.extr(set_page, '"userID":"', '"')
+                or directory["set_id"].split(".")[1]
+            )
 
         return directory
 
     def parse_photo_page(self, photo_page):
         photo = {
-            "id": text.extr(
-                photo_page, '"__isNode":"Photo","id":"', '"'
-            ),
+            "id": text.extr(photo_page, '"__isNode":"Photo","id":"', '"'),
             "set_id": text.extr(
-                photo_page,
-                '"url":"https:\\/\\/www.facebook.com\\/photo\\/?fbid=',
-                '"'
+                photo_page, '"url":"https:\\/\\/www.facebook.com\\/photo\\/?fbid=', '"'
             ).rsplit("&set=", 1)[-1],
-            "username": self.decode_all(text.extr(
-                photo_page, '"owner":{"__typename":"User","name":"', '"'
-            )),
+            "username": self.decode_all(
+                text.extr(photo_page, '"owner":{"__typename":"User","name":"', '"')
+            ),
             "user_id": text.extr(
                 photo_page, '"owner":{"__typename":"User","id":"', '"'
             ),
             "user_pfbid": "",
-            "caption": self.decode_all(text.extr(
-                photo_page,
-                '"message":{"delight_ranges"',
-                '"},"message_preferred_body"'
-            ).rsplit('],"text":"', 1)[-1]),
-            "date": text.parse_timestamp(
-                text.extr(photo_page, '\\"publish_time\\":', ',') or
-                text.extr(photo_page, '"created_time":', ',')
+            "caption": self.decode_all(
+                text.extr(
+                    photo_page,
+                    '"message":{"delight_ranges"',
+                    '"},"message_preferred_body"',
+                ).rsplit('],"text":"', 1)[-1]
             ),
-            "url": self.decode_all(text.extr(
-                photo_page, ',"image":{"uri":"', '","'
-            )),
+            "date": text.parse_timestamp(
+                text.extr(photo_page, '\\"publish_time\\":', ",")
+                or text.extr(photo_page, '"created_time":', ",")
+            ),
+            "url": self.decode_all(text.extr(photo_page, ',"image":{"uri":"', '","')),
             "next_photo_id": text.extr(
-                photo_page,
-                '"nextMediaAfterNodeId":{"__typename":"Photo","id":"',
-                '"'
-            ) or text.extr(
+                photo_page, '"nextMediaAfterNodeId":{"__typename":"Photo","id":"', '"'
+            )
+            or text.extr(
                 photo_page,
                 '"nextMedia":{"edges":[{"node":{"__typename":"Photo","id":"',
-                '"'
-            )
+                '"',
+            ),
         }
 
         if photo["user_id"].startswith("pfbid"):
             photo["user_pfbid"] = photo["user_id"]
             photo["user_id"] = text.extr(
-                photo_page, r'\"content_owner_id_new\":\"', r'\"')
+                photo_page, r"\"content_owner_id_new\":\"", r"\""
+            )
 
         text.nameext_from_url(photo["url"], photo)
 
@@ -137,87 +124,85 @@ class FacebookExtractor(Extractor):
         for comment_raw in text.extract_iter(
             photo_page, '{"node":{"id"', '"cursor":null}'
         ):
-            if ('"is_author_original_poster":true' in comment_raw and
-                    '{"__typename":"Photo","id":"' in comment_raw):
-                photo["followups_ids"].append(text.extr(
-                    comment_raw,
-                    '{"__typename":"Photo","id":"',
-                    '"'
-                ))
+            if (
+                '"is_author_original_poster":true' in comment_raw
+                and '{"__typename":"Photo","id":"' in comment_raw
+            ):
+                photo["followups_ids"].append(
+                    text.extr(comment_raw, '{"__typename":"Photo","id":"', '"')
+                )
 
         return photo
 
     def parse_post_page(self, post_page):
         first_photo_url = text.extr(
-            text.extr(
-                post_page, '"__isMedia":"Photo"', '"target_group"'
-            ), '"url":"', ','
+            text.extr(post_page, '"__isMedia":"Photo"', '"target_group"'),
+            '"url":"',
+            ",",
         )
 
         post = {
-            "set_id": text.extr(post_page, '{"mediaset_token":"', '"') or
-            text.extr(first_photo_url, 'set=', '"').rsplit("&", 1)[0]
+            "set_id": text.extr(post_page, '{"mediaset_token":"', '"')
+            or text.extr(first_photo_url, "set=", '"').rsplit("&", 1)[0]
         }
 
         return post
 
     def parse_video_page(self, video_page):
         video = {
-            "id": text.extr(
-                video_page, '\\"video_id\\":\\"', '\\"'
+            "id": text.extr(video_page, '\\"video_id\\":\\"', '\\"'),
+            "username": self.decode_all(
+                text.extr(video_page, '"actors":[{"__typename":"User","name":"', '","')
             ),
-            "username": self.decode_all(text.extr(
-                video_page, '"actors":[{"__typename":"User","name":"', '","'
-            )),
             "user_id": text.extr(
                 video_page, '"owner":{"__typename":"User","id":"', '"'
             ),
-            "date": text.parse_timestamp(text.extr(
-                video_page, '\\"publish_time\\":', ','
-            )),
-            "type": "video"
+            "date": text.parse_timestamp(
+                text.extr(video_page, '\\"publish_time\\":', ",")
+            ),
+            "type": "video",
         }
 
         if not video["username"]:
-            video["username"] = self.decode_all(text.extr(
-                video_page,
-                '"__typename":"User","id":"' + video["user_id"] + '","name":"',
-                '","'
-            ))
+            video["username"] = self.decode_all(
+                text.extr(
+                    video_page,
+                    '"__typename":"User","id":"' + video["user_id"] + '","name":"',
+                    '","',
+                )
+            )
 
         first_video_raw = text.extr(
-            video_page, '"permalink_url"', '\\/Period>\\u003C\\/MPD>'
+            video_page, '"permalink_url"', "\\/Period>\\u003C\\/MPD>"
         )
 
         audio = {
             **video,
-            "url": self.decode_all(text.extr(
+            "url": self.decode_all(
                 text.extr(
-                    first_video_raw,
-                    "AudioChannelConfiguration",
-                    "BaseURL>\\u003C"
-                ),
-                "BaseURL>", "\\u003C\\/"
-            )),
-            "type": "audio"
+                    text.extr(
+                        first_video_raw, "AudioChannelConfiguration", "BaseURL>\\u003C"
+                    ),
+                    "BaseURL>",
+                    "\\u003C\\/",
+                )
+            ),
+            "type": "audio",
         }
 
         video["urls"] = {}
 
         for raw_url in text.extract_iter(
-            first_video_raw, 'FBQualityLabel=\\"', '\\u003C\\/BaseURL>'
+            first_video_raw, 'FBQualityLabel=\\"', "\\u003C\\/BaseURL>"
         ):
             resolution = raw_url.split('\\"', 1)[0]
-            video["urls"][resolution] = self.decode_all(
-                raw_url.split('BaseURL>', 1)[1]
-            )
+            video["urls"][resolution] = self.decode_all(raw_url.split("BaseURL>", 1)[1])
 
         if not video["urls"]:
             return video, audio
 
         video["url"] = max(
-            video["urls"].items(),
-            key=lambda x: text.parse_int(x[0][:-1])
+            video["urls"].items(), key=lambda x: text.parse_int(x[0][:-1])
         )[1]
 
         text.nameext_from_url(video["url"], video)
@@ -227,18 +212,24 @@ class FacebookExtractor(Extractor):
         return video, audio
 
     def photo_page_request_wrapper(self, url, **kwargs):
-        LEFT_OFF_TXT = "" if url.endswith("&set=") else (
-            "\nYou can use this URL to continue from "
-            "where you left off (added \"&setextract\"): "
-            "\n" + url + "&setextract"
+        LEFT_OFF_TXT = (
+            ""
+            if url.endswith("&set=")
+            else (
+                "\nYou can use this URL to continue from "
+                'where you left off (added "&setextract"): '
+                "\n" + url + "&setextract"
+            )
         )
 
         res = self.request(url, **kwargs)
 
         if res.url.startswith(self.root + "/login"):
             raise exception.AuthRequired(
-                message=(f"You must be logged in to continue viewing images."
-                         f"{LEFT_OFF_TXT}")
+                message=(
+                    f"You must be logged in to continue viewing images."
+                    f"{LEFT_OFF_TXT}"
+                )
             )
 
         if b'{"__dr":"CometErrorRoot.react"}' in res.content:
@@ -268,9 +259,7 @@ class FacebookExtractor(Extractor):
             if self.author_followups:
                 for followup_id in photo["followups_ids"]:
                     if followup_id not in all_photo_ids:
-                        self.log.debug(
-                            "Found a followup in comments: %s", followup_id
-                        )
+                        self.log.debug("Found a followup in comments: %s", followup_id)
                         all_photo_ids.append(followup_id)
 
             if not photo["url"]:
@@ -278,15 +267,18 @@ class FacebookExtractor(Extractor):
                     seconds = self._interval_429()
                     self.log.warning(
                         "Failed to find photo download URL for %s. "
-                        "Retrying in %s seconds.", photo_url, seconds,
+                        "Retrying in %s seconds.",
+                        photo_url,
+                        seconds,
                     )
                     self.wait(seconds=seconds, reason="429 Too Many Requests")
                     retries += 1
                     continue
                 else:
                     self.log.error(
-                        "Failed to find photo download URL for " + photo_url +
-                        ". Skipping."
+                        "Failed to find photo download URL for "
+                        + photo_url
+                        + ". Skipping."
                     )
                     retries = 0
             else:
@@ -297,8 +289,7 @@ class FacebookExtractor(Extractor):
 
             if not photo["next_photo_id"]:
                 self.log.debug(
-                    "Can't find next image in the set. "
-                    "Extraction is over."
+                    "Can't find next image in the set. " "Extraction is over."
                 )
             elif photo["next_photo_id"] in all_photo_ids:
                 if photo["next_photo_id"] != photo["id"]:
@@ -323,13 +314,14 @@ class FacebookExtractor(Extractor):
         for _ in range(self.fallback_retries + 1):
             page = self.request(url).text
 
-            if page.find('>Page Not Found</title>', 0, 3000) > 0:
+            if page.find(">Page Not Found</title>", 0, 3000) > 0:
                 break
-            if ('"props":{"title":"This content isn\'t available right now"' in
-                    page):
+            if '"props":{"title":"This content isn\'t available right now"' in page:
                 raise exception.AuthRequired(
-                    "authenticated cookies", "profile",
-                    "This content isn't available right now")
+                    "authenticated cookies",
+                    "profile",
+                    "This content isn't available right now",
+                )
 
             set_id = self._extract_profile_set_id(page)
             user = self._extract_profile_user(page)
@@ -341,14 +333,10 @@ class FacebookExtractor(Extractor):
         return {}
 
     def _extract_profile_set_id(self, profile_photos_page):
-        set_ids_raw = text.extr(
-            profile_photos_page, '"pageItems"', '"page_info"'
-        )
+        set_ids_raw = text.extr(profile_photos_page, '"pageItems"', '"page_info"')
 
-        set_id = text.extr(
-            set_ids_raw, 'set=', '"'
-        ).rsplit("&", 1)[0] or text.extr(
-            set_ids_raw, '\\/photos\\/', '\\/'
+        set_id = text.extr(set_ids_raw, "set=", '"').rsplit("&", 1)[0] or text.extr(
+            set_ids_raw, "\\/photos\\/", "\\/"
         )
 
         return set_id
@@ -362,12 +350,16 @@ class FacebookExtractor(Extractor):
             if user["id"].startswith("pfbid"):
                 user["user_pfbid"] = user["id"]
                 user["id"] = text.extr(page, '"userID":"', '"')
-            user["username"] = (text.extr(page, '"userVanity":"', '"') or
-                                text.extr(page, '"vanity":"', '"'))
+            user["username"] = text.extr(page, '"userVanity":"', '"') or text.extr(
+                page, '"vanity":"', '"'
+            )
             user["profile_tabs"] = [
                 edge["node"]
-                for edge in (user["profile_tabs"]["profile_user"]
-                             ["timeline_nav_app_sections"]["edges"])
+                for edge in (
+                    user["profile_tabs"]["profile_user"]["timeline_nav_app_sections"][
+                        "edges"
+                    ]
+                )
             ]
         except Exception:
             if user is None:
@@ -378,10 +370,12 @@ class FacebookExtractor(Extractor):
 
 class FacebookPhotoExtractor(FacebookExtractor):
     """Base class for Facebook Photo extractors"""
+
     subcategory = "photo"
-    pattern = (BASE_PATTERN +
-               r"/(?:[^/?#]+/photos/[^/?#]+/|photo(?:.php)?/?\?"
-               r"(?:[^&#]+&)*fbid=)([^/?&#]+)[^/?#]*(?<!&setextract)$")
+    pattern = (
+        BASE_PATTERN + r"/(?:[^/?#]+/photos/[^/?#]+/|photo(?:.php)?/?\?"
+        r"(?:[^&#]+&)*fbid=)([^/?&#]+)[^/?#]*(?<!&setextract)$"
+    )
     example = "https://www.facebook.com/photo/?fbid=PHOTO_ID"
 
     def items(self):
@@ -415,10 +409,10 @@ class FacebookPhotoExtractor(FacebookExtractor):
 
 class FacebookSetExtractor(FacebookExtractor):
     """Base class for Facebook Set extractors"""
+
     subcategory = "set"
     pattern = (
-        BASE_PATTERN +
-        r"/(?:(?:media/set|photo)/?\?(?:[^&#]+&)*set=([^&#]+)"
+        BASE_PATTERN + r"/(?:(?:media/set|photo)/?\?(?:[^&#]+&)*set=([^&#]+)"
         r"[^/?#]*(?<!&setextract)$"
         r"|([^/?#]+/posts/[^/?#]+)"
         r"|photo/\?(?:[^&#]+&)*fbid=([^/?&#]+)&set=([^/?&#]+)&setextract)"
@@ -443,6 +437,7 @@ class FacebookSetExtractor(FacebookExtractor):
 
 class FacebookVideoExtractor(FacebookExtractor):
     """Base class for Facebook Video extractors"""
+
     subcategory = "video"
     directory_fmt = ("{category}", "{username}", "{subcategory}")
     pattern = BASE_PATTERN + r"/(?:[^/?#]+/videos/|watch/?\?v=)([^/?&#]+)"
@@ -470,6 +465,7 @@ class FacebookVideoExtractor(FacebookExtractor):
 
 class FacebookInfoExtractor(FacebookExtractor):
     """Extractor for Facebook Profile data"""
+
     subcategory = "info"
     directory_fmt = ("{category}", "{username}")
     pattern = USER_PATTERN + r"/info"
@@ -482,6 +478,7 @@ class FacebookInfoExtractor(FacebookExtractor):
 
 class FacebookAlbumsExtractor(FacebookExtractor):
     """Extractor for Facebook Profile albums"""
+
     subcategory = "albums"
     pattern = USER_PATTERN + r"/photos_albums(?:/([^/?#]+))?"
     example = "https://www.facebook.com/USERNAME/photos_albums"
@@ -491,14 +488,13 @@ class FacebookAlbumsExtractor(FacebookExtractor):
         url = f"{self.root}/{profile}/photos_albums"
         page = self.request(url).text
 
-        pos = page.find(
-            '"TimelineAppCollectionAlbumsRenderer","collection":{"id":"')
+        pos = page.find('"TimelineAppCollectionAlbumsRenderer","collection":{"id":"')
         if pos < 0:
             return
         if name is not None:
             name = name.lower()
 
-        items = text.extract(page, '},"pageItems":', '}}},', pos)[0]
+        items = text.extract(page, '},"pageItems":', "}}},", pos)[0]
         edges = util.json_loads(items + "}}")["edges"]
 
         # TODO: use /graphql API endpoint
@@ -515,6 +511,7 @@ class FacebookAlbumsExtractor(FacebookExtractor):
 
 class FacebookPhotosExtractor(FacebookExtractor):
     """Extractor for Facebook Profile Photos"""
+
     subcategory = "photos"
     pattern = USER_PATTERN + r"/photos(?:_by)?"
     example = "https://www.facebook.com/USERNAME/photos"
@@ -532,6 +529,7 @@ class FacebookPhotosExtractor(FacebookExtractor):
 
 class FacebookAvatarExtractor(FacebookExtractor):
     """Extractor for Facebook Profile Avatars"""
+
     subcategory = "avatar"
     pattern = USER_PATTERN + r"/avatar"
     example = "https://www.facebook.com/USERNAME/avatar"
@@ -555,14 +553,18 @@ class FacebookAvatarExtractor(FacebookExtractor):
 
 class FacebookUserExtractor(Dispatch, FacebookExtractor):
     """Extractor for Facebook Profiles"""
+
     pattern = USER_PATTERN + r"/?(?:$|\?|#)"
     example = "https://www.facebook.com/USERNAME"
 
     def items(self):
         base = f"{self.root}/{self.groups[0]}/"
-        return self._dispatch_extractors((
-            (FacebookInfoExtractor  , base + "info"),
-            (FacebookAvatarExtractor, base + "avatar"),
-            (FacebookPhotosExtractor, base + "photos"),
-            (FacebookAlbumsExtractor, base + "photos_albums"),
-        ), ("photos",))
+        return self._dispatch_extractors(
+            (
+                (FacebookInfoExtractor, base + "info"),
+                (FacebookAvatarExtractor, base + "avatar"),
+                (FacebookPhotosExtractor, base + "photos"),
+                (FacebookAlbumsExtractor, base + "photos_albums"),
+            ),
+            ("photos",),
+        )

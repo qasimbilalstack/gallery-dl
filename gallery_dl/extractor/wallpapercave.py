@@ -15,6 +15,7 @@ from .. import text
 
 class WallpapercaveImageExtractor(Extractor):
     """Extractor for images on wallpapercave.com"""
+
     category = "wallpapercave"
     subcategory = "image"
     root = "https://wallpapercave.com"
@@ -33,7 +34,8 @@ class WallpapercaveImageExtractor(Extractor):
         if path is None:
             try:
                 path = text.rextr(
-                    page, 'href="', '"', page.index('id="tdownload"'), None)
+                    page, 'href="', '"', page.index('id="tdownload"'), None
+                )
             except Exception:
                 pass
             else:
@@ -42,8 +44,7 @@ class WallpapercaveImageExtractor(Extractor):
                 yield Message.Url, self.root + path, image
 
         if path is None:
-            for wp in text.extract_iter(
-                    page, 'class="wallpaper" id="wp', '</picture>'):
+            for wp in text.extract_iter(page, 'class="wallpaper" id="wp', "</picture>"):
                 if path := text.rextr(wp, ' src="', '"'):
                     image = text.nameext_from_url(path)
                     yield Message.Directory, image

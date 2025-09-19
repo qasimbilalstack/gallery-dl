@@ -15,6 +15,7 @@ import binascii
 
 class NitterExtractor(BaseExtractor):
     """Base class for nitter extractors"""
+
     basecategory = "nitter"
     directory_fmt = ("{category}", "{user[name]}")
     filename_fmt = "{tweet_id}_{num}.{extension}"
@@ -31,7 +32,7 @@ class NitterExtractor(BaseExtractor):
     def items(self):
         retweets = self.config("retweets", False)
         if videos := self.config("videos", True):
-            ytdl = (videos == "ytdl")
+            ytdl = videos == "ytdl"
             videos = True
             self.cookies.set("hlsPlayback", "on", domain=self.cookies_domain)
 
@@ -43,25 +44,25 @@ class NitterExtractor(BaseExtractor):
 
             if attachments := tweet.pop("_attach", ""):
                 files = []
-                for url in text.extract_iter(
-                        attachments, 'href="', '"'):
+                for url in text.extract_iter(attachments, 'href="', '"'):
 
                     if "/i/broadcasts/" in url:
-                        self.log.debug(
-                            "Skipping unsupported broadcast '%s'", url)
+                        self.log.debug("Skipping unsupported broadcast '%s'", url)
                         continue
 
                     if "/enc/" in url:
-                        name = binascii.a2b_base64(url.rpartition(
-                            "/")[2]).decode().rpartition("/")[2]
+                        name = (
+                            binascii.a2b_base64(url.rpartition("/")[2])
+                            .decode()
+                            .rpartition("/")[2]
+                        )
                     else:
                         name = url.rpartition("%2F")[2]
 
                     if url[0] == "/":
                         url = self.root + url
                     file = {"url": url, "_http_retry": _retry_on_404}
-                    file["filename"], _, file["extension"] = \
-                        name.rpartition(".")
+                    file["filename"], _, file["extension"] = name.rpartition(".")
                     files.append(file)
 
                 if videos and not files:
@@ -69,29 +70,31 @@ class NitterExtractor(BaseExtractor):
                         url = f"ytdl:{self.root}/i/status/{tweet['tweet_id']}"
                         files.append({"url": url, "extension": "mp4"})
                     else:
-                        for url in text.extract_iter(
-                                attachments, 'data-url="', '"'):
+                        for url in text.extract_iter(attachments, 'data-url="', '"'):
 
                             if "/enc/" in url:
-                                name = binascii.a2b_base64(url.rpartition(
-                                    "/")[2]).decode().rpartition("/")[2]
+                                name = (
+                                    binascii.a2b_base64(url.rpartition("/")[2])
+                                    .decode()
+                                    .rpartition("/")[2]
+                                )
                             else:
                                 name = url.rpartition("%2F")[2]
 
                             if url[0] == "/":
                                 url = self.root + url
-                            files.append({
-                                "url"      : "ytdl:" + url,
-                                "filename" : name.rpartition(".")[0],
-                                "extension": "mp4",
-                            })
+                            files.append(
+                                {
+                                    "url": "ytdl:" + url,
+                                    "filename": name.rpartition(".")[0],
+                                    "extension": "mp4",
+                                }
+                            )
 
-                        for url in text.extract_iter(
-                                attachments, '<source src="', '"'):
+                        for url in text.extract_iter(attachments, '<source src="', '"'):
                             if url[0] == "/":
                                 url = self.root + url
-                            files.append(
-                                text.nameext_from_url(url, {"url": url}))
+                            files.append(text.nameext_from_url(url, {"url": url}))
 
             else:
                 files = ()
@@ -109,26 +112,31 @@ class NitterExtractor(BaseExtractor):
             "name": extr('class="fullname" href="/', '"'),
             "nick": extr('title="', '"'),
         }
-        extr('<span class="tweet-date', '')
+        extr('<span class="tweet-date', "")
         link = extr('href="', '"')
         return {
-            "author"  : author,
-            "user"    : self.user_obj or author,
-            "date"    : text.parse_datetime(
-                extr('title="', '"'), "%b %d, %Y · %I:%M %p %Z"),
+            "author": author,
+            "user": self.user_obj or author,
+            "date": text.parse_datetime(
+                extr('title="', '"'), "%b %d, %Y · %I:%M %p %Z"
+            ),
             "tweet_id": link.rpartition("/")[2].partition("#")[0],
             "content": extr('class="tweet-content', "</div").partition(">")[2],
-            "_attach" : extr('class="attachments', 'class="tweet-stats'),
-            "comments": text.parse_int(extr(
-                'class="icon-comment', '</div>').rpartition(">")[2]),
-            "retweets": text.parse_int(extr(
-                'class="icon-retweet', '</div>').rpartition(">")[2]),
-            "quotes"  : text.parse_int(extr(
-                'class="icon-quote', '</div>').rpartition(">")[2]),
-            "likes"   : text.parse_int(extr(
-                'class="icon-heart', '</div>').rpartition(">")[2]),
-            "retweet" : 'class="retweet-header' in html,
-            "quoted"  : False,
+            "_attach": extr('class="attachments', 'class="tweet-stats'),
+            "comments": text.parse_int(
+                extr('class="icon-comment', "</div>").rpartition(">")[2]
+            ),
+            "retweets": text.parse_int(
+                extr('class="icon-retweet', "</div>").rpartition(">")[2]
+            ),
+            "quotes": text.parse_int(
+                extr('class="icon-quote', "</div>").rpartition(">")[2]
+            ),
+            "likes": text.parse_int(
+                extr('class="icon-heart', "</div>").rpartition(">")[2]
+            ),
+            "retweet": 'class="retweet-header' in html,
+            "quoted": False,
         }
 
     def _tweet_from_quote(self, html):
@@ -137,19 +145,23 @@ class NitterExtractor(BaseExtractor):
             "name": extr('class="fullname" href="/', '"'),
             "nick": extr('title="', '"'),
         }
-        extr('<span class="tweet-date', '')
+        extr('<span class="tweet-date', "")
         link = extr('href="', '"')
         return {
-            "author"  : author,
-            "user"    : self.user_obj or author,
-            "date"    : text.parse_datetime(
-                extr('title="', '"'), "%b %d, %Y · %I:%M %p %Z"),
+            "author": author,
+            "user": self.user_obj or author,
+            "date": text.parse_datetime(
+                extr('title="', '"'), "%b %d, %Y · %I:%M %p %Z"
+            ),
             "tweet_id": link.rpartition("/")[2].partition("#")[0],
-            "content" : extr('class="quote-text', "</div").partition(">")[2],
-            "_attach" : extr('class="attachments', '''
-                </div>'''),
-            "retweet" : False,
-            "quoted"  : True,
+            "content": extr('class="quote-text', "</div").partition(">")[2],
+            "_attach": extr(
+                'class="attachments',
+                """
+                </div>""",
+            ),
+            "retweet": False,
+            "quoted": True,
         }
 
     def _user_from_html(self, html):
@@ -158,33 +170,41 @@ class NitterExtractor(BaseExtractor):
 
         try:
             if "/enc/" in banner:
-                uid = binascii.a2b_base64(banner.rpartition(
-                    "/")[2]).decode().split("/")[4]
+                uid = (
+                    binascii.a2b_base64(banner.rpartition("/")[2])
+                    .decode()
+                    .split("/")[4]
+                )
             else:
                 uid = banner.split("%2F")[4]
         except Exception:
             uid = 0
 
         return {
-            "id"              : uid,
-            "profile_banner"  : self.root + banner if banner else "",
-            "profile_image"   : self.root + extr(
-                'class="profile-card-avatar" href="', '"'),
-            "nick"            : extr('title="', '"'),
-            "name"            : extr('title="@', '"'),
-            "description"     : extr('<p dir="auto">', '<'),
-            "date"            : text.parse_datetime(
+            "id": uid,
+            "profile_banner": self.root + banner if banner else "",
+            "profile_image": self.root
+            + extr('class="profile-card-avatar" href="', '"'),
+            "nick": extr('title="', '"'),
+            "name": extr('title="@', '"'),
+            "description": extr('<p dir="auto">', "<"),
+            "date": text.parse_datetime(
                 extr('class="profile-joindate"><span title="', '"'),
-                "%I:%M %p - %d %b %Y"),
-            "statuses_count"  : text.parse_int(extr(
-                'class="profile-stat-num">', '<').replace(",", "")),
-            "friends_count"   : text.parse_int(extr(
-                'class="profile-stat-num">', '<').replace(",", "")),
-            "followers_count" : text.parse_int(extr(
-                'class="profile-stat-num">', '<').replace(",", "")),
-            "favourites_count": text.parse_int(extr(
-                'class="profile-stat-num">', '<').replace(",", "")),
-            "verified"        : 'title="Verified account"' in html,
+                "%I:%M %p - %d %b %Y",
+            ),
+            "statuses_count": text.parse_int(
+                extr('class="profile-stat-num">', "<").replace(",", "")
+            ),
+            "friends_count": text.parse_int(
+                extr('class="profile-stat-num">', "<").replace(",", "")
+            ),
+            "followers_count": text.parse_int(
+                extr('class="profile-stat-num">', "<").replace(",", "")
+            ),
+            "favourites_count": text.parse_int(
+                extr('class="profile-stat-num">', "<").replace(",", "")
+            ),
+            "verified": 'title="Verified account"' in html,
         }
 
     def _extract_quote(self, html):
@@ -198,15 +218,18 @@ class NitterExtractor(BaseExtractor):
         quoted = self.config("quoted", False)
 
         if self.user_id:
-            self.user = self.request(
-                f"{self.root}/i/user/{self.user_id}",
-                allow_redirects=False,
-            ).headers["location"].rpartition("/")[2]
+            self.user = (
+                self.request(
+                    f"{self.root}/i/user/{self.user_id}",
+                    allow_redirects=False,
+                )
+                .headers["location"]
+                .rpartition("/")[2]
+            )
         base_url = url = f"{self.root}/{self.user}{path}"
 
         while True:
-            tweets_html = self.request(url).text.split(
-                '<div class="timeline-item')
+            tweets_html = self.request(url).text.split('<div class="timeline-item')
 
             if self.user_obj is None:
                 self.user_obj = self._user_from_html(tweets_html[0])
@@ -219,15 +242,13 @@ class NitterExtractor(BaseExtractor):
                 if quoted and quote:
                     yield self._tweet_from_quote(quote)
 
-            more = text.extr(
-                tweets_html[-1], '<div class="show-more"><a href="?', '"')
+            more = text.extr(tweets_html[-1], '<div class="show-more"><a href="?', '"')
             if not more:
                 return
             url = base_url + "?" + text.unescape(more)
 
 
-BASE_PATTERN = NitterExtractor.update({
-})
+BASE_PATTERN = NitterExtractor.update({})
 
 USER_PATTERN = BASE_PATTERN + r"/(i(?:/user/|d:)(\d+)|[^/?#]+)"
 
@@ -270,6 +291,7 @@ class NitterSearchExtractor(NitterExtractor):
 
 class NitterTweetExtractor(NitterExtractor):
     """Extractor for nitter tweets"""
+
     subcategory = "tweet"
     directory_fmt = ("{category}", "{user[name]}")
     filename_fmt = "{tweet_id}_{num}.{extension}"
@@ -279,9 +301,13 @@ class NitterTweetExtractor(NitterExtractor):
 
     def tweets(self):
         url = f"{self.root}/i/status/{self.user}"
-        html = text.extr(self.request(url).text, 'class="main-tweet', '''\
+        html = text.extr(
+            self.request(url).text,
+            'class="main-tweet',
+            """\
                 </div>
-              </div></div></div>''')
+              </div></div></div>""",
+        )
         html, quote = self._extract_quote(html)
         tweet = self._tweet_from_html(html)
         if quote and self.config("quoted", False):

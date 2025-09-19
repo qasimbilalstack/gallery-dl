@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?saint\d*\.(?:su|pk|cr|to)"
 
 class SaintAlbumExtractor(LolisafeAlbumExtractor):
     """Extractor for saint albums"""
+
     category = "saint"
     root = "https://saint2.su"
     pattern = BASE_PATTERN + r"/a/([^/?#]+)"
@@ -34,28 +35,30 @@ class SaintAlbumExtractor(LolisafeAlbumExtractor):
             id2 = extr("/thumbs/", "-")
             if not id2:
                 break
-            files.append({
-                "id2"  : id2,
-                "date" : text.parse_timestamp(extr("", ".")),
-                "id"   : extr("/embed/", '"'),
-                "size" : text.parse_int(extr('data="', '"')),
-                "file" : text.unescape(extr(
-                    "onclick=\"play(", ")").strip("\"'")),
-                "id_dl": extr("/d/", ")").rstrip("\"'"),
-            })
+            files.append(
+                {
+                    "id2": id2,
+                    "date": text.parse_timestamp(extr("", ".")),
+                    "id": extr("/embed/", '"'),
+                    "size": text.parse_int(extr('data="', '"')),
+                    "file": text.unescape(extr('onclick="play(', ")").strip("\"'")),
+                    "id_dl": extr("/d/", ")").rstrip("\"'"),
+                }
+            )
 
         return files, {
-            "album_id"     : album_id,
-            "album_name"   : text.unescape(title.rpartition(" - ")[0]),
-            "album_size"   : sum(file["size"] for file in files),
-            "description"  : text.unescape(descr),
-            "count"        : len(files),
-            "_http_headers": {"Referer": response.url}
+            "album_id": album_id,
+            "album_name": text.unescape(title.rpartition(" - ")[0]),
+            "album_size": sum(file["size"] for file in files),
+            "description": text.unescape(descr),
+            "count": len(files),
+            "_http_headers": {"Referer": response.url},
         }
 
 
 class SaintMediaExtractor(SaintAlbumExtractor):
     """Extractor for saint media links"""
+
     subcategory = "media"
     directory_fmt = ("{category}",)
     pattern = BASE_PATTERN + r"(/(embe)?d/([^/?#]+))"
@@ -71,20 +74,20 @@ class SaintMediaExtractor(SaintAlbumExtractor):
 
             if embed:
                 file = {
-                    "id"   : album_id,
-                    "id2"  : extr("/thumbs/", "-"),
-                    "date" : text.parse_timestamp(extr("", ".")),
-                    "file" : text.unescape(extr('<source src="', '"')),
+                    "id": album_id,
+                    "id2": extr("/thumbs/", "-"),
+                    "date": text.parse_timestamp(extr("", ".")),
+                    "file": text.unescape(extr('<source src="', '"')),
                     "id_dl": extr("/d/", "'"),
                 }
 
             else:  # /d/
                 file = {
-                    "file"     : text.unescape(extr('<a href="', '"')),
-                    "id"       : album_id,
-                    "id_dl"    : album_id,
-                    "name"     : album_id,
-                    "filename" : album_id,
+                    "file": text.unescape(extr('<a href="', '"')),
+                    "id": album_id,
+                    "id_dl": album_id,
+                    "name": album_id,
+                    "filename": album_id,
                     "extension": "mp4",
                 }
 
@@ -94,9 +97,9 @@ class SaintMediaExtractor(SaintAlbumExtractor):
             return (), {}
 
         return (file,), {
-            "album_id"   : "",
-            "album_name" : "",
-            "album_size" : -1,
+            "album_id": "",
+            "album_name": "",
+            "album_size": -1,
             "description": "",
-            "count"      : 1,
+            "count": 1,
         }

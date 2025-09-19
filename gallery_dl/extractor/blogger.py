@@ -13,16 +13,18 @@ from .. import text, util
 
 
 def original(url):
-    return (util.re(r"(/|=)(?:[sw]\d+|w\d+-h\d+)(?=/|$)")
-            .sub(r"\1s0", url)
-            .replace("http:", "https:", 1))
+    return (
+        util.re(r"(/|=)(?:[sw]\d+|w\d+-h\d+)(?=/|$)")
+        .sub(r"\1s0", url)
+        .replace("http:", "https:", 1)
+    )
 
 
 class BloggerExtractor(BaseExtractor):
     """Base class for blogger extractors"""
+
     basecategory = "blogger"
-    directory_fmt = ("blogger", "{blog[name]}",
-                     "{post[date]:%Y-%m-%d} {post[title]}")
+    directory_fmt = ("blogger", "{blog[name]}", "{post[date]:%Y-%m-%d} {post[title]}")
     filename_fmt = "{num:>03}.{extension}"
     archive_fmt = "{post[id]}_{num}"
 
@@ -34,7 +36,8 @@ class BloggerExtractor(BaseExtractor):
         if self.videos:
             self.findall_video = util.re(
                 r"""src=["'](https?://www\.blogger\.com"""
-                r"""/video\.g\?token=[^"']+)""").findall
+                r"""/video\.g\?token=[^"']+)"""
+            ).findall
 
     def items(self):
         blog = self.api.blog_by_url("http://" + self.blog)
@@ -45,9 +48,10 @@ class BloggerExtractor(BaseExtractor):
 
         findall_image = util.re(
             r'src="(https?://(?:'
-            r'blogger\.googleusercontent\.com/img|'
-            r'lh\d+(?:-\w+)?\.googleusercontent\.com|'
-            r'\d+\.bp\.blogspot\.com)/[^"]+)').findall
+            r"blogger\.googleusercontent\.com/img|"
+            r"lh\d+(?:-\w+)?\.googleusercontent\.com|"
+            r'\d+\.bp\.blogspot\.com)/[^"]+)'
+        ).findall
         metadata = self.metadata()
 
         for post in self.posts(blog):
@@ -58,8 +62,8 @@ class BloggerExtractor(BaseExtractor):
                 files[idx] = original(url)
 
             if self.videos and (
-                    'id="BLOG_video-' in content or
-                    'class="BLOG_video_' in content):
+                'id="BLOG_video-' in content or 'class="BLOG_video_' in content
+            ):
                 self._extract_videos(files, post)
 
             post["author"] = post["author"]["displayName"]
@@ -87,9 +91,9 @@ class BloggerExtractor(BaseExtractor):
     def _extract_videos(self, files, post):
         url = f"https://{self.blog}/feeds/posts/default/{post['id']}"
         params = {
-            "alt"          : "json",
-            "v"            : "2",
-            "dynamicviews" : "1",
+            "alt": "json",
+            "v": "2",
+            "dynamicviews": "1",
             "rewriteforssl": "true",
         }
 
@@ -98,24 +102,28 @@ class BloggerExtractor(BaseExtractor):
 
         for url in self.findall_video(html):
             page = self.request(url).text
-            video_config = util.json_loads(text.extr(
-                page, 'var VIDEO_CONFIG =', '\n'))
-            files.append(max(
-                video_config["streams"],
-                key=lambda x: x["format_id"],
-            )["play_url"])
+            video_config = util.json_loads(text.extr(page, "var VIDEO_CONFIG =", "\n"))
+            files.append(
+                max(
+                    video_config["streams"],
+                    key=lambda x: x["format_id"],
+                )["play_url"]
+            )
 
 
-BASE_PATTERN = BloggerExtractor.update({
-    "blogspot": {
-        "root": None,
-        "pattern": r"[\w-]+\.blogspot\.com",
-    },
-})
+BASE_PATTERN = BloggerExtractor.update(
+    {
+        "blogspot": {
+            "root": None,
+            "pattern": r"[\w-]+\.blogspot\.com",
+        },
+    }
+)
 
 
 class BloggerPostExtractor(BloggerExtractor):
     """Extractor for a single blog post"""
+
     subcategory = "post"
     pattern = BASE_PATTERN + r"(/\d\d\d\d/\d\d/[^/?#]+\.html)"
     example = "https://BLOG.blogspot.com/1970/01/TITLE.html"
@@ -126,6 +134,7 @@ class BloggerPostExtractor(BloggerExtractor):
 
 class BloggerBlogExtractor(BloggerExtractor):
     """Extractor for an entire Blogger blog"""
+
     subcategory = "blog"
     pattern = BASE_PATTERN + r"/?$"
     example = "https://BLOG.blogspot.com/"
@@ -136,6 +145,7 @@ class BloggerBlogExtractor(BloggerExtractor):
 
 class BloggerSearchExtractor(BloggerExtractor):
     """Extractor for Blogger search resuls"""
+
     subcategory = "search"
     pattern = BASE_PATTERN + r"/search/?\?q=([^&#]+)"
     example = "https://BLOG.blogspot.com/search?q=QUERY"
@@ -150,6 +160,7 @@ class BloggerSearchExtractor(BloggerExtractor):
 
 class BloggerLabelExtractor(BloggerExtractor):
     """Extractor for Blogger posts by label"""
+
     subcategory = "label"
     pattern = BASE_PATTERN + r"/search/label/([^/?#]+)"
     example = "https://BLOG.blogspot.com/search/label/LABEL"
@@ -162,11 +173,12 @@ class BloggerLabelExtractor(BloggerExtractor):
         return self.api.blog_posts(blog["id"], self.label)
 
 
-class BloggerAPI():
+class BloggerAPI:
     """Minimal interface for the Blogger API v3
 
     https://developers.google.com/blogger
     """
+
     API_KEY = "AIzaSyCN9ax34oMMyM07g_M-5pjeDp_312eITK8"
 
     def __init__(self, extractor):
@@ -193,8 +205,7 @@ class BloggerAPI():
     def _call(self, endpoint, params, notfound=None):
         url = "https://www.googleapis.com/blogger/v3" + endpoint
         params["key"] = self.api_key
-        return self.extractor.request_json(
-            url, params=params, notfound=notfound)
+        return self.extractor.request_json(url, params=params, notfound=notfound)
 
     def _pagination(self, endpoint, params):
         while True:

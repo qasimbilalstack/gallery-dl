@@ -14,27 +14,28 @@ BASE_PATTERN = r"(?:https?://)?(?:[a-z]{2}.)?nudostar\.tv"
 
 class NudostarExtractor(GalleryExtractor):
     """Base class for NudoStar extractors"""
+
     category = "nudostar"
     root = "https://nudostar.tv"
 
 
 class NudostarModelExtractor(NudostarExtractor):
     """Extractor for NudoStar models"""
+
     subcategory = "model"
     pattern = BASE_PATTERN + r"(/models/([^/?#]+)/?)$"
     example = "https://nudostar.tv/models/MODEL/"
 
     def metadata(self, page):
-        names = text.extr(page, "<title>", "<").rpartition(
-            " Nude ")[0].split(" / ")
+        names = text.extr(page, "<title>", "<").rpartition(" Nude ")[0].split(" / ")
         slug = self.groups[1]
 
         return {
-            "gallery_id" : slug,
-            "model_slug" : slug,
+            "gallery_id": slug,
+            "model_slug": slug,
             "model_names": names,
-            "model"      : names[0],
-            "title"      : "",
+            "model": names[0],
+            "title": "",
         }
 
     def images(self, page):
@@ -44,14 +45,12 @@ class NudostarModelExtractor(NudostarExtractor):
         base = f"{self.root}{path}_"
         ext = "." + end.rpartition(".")[2]
 
-        return [
-            (f"{base}{i:04}{ext}", None)
-            for i in range(1, int(cnt)+1)
-        ]
+        return [(f"{base}{i:04}{ext}", None) for i in range(1, int(cnt) + 1)]
 
 
 class NudostarImageExtractor(NudostarExtractor):
     """Extractor for NudoStar images"""
+
     subcategory = "image"
     pattern = BASE_PATTERN + r"(/models/([^/?#]+)/(\d+)/)"
     example = "https://nudostar.tv/models/MODEL/123/"
@@ -59,8 +58,7 @@ class NudostarImageExtractor(NudostarExtractor):
     def items(self):
         page = self.request(self.page_url, notfound=self.subcategory).text
 
-        img_url = text.extract(
-            page, 'src="', '"', page.index('class="headline"'))[0]
+        img_url = text.extract(page, 'src="', '"', page.index('class="headline"'))[0]
 
         data = NudostarModelExtractor.metadata(self, page)
         data = text.nameext_from_url(img_url, data)

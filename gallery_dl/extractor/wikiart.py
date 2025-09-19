@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?wikiart\.org/([a-z]+)"
 
 class WikiartExtractor(Extractor):
     """Base class for wikiart extractors"""
+
     category = "wikiart"
     filename_fmt = "{id}_{title}.{extension}"
     archive_fmt = "{id}"
@@ -66,6 +67,7 @@ class WikiartExtractor(Extractor):
 
 class WikiartArtistExtractor(WikiartExtractor):
     """Extractor for an artist's paintings on wikiart.org"""
+
     subcategory = "artist"
     directory_fmt = ("{category}", "{artist[artistName]}")
     pattern = BASE_PATTERN + r"/(?!\w+-by-)([\w-]+)/?$"
@@ -88,6 +90,7 @@ class WikiartArtistExtractor(WikiartExtractor):
 
 class WikiartImageExtractor(WikiartArtistExtractor):
     """Extractor for individual paintings on wikiart.org"""
+
     subcategory = "image"
     pattern = BASE_PATTERN + r"/(?!(?:paintings|artists)-by-)([\w-]+)/([\w-]+)"
     example = "https://www.wikiart.org/en/ARTIST/TITLE"
@@ -100,13 +103,16 @@ class WikiartImageExtractor(WikiartArtistExtractor):
         title, sep, year = self.title.rpartition("-")
         if not sep or not year.isdecimal():
             title = self.title
-        url = (f"{self.root}/{self.lang}/Search/"
-               f"{self.artist.get('artistName') or self.artist_name} {title}")
+        url = (
+            f"{self.root}/{self.lang}/Search/"
+            f"{self.artist.get('artistName') or self.artist_name} {title}"
+        )
         return self._pagination(url, stop=True)
 
 
 class WikiartArtworksExtractor(WikiartExtractor):
     """Extractor for artwork collections on wikiart.org"""
+
     subcategory = "artworks"
     directory_fmt = ("{category}", "Artworks by {group!c}", "{type}")
     pattern = BASE_PATTERN + r"/paintings-by-([\w-]+)/([\w-]+)"
@@ -127,8 +133,9 @@ class WikiartArtworksExtractor(WikiartExtractor):
 
 class WikiartArtistsExtractor(WikiartExtractor):
     """Extractor for artist collections on wikiart.org"""
+
     subcategory = "artists"
-    pattern = (BASE_PATTERN + r"/artists-by-([\w-]+)/([\w-]+)")
+    pattern = BASE_PATTERN + r"/artists-by-([\w-]+)/([\w-]+)"
     example = "https://www.wikiart.org/en/artists-by-GROUP/TYPE"
 
     def __init__(self, match):

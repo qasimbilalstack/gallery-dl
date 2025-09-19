@@ -14,6 +14,7 @@ from .. import text
 
 class KeenspotComicExtractor(Extractor):
     """Extractor for webcomics from keenspot.com"""
+
     category = "keenspot"
     subcategory = "comic"
     directory_fmt = ("{category}", "{comic}")
@@ -39,7 +40,7 @@ class KeenspotComicExtractor(Extractor):
         with self.request(self.root + "/") as response:
             if response.history:
                 url = response.request.url
-                self.root = url[:url.index("/", 8)]
+                self.root = url[: url.index("/", 8)]
             page = response.text
             del response
 
@@ -87,7 +88,7 @@ class KeenspotComicExtractor(Extractor):
             self._next = self._next_id
             return text.rextr(page, 'href="', '"', pos)
 
-        pos = page.find('>FIRST PAGE<')
+        pos = page.find(">FIRST PAGE<")
         if pos >= 0:
             if self.comic == "lastblood":
                 self._next = self._next_lastblood
@@ -101,9 +102,9 @@ class KeenspotComicExtractor(Extractor):
             self._needle = '<a href="/archive.html'
             return text.extract(page, 'href="', '"', pos)[0]
 
-        pos = page.find('>First Comic<')  # twokinds
+        pos = page.find(">First Comic<")  # twokinds
         if pos >= 0:
-            self._image = '</header>'
+            self._image = "</header>"
             self._needle = 'class="navarchive"'
             return text.rextr(page, 'href="', '"', pos)
 

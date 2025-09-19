@@ -14,6 +14,7 @@ from .. import text
 
 class VanillarockExtractor(Extractor):
     """Base class for vanillarock extractors"""
+
     category = "vanillarock"
     root = "https://vanilla-rock.com"
 
@@ -24,12 +25,14 @@ class VanillarockExtractor(Extractor):
 
 class VanillarockPostExtractor(VanillarockExtractor):
     """Extractor for blogposts on vanilla-rock.com"""
+
     subcategory = "post"
     directory_fmt = ("{category}", "{path}")
     filename_fmt = "{num:>02}.{extension}"
     archive_fmt = "{filename}"
-    pattern = (r"(?:https?://)?(?:www\.)?vanilla-rock\.com"
-               r"(/(?!category/|tag/)[^/?#]+)/?$")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?vanilla-rock\.com" r"(/(?!category/|tag/)[^/?#]+)/?$"
+    )
     example = "https://vanilla-rock.com/TITLE"
 
     def items(self):
@@ -38,7 +41,7 @@ class VanillarockPostExtractor(VanillarockExtractor):
 
         imgs = []
         while True:
-            img = extr('<div class="main-img">', '</div>')
+            img = extr('<div class="main-img">', "</div>")
             if not img:
                 break
             imgs.append(text.extr(img, 'href="', '"'))
@@ -46,11 +49,11 @@ class VanillarockPostExtractor(VanillarockExtractor):
         data = {
             "count": len(imgs),
             "title": text.unescape(name),
-            "path" : self.path.strip("/"),
-            "date" : text.parse_datetime(extr(
-                '<div class="date">', '</div>'), "%Y-%m-%d %H:%M"),
-            "tags" : text.split_html(extr(
-                '<div class="cat-tag">', '</div>'))[::2],
+            "path": self.path.strip("/"),
+            "date": text.parse_datetime(
+                extr('<div class="date">', "</div>"), "%Y-%m-%d %H:%M"
+            ),
+            "tags": text.split_html(extr('<div class="cat-tag">', "</div>"))[::2],
         }
 
         yield Message.Directory, data
@@ -60,9 +63,9 @@ class VanillarockPostExtractor(VanillarockExtractor):
 
 class VanillarockTagExtractor(VanillarockExtractor):
     """Extractor for vanillarock blog posts by tag or category"""
+
     subcategory = "tag"
-    pattern = (r"(?:https?://)?(?:www\.)?vanilla-rock\.com"
-               r"(/(?:tag|category)/[^?#]+)")
+    pattern = r"(?:https?://)?(?:www\.)?vanilla-rock\.com" r"(/(?:tag|category)/[^?#]+)"
     example = "https://vanilla-rock.com/tag/TAG"
 
     def items(self):
@@ -72,7 +75,7 @@ class VanillarockTagExtractor(VanillarockExtractor):
         while url:
             extr = text.extract_from(self.request(url).text)
             while True:
-                post = extr('<h2 class="entry-title">', '</h2>')
+                post = extr('<h2 class="entry-title">', "</h2>")
                 if not post:
                     break
                 yield Message.Queue, text.extr(post, 'href="', '"'), data

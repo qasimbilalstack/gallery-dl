@@ -14,6 +14,7 @@ from .. import text
 
 class _4chanarchivesThreadExtractor(Extractor):
     """Extractor for threads on 4chanarchives.com"""
+
     category = "4chanarchives"
     subcategory = "thread"
     root = "https://4chanarchives.com"
@@ -35,8 +36,7 @@ class _4chanarchivesThreadExtractor(Extractor):
         posts = self.posts(page)
 
         if not data["title"]:
-            data["title"] = text.unescape(text.remove_html(
-                posts[0]["com"]))[:50]
+            data["title"] = text.unescape(text.remove_html(posts[0]["com"]))[:50]
 
         for post in posts:
             post.update(data)
@@ -46,16 +46,19 @@ class _4chanarchivesThreadExtractor(Extractor):
 
     def metadata(self, page):
         return {
-            "board"     : self.board,
-            "thread"    : self.thread,
-            "title"     : text.unescape(text.extr(
-                page, 'property="og:title" content="', '"')),
+            "board": self.board,
+            "thread": self.thread,
+            "title": text.unescape(
+                text.extr(page, 'property="og:title" content="', '"')
+            ),
         }
 
     def posts(self, page):
         """Build a list of all post objects"""
-        return [self.parse(html) for html in text.extract_iter(
-            page, 'id="pc', '</blockquote>')]
+        return [
+            self.parse(html)
+            for html in text.extract_iter(page, 'id="pc', "</blockquote>")
+        ]
 
     def parse(self, html):
         """Build post object by extracting data from an HTML post"""
@@ -68,11 +71,10 @@ class _4chanarchivesThreadExtractor(Extractor):
     def _extract_post(self, html):
         extr = text.extract_from(html)
         return {
-            "no"  : text.parse_int(extr('', '"')),
-            "name": extr('class="name">', '<'),
-            "time": extr('class="dateTime postNum" >', '<').rstrip(),
-            "com" : text.unescape(
-                html[html.find('<blockquote'):].partition(">")[2]),
+            "no": text.parse_int(extr("", '"')),
+            "name": extr('class="name">', "<"),
+            "time": extr('class="dateTime postNum" >', "<").rstrip(),
+            "com": text.unescape(html[html.find("<blockquote") :].partition(">")[2]),
         }
 
     def _extract_file(self, html, post):
@@ -86,6 +88,7 @@ class _4chanarchivesThreadExtractor(Extractor):
 
 class _4chanarchivesBoardExtractor(Extractor):
     """Extractor for boards on 4chanarchives.com"""
+
     category = "4chanarchives"
     subcategory = "board"
     root = "https://4chanarchives.com"

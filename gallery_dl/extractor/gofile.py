@@ -35,8 +35,7 @@ class GofileFolderExtractor(Extractor):
         self.cookies.set("accountToken", token, domain=".gofile.io")
         self.api_token = token
 
-        self.website_token = (self.config("website-token") or
-                              self._get_website_token())
+        self.website_token = self.config("website-token") or self._get_website_token()
 
         folder = self._get_content(self.content_id, password)
         yield Message.Directory, folder
@@ -53,8 +52,9 @@ class GofileFolderExtractor(Extractor):
             if content["type"] == "file":
                 num += 1
                 content["num"] = num
-                content["filename"], _, content["extension"] = \
-                    content["name"].rpartition(".")
+                content["filename"], _, content["extension"] = content[
+                    "name"
+                ].rpartition(".")
                 yield Message.Url, content["link"], content
 
             elif content["type"] == "folder":
@@ -64,8 +64,9 @@ class GofileFolderExtractor(Extractor):
                     yield Message.Queue, url, content
 
             else:
-                self.log.debug("'%s' is of unknown type (%s)",
-                               content.get("name"), content["type"])
+                self.log.debug(
+                    "'%s' is of unknown type (%s)", content.get("name"), content["type"]
+                )
 
     @memcache()
     def _create_account(self):
@@ -88,7 +89,10 @@ class GofileFolderExtractor(Extractor):
     def _api_request(self, endpoint, params=None, headers=None, method="GET"):
         response = self.request_json(
             "https://api.gofile.io/" + endpoint,
-            method=method, params=params, headers=headers)
+            method=method,
+            params=params,
+            headers=headers,
+        )
 
         if response["status"] != "ok":
             if response["status"] == "error-notFound":
@@ -96,6 +100,7 @@ class GofileFolderExtractor(Extractor):
             if response["status"] == "error-passwordRequired":
                 raise exception.AuthorizationError("Password required")
             raise exception.AbortExtraction(
-                f"{endpoint} failed (Status: {response['status']})")
+                f"{endpoint} failed (Status: {response['status']})"
+            )
 
         return response["data"]

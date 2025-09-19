@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?pixeldrain\.com"
 
 class PixeldrainExtractor(Extractor):
     """Base class for pixeldrain extractors"""
+
     category = "pixeldrain"
     root = "https://pixeldrain.com"
     archive_fmt = "{id}"
@@ -25,12 +26,12 @@ class PixeldrainExtractor(Extractor):
             self.session.auth = util.HTTPBasicAuth("", api_key)
 
     def parse_datetime(self, date_string):
-        return text.parse_datetime(
-            date_string, "%Y-%m-%dT%H:%M:%S.%fZ")
+        return text.parse_datetime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 class PixeldrainFileExtractor(PixeldrainExtractor):
     """Extractor for pixeldrain files"""
+
     subcategory = "file"
     filename_fmt = "{filename[:230]} ({id}).{extension}"
     pattern = BASE_PATTERN + r"/(?:u|api/file)/(\w+)"
@@ -54,9 +55,12 @@ class PixeldrainFileExtractor(PixeldrainExtractor):
 
 class PixeldrainAlbumExtractor(PixeldrainExtractor):
     """Extractor for pixeldrain albums"""
+
     subcategory = "album"
-    directory_fmt = ("{category}",
-                     "{album[date]:%Y-%m-%d} {album[title]} ({album[id]})")
+    directory_fmt = (
+        "{category}",
+        "{album[date]:%Y-%m-%d} {album[title]} ({album[id]})",
+    )
     filename_fmt = "{num:>03} {filename[:230]} ({id}).{extension}"
     pattern = BASE_PATTERN + r"/(?:l|api/list)/(\w+)(?:#item=(\d+))?"
     example = "https://pixeldrain.com/l/abcdefgh"
@@ -87,7 +91,7 @@ class PixeldrainAlbumExtractor(PixeldrainExtractor):
         del album["file_count"]
 
         yield Message.Directory, {"album": album}
-        for num, file in enumerate(files, idx+1):
+        for num, file in enumerate(files, idx + 1):
             file["album"] = album
             file["num"] = num
             file["url"] = url = f"{self.root}/api/file/{file['id']}?download"
@@ -98,6 +102,7 @@ class PixeldrainAlbumExtractor(PixeldrainExtractor):
 
 class PixeldrainFolderExtractor(PixeldrainExtractor):
     """Extractor for pixeldrain filesystem files and directories"""
+
     subcategory = "folder"
     filename_fmt = "{filename[:230]}.{extension}"
     archive_fmt = "{path}_{num}"
@@ -106,13 +111,13 @@ class PixeldrainFolderExtractor(PixeldrainExtractor):
 
     def metadata(self, data):
         return {
-            "type"       : data["type"],
-            "path"       : data["path"],
-            "name"       : data["name"],
-            "mime_type"  : data["file_type"],
-            "size"       : data["file_size"],
+            "type": data["type"],
+            "path": data["path"],
+            "name": data["name"],
+            "mime_type": data["file_type"],
+            "size": data["file_size"],
             "hash_sha256": data["sha256_sum"],
-            "date"       : self.parse_datetime(data["created"]),
+            "date": self.parse_datetime(data["created"]),
         }
 
     def items(self):
@@ -144,14 +149,15 @@ class PixeldrainFolderExtractor(PixeldrainExtractor):
                 url = f"{self.root}/api/filesystem{child['path']}?attach"
                 share_url = f"{self.root}/d{child['path']}"
                 data = self.metadata(child)
-                data.update({
-                    "id"       : folder["id"],
-                    "num"      : num,
-                    "url"      : url,
-                    "share_url": share_url,
-                })
-                data["filename"], _, data["extension"] = \
-                    child["name"].rpartition(".")
+                data.update(
+                    {
+                        "id": folder["id"],
+                        "num": num,
+                        "url": url,
+                        "share_url": share_url,
+                    }
+                )
+                data["filename"], _, data["extension"] = child["name"].rpartition(".")
                 yield Message.Url, url, data
 
             elif child["type"] == "dir":
@@ -161,5 +167,6 @@ class PixeldrainFolderExtractor(PixeldrainExtractor):
                     yield Message.Queue, url, child
 
             else:
-                self.log.debug("'%s' is of unknown type (%s)",
-                               child.get("name"), child["type"])
+                self.log.debug(
+                    "'%s' is of unknown type (%s)", child.get("name"), child["type"]
+                )

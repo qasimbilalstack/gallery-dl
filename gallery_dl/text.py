@@ -48,9 +48,7 @@ def split_html(txt):
     """Split input string by HTML tags"""
     try:
         return [
-            unescape(x).strip()
-            for x in HTML_RE.split(txt)
-            if x and not x.isspace()
+            unescape(x).strip() for x in HTML_RE.split(txt) if x and not x.isspace()
         ]
     except TypeError:
         return []
@@ -82,11 +80,11 @@ def root_from_url(url, scheme="https://"):
     """Extract scheme and domain from a URL"""
     if not url.startswith(("https://", "http://")):
         try:
-            return scheme + url[:url.index("/")]
+            return scheme + url[: url.index("/")]
         except ValueError:
             return scheme + url
     try:
-        return url[:url.index("/", 8)]
+        return url[: url.index("/", 8)]
     except ValueError:
         return url
 
@@ -143,7 +141,7 @@ def extract(txt, begin, end, pos=None):
     try:
         first = txt.index(begin, pos) + len(begin)
         last = txt.index(end, first)
-        return txt[first:last], last+len(end)
+        return txt[first:last], last + len(end)
     except Exception:
         return None, 0 if pos is None else pos
 
@@ -152,7 +150,7 @@ def extr(txt, begin, end, default=""):
     """Stripped-down version of 'extract()'"""
     try:
         first = txt.index(begin) + len(begin)
-        return txt[first:txt.index(end, first)]
+        return txt[first : txt.index(end, first)]
     except Exception:
         return default
 
@@ -162,7 +160,7 @@ def rextract(txt, begin, end, pos=None):
         lbeg = len(begin)
         first = txt.rindex(begin, None, pos)
         last = txt.index(end, first + lbeg)
-        return txt[first + lbeg:last], first
+        return txt[first + lbeg : last], first
     except Exception:
         return None, -1 if pos is None else pos
 
@@ -171,7 +169,7 @@ def rextr(txt, begin, end, pos=None, default=""):
     """Stripped-down version of 'rextract()'"""
     try:
         first = txt.rindex(begin, None, pos) + len(begin)
-        return txt[first:txt.index(end, first)]
+        return txt[first : txt.index(end, first)]
     except Exception:
         return default
 
@@ -204,6 +202,7 @@ def extract_iter(txt, begin, end, pos=None):
 
 def extract_from(txt, pos=None, default=""):
     """Returns a function object that extracts from 'txt'"""
+
     def extr(begin, end, index=txt.index, txt=txt):
         nonlocal pos
         try:
@@ -213,6 +212,7 @@ def extract_from(txt, pos=None, default=""):
             return txt[first:last]
         except Exception:
             return default
+
     return extr
 
 
@@ -316,13 +316,10 @@ def parse_query_list(qs, as_list=()):
 
 
 def build_query(params):
-    return "&".join([
-        f"{quote(name)}={quote(value)}"
-        for name, value in params.items()
-    ])
+    return "&".join([f"{quote(name)}={quote(value)}" for name, value in params.items()])
 
 
-if sys.hexversion < 0x30c0000:
+if sys.hexversion < 0x30C0000:
     # Python <= 3.11
     def parse_timestamp(ts, default=None):
         """Create a datetime object from a Unix timestamp"""
@@ -330,6 +327,7 @@ if sys.hexversion < 0x30c0000:
             return datetime.datetime.utcfromtimestamp(int(ts))
         except Exception:
             return default
+
 else:
     # Python >= 3.12
     def parse_timestamp(ts, default=None):

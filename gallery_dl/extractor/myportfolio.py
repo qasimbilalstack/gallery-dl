@@ -14,14 +14,17 @@ from .. import text, exception
 
 class MyportfolioGalleryExtractor(Extractor):
     """Extractor for an image gallery on www.myportfolio.com"""
+
     category = "myportfolio"
     subcategory = "gallery"
     directory_fmt = ("{category}", "{user}", "{title}")
     filename_fmt = "{num:>02}.{extension}"
     archive_fmt = "{user}_{filename}"
-    pattern = (r"(?:myportfolio:(?:https?://)?([^/]+)|"
-               r"(?:https?://)?([\w-]+\.myportfolio\.com))"
-               r"(/[^/?#]+)?")
+    pattern = (
+        r"(?:myportfolio:(?:https?://)?([^/]+)|"
+        r"(?:https?://)?([\w-]+\.myportfolio\.com))"
+        r"(/[^/?#]+)?"
+    )
     example = "https://USER.myportfolio.com/TITLE"
 
     def __init__(self, match):
@@ -37,8 +40,7 @@ class MyportfolioGalleryExtractor(Extractor):
             raise exception.NotFoundError()
         page = response.text
 
-        projects = text.extr(
-            page, '<section class="project-covers', '</section>')
+        projects = text.extr(page, '<section class="project-covers', "</section>")
 
         if projects:
             data = {"_extractor": MyportfolioGalleryExtractor}
@@ -60,15 +62,17 @@ class MyportfolioGalleryExtractor(Extractor):
         # from somewhere else and cut that amount from the og:title content
 
         extr = text.extract_from(page)
-        user = extr('property="og:title" content="', '"') or \
-            extr('property=og:title content="', '"')
-        descr = extr('property="og:description" content="', '"') or \
-            extr('property=og:description content="', '"')
-        title = extr('<h1 ', '</h1>')
+        user = extr('property="og:title" content="', '"') or extr(
+            'property=og:title content="', '"'
+        )
+        descr = extr('property="og:description" content="', '"') or extr(
+            'property=og:description content="', '"'
+        )
+        title = extr("<h1 ", "</h1>")
 
         if title:
             title = title.partition(">")[2]
-            user = user[:-len(title)-3]
+            user = user[: -len(title) - 3]
         elif user:
             user, _, title = user.partition(" - ")
         else:
@@ -82,7 +86,6 @@ class MyportfolioGalleryExtractor(Extractor):
 
     def images(self, page):
         """Extract and return a list of all image-urls"""
-        return (
-            list(text.extract_iter(page, 'js-lightbox" data-src="', '"')) or
-            list(text.extract_iter(page, 'data-src="', '"'))
+        return list(text.extract_iter(page, 'js-lightbox" data-src="', '"')) or list(
+            text.extract_iter(page, 'data-src="', '"')
         )

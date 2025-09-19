@@ -14,8 +14,9 @@ from .. import text, util
 BASE_PATTERN = r"(?:https?://)?(?:www\.)?dynasty-scans\.com"
 
 
-class DynastyscansBase():
+class DynastyscansBase:
     """Base class for dynastyscans extractors"""
+
     category = "dynastyscans"
     root = "https://dynasty-scans.com"
 
@@ -31,16 +32,17 @@ class DynastyscansBase():
         src = text.extr(src, 'href="', '"') if "Source<" in src else ""
 
         return {
-            "url"     : self.root + url,
+            "url": self.root + url,
             "image_id": text.parse_int(image_id),
-            "tags"    : text.split_html(tags),
-            "date"    : text.remove_html(date),
-            "source"  : text.unescape(src),
+            "tags": text.split_html(tags),
+            "date": text.remove_html(date),
+            "source": text.unescape(src),
         }
 
 
 class DynastyscansChapterExtractor(DynastyscansBase, ChapterExtractor):
     """Extractor for manga-chapters from dynasty-scans.com"""
+
     pattern = BASE_PATTERN + r"(/chapters/[^/?#]+)"
     example = "https://dynasty-scans.com/chapters/NAME"
 
@@ -52,30 +54,26 @@ class DynastyscansChapterExtractor(DynastyscansBase, ChapterExtractor):
             r"(?:: (.+))?"  # title
         ).match(extr("<h3 id='chapter-title'><b>", "</b>"))
         author = extr(" by ", "</a>")
-        group = extr('"icon-print"></i> ', '</span>')
+        group = extr('"icon-print"></i> ', "</span>")
 
         return {
-            "manga"   : text.unescape(match[1]),
-            "chapter" : text.parse_int(match[2]),
+            "manga": text.unescape(match[1]),
+            "chapter": text.parse_int(match[2]),
             "chapter_minor": match[3] or "",
-            "title"   : text.unescape(match[4] or ""),
-            "author"  : text.remove_html(author),
-            "group"   : (text.remove_html(group) or
-                         text.extr(group, ' alt="', '"')),
-            "date"    : text.parse_datetime(extr(
-                '"icon-calendar"></i> ', '<'), "%b %d, %Y"),
-            "tags"    : text.split_html(extr(
-                "class='tags'>", "<div id='chapter-actions'")),
-            "lang"    : "en",
+            "title": text.unescape(match[4] or ""),
+            "author": text.remove_html(author),
+            "group": (text.remove_html(group) or text.extr(group, ' alt="', '"')),
+            "date": text.parse_datetime(
+                extr('"icon-calendar"></i> ', "<"), "%b %d, %Y"
+            ),
+            "tags": text.split_html(extr("class='tags'>", "<div id='chapter-actions'")),
+            "lang": "en",
             "language": "English",
         }
 
     def images(self, page):
         data = text.extr(page, "var pages = ", ";\n")
-        return [
-            (self.root + img["image"], None)
-            for img in util.json_loads(data)
-        ]
+        return [(self.root + img["image"], None) for img in util.json_loads(data)]
 
 
 class DynastyscansMangaExtractor(DynastyscansBase, MangaExtractor):
@@ -93,6 +91,7 @@ class DynastyscansMangaExtractor(DynastyscansBase, MangaExtractor):
 
 class DynastyscansSearchExtractor(DynastyscansBase, Extractor):
     """Extrator for image search results on dynasty-scans.com"""
+
     subcategory = "search"
     directory_fmt = ("{category}", "Images")
     filename_fmt = "{image_id}.{extension}"
@@ -125,6 +124,7 @@ class DynastyscansSearchExtractor(DynastyscansBase, Extractor):
 
 class DynastyscansImageExtractor(DynastyscansSearchExtractor):
     """Extractor for individual images on dynasty-scans.com"""
+
     subcategory = "image"
     pattern = BASE_PATTERN + r"/images/(\d+)"
     example = "https://dynasty-scans.com/images/12345"
@@ -135,6 +135,7 @@ class DynastyscansImageExtractor(DynastyscansSearchExtractor):
 
 class DynastyscansAnthologyExtractor(DynastyscansSearchExtractor):
     """Extractor for dynasty-scans anthologies"""
+
     subcategory = "anthology"
     pattern = BASE_PATTERN + r"/anthologies/([^/?#]+)"
     example = "https://dynasty-scans.com/anthologies/TITLE"
@@ -145,7 +146,7 @@ class DynastyscansAnthologyExtractor(DynastyscansSearchExtractor):
 
         data = {
             "_extractor": DynastyscansChapterExtractor,
-            "anthology" : root[3].text[28:],
+            "anthology": root[3].text[28:],
         }
 
         if self.config("metadata", False):
@@ -153,10 +154,8 @@ class DynastyscansAnthologyExtractor(DynastyscansSearchExtractor):
             alert = text.extr(page, "<div class='alert", "</div>")
 
             data["alert"] = text.split_html(alert)[1:] if alert else ()
-            data["status"] = text.extr(
-                page, "<small>&mdash; ", "</small>")
-            data["description"] = text.extr(
-                page, "<div class='description'>", "</div>")
+            data["status"] = text.extr(page, "<small>&mdash; ", "</small>")
+            data["description"] = text.extr(page, "<div class='description'>", "</div>")
 
         for element in root:
             if element.tag != "entry":
@@ -166,8 +165,8 @@ class DynastyscansAnthologyExtractor(DynastyscansSearchExtractor):
             data["scanlator"] = content[1].text[11:]
             data["tags"] = content[2].text[6:].lower().split(", ")
             data["title"] = element[5].text
-            data["date"] = text.parse_datetime(
-                element[1].text, "%Y-%m-%dT%H:%M:%S%z")
+            data["date"] = text.parse_datetime(element[1].text, "%Y-%m-%dT%H:%M:%S%z")
             data["date_updated"] = text.parse_datetime(
-                element[2].text, "%Y-%m-%dT%H:%M:%S%z")
+                element[2].text, "%Y-%m-%dT%H:%M:%S%z"
+            )
             yield Message.Queue, element[4].text, data

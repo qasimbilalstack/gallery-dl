@@ -12,17 +12,22 @@ from .common import GalleryExtractor, Extractor, Message
 from .. import text, util
 
 
-class IssuuBase():
+class IssuuBase:
     """Base class for issuu extractors"""
+
     category = "issuu"
     root = "https://issuu.com"
 
 
 class IssuuPublicationExtractor(IssuuBase, GalleryExtractor):
     """Extractor for a single publication"""
+
     subcategory = "publication"
-    directory_fmt = ("{category}", "{document[username]}",
-                     "{document[date]:%Y-%m-%d} {document[title]}")
+    directory_fmt = (
+        "{category}",
+        "{document[username]}",
+        "{document[date]:%Y-%m-%d} {document[title]}",
+    )
     filename_fmt = "{num:>03}.{extension}"
     archive_fmt = "{document[publicationId]}_{num}"
     pattern = r"(?:https?://)?issuu\.com(/[^/?#]+/docs/[^/?#]+)"
@@ -30,28 +35,29 @@ class IssuuPublicationExtractor(IssuuBase, GalleryExtractor):
 
     def metadata(self, page):
 
-        data = text.extr(
-            page, '{\\"documentTextVersion\\":', ']\\n"])</script>')
-        data = util.json_loads(text.unescape(
-            '{"":' + data.replace('\\"', '"')))
+        data = text.extr(page, '{\\"documentTextVersion\\":', ']\\n"])</script>')
+        data = util.json_loads(text.unescape('{"":' + data.replace('\\"', '"')))
 
         doc = data["initialDocumentData"]["document"]
         doc["date"] = text.parse_datetime(
-            doc["originalPublishDateInISOString"], "%Y-%m-%dT%H:%M:%S.%fZ")
+            doc["originalPublishDateInISOString"], "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
 
         self.count = text.parse_int(doc["pageCount"])
-        self.base = (f"https://image.isu.pub/{doc['revisionId']}-"
-                     f"{doc['publicationId']}/jpg/page_")
+        self.base = (
+            f"https://image.isu.pub/{doc['revisionId']}-"
+            f"{doc['publicationId']}/jpg/page_"
+        )
 
         return {"document": doc}
 
     def images(self, page):
-        return [(f"{self.base}{i}.jpg", None)
-                for i in range(1, self.count + 1)]
+        return [(f"{self.base}{i}.jpg", None) for i in range(1, self.count + 1)]
 
 
 class IssuuUserExtractor(IssuuBase, Extractor):
     """Extractor for all publications of a user/publisher"""
+
     subcategory = "user"
     pattern = r"(?:https?://)?issuu\.com/([^/?#]+)(?:/(\d*))?$"
     example = "https://issuu.com/USER"

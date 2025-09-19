@@ -14,6 +14,7 @@ from .. import text
 
 class WarosuThreadExtractor(Extractor):
     """Extractor for threads on warosu.org"""
+
     category = "warosu"
     subcategory = "thread"
     root = "https://warosu.org"
@@ -34,8 +35,7 @@ class WarosuThreadExtractor(Extractor):
         posts = self.posts(page)
 
         if not data["title"]:
-            data["title"] = text.unescape(text.remove_html(
-                posts[0]["com"]))[:50]
+            data["title"] = text.unescape(text.remove_html(posts[0]["com"]))[:50]
 
         yield Message.Directory, data
         for post in posts:
@@ -52,10 +52,10 @@ class WarosuThreadExtractor(Extractor):
         boardname = text.extr(page, "<title>", "</title>")
         title = text.unescape(text.extr(page, "class=filetitle>", "<"))
         return {
-            "board"     : self.board,
+            "board": self.board,
             "board_name": boardname.split(" - ")[1],
-            "thread"    : self.thread,
-            "title"     : title,
+            "thread": self.thread,
+            "title": title,
         }
 
     def posts(self, page):
@@ -67,8 +67,7 @@ class WarosuThreadExtractor(Extractor):
     def parse(self, post):
         """Build post object by extracting data from an HTML post"""
         data = self._extract_post(post)
-        if '<span class="fileinfo' in post and \
-                self._extract_image(post, data):
+        if '<span class="fileinfo' in post and self._extract_image(post, data):
             part = data["image"].rpartition("/")[2]
             data["tim"], _, data["extension"] = part.partition(".")
             data["ext"] = "." + data["extension"]
@@ -77,11 +76,12 @@ class WarosuThreadExtractor(Extractor):
     def _extract_post(self, post):
         extr = text.extract_from(post)
         return {
-            "no"  : extr("id=p", ">"),
+            "no": extr("id=p", ">"),
             "name": extr("class=postername>", "<").strip(),
             "time": extr("class=posttime title=", "000>"),
-            "com" : text.unescape(text.remove_html(extr(
-                "<blockquote>", "</blockquote>").strip())),
+            "com": text.unescape(
+                text.remove_html(extr("<blockquote>", "</blockquote>").strip())
+            ),
         }
 
     def _extract_image(self, post, data):
@@ -90,8 +90,7 @@ class WarosuThreadExtractor(Extractor):
         data["fsize"] = extr("File: ", ", ")
         data["w"] = extr("", "x")
         data["h"] = extr("", ", ")
-        data["filename"] = text.unquote(extr(
-            "", "<").rstrip().rpartition(".")[0])
+        data["filename"] = text.unquote(extr("", "<").rstrip().rpartition(".")[0])
         extr("<br>", "")
 
         if url := extr("<a href=", ">"):

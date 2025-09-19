@@ -12,6 +12,7 @@ from .. import text, util
 
 class NaverChzzkExtractor(Extractor):
     """Base class for chzzk.naver.com extractors"""
+
     category = "naver-chzzk"
     filename_fmt = "{uid}_{id}_{num}.{extension}"
     directory_fmt = ("{category}", "{user[userNickname]}")
@@ -21,7 +22,8 @@ class NaverChzzkExtractor(Extractor):
         return self.request_json(
             f"https://apis.naver.com/nng_main/nng_comment_api/v1/type"
             f"/CHANNEL_POST/id/{uid}/comments/{id or ''}",
-            params=params)["content"]
+            params=params,
+        )["content"]
 
     def items(self):
         for comment in self.comments():
@@ -31,17 +33,18 @@ class NaverChzzkExtractor(Extractor):
             data["uid"] = data["objectId"]
             data["user"] = comment["user"]
             data["count"] = len(files)
-            data["date"] = text.parse_datetime(
-                data["createdDate"], "%Y%m%d%H%M%S")
+            data["date"] = text.parse_datetime(data["createdDate"], "%Y%m%d%H%M%S")
 
             yield Message.Directory, data
             for data["num"], file in enumerate(files, 1):
                 if extra := file.get("extraJson"):
                     file.update(util.json_loads(extra))
                 file["date"] = text.parse_datetime(
-                    file["createdDate"], "%Y-%m-%dT%H:%M:%S.%f%z")
+                    file["createdDate"], "%Y-%m-%dT%H:%M:%S.%f%z"
+                )
                 file["date_updated"] = text.parse_datetime(
-                    file["updatedDate"], "%Y-%m-%dT%H:%M:%S.%f%z")
+                    file["updatedDate"], "%Y-%m-%dT%H:%M:%S.%f%z"
+                )
                 data["file"] = file
                 url = file["attachValue"]
                 yield Message.Url, url, text.nameext_from_url(url, data)
@@ -49,6 +52,7 @@ class NaverChzzkExtractor(Extractor):
 
 class NaverChzzkCommentExtractor(NaverChzzkExtractor):
     """Extractor for individual comment from chzzk.naver.com"""
+
     subcategory = "comment"
     pattern = r"(?:https?://)?chzzk\.naver\.com/(\w+)/community/detail/(\d+)"
     example = "https://chzzk.naver.com/0123456789abcdef/community/detail/12345"
@@ -61,6 +65,7 @@ class NaverChzzkCommentExtractor(NaverChzzkExtractor):
 
 class NaverChzzkCommunityExtractor(NaverChzzkExtractor):
     """Extractor for comments from chzzk.naver.com"""
+
     subcategory = "community"
     pattern = r"(?:https?://)?chzzk\.naver\.com/(\w+)/community"
     example = "https://chzzk.naver.com/0123456789abcdef/community"

@@ -19,6 +19,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?aryion\.com/g4"
 
 class AryionExtractor(Extractor):
     """Base class for aryion extractors"""
+
     category = "aryion"
     directory_fmt = ("{category}", "{user!l}", "{path:J - }")
     filename_fmt = "{id} {title}.{extension}"
@@ -40,7 +41,7 @@ class AryionExtractor(Extractor):
         if username:
             self.cookies_update(self._login_impl(username, password))
 
-    @cache(maxage=14*86400, keyarg=1)
+    @cache(maxage=14 * 86400, keyarg=1)
     def _login_impl(self, username, password):
         self.log.info("Logging in as %s", username)
 
@@ -116,7 +117,10 @@ class AryionExtractor(Extractor):
             if response.status_code >= 400:
                 self.log.warning(
                     "Unable to fetch post %s ('%s %s')",
-                    post_id, response.status_code, response.reason)
+                    post_id,
+                    response.status_code,
+                    response.reason,
+                )
                 return None
             headers = response.headers
 
@@ -145,28 +149,25 @@ class AryionExtractor(Extractor):
         post_url = f"{self.root}/g4/view/{post_id}"
         extr = text.extract_from(self.request(post_url).text)
 
-        title, _, artist = text.unescape(extr(
-            "<title>g4 :: ", "<")).rpartition(" by ")
+        title, _, artist = text.unescape(extr("<title>g4 :: ", "<")).rpartition(" by ")
 
         return {
-            "id"    : text.parse_int(post_id),
-            "url"   : url,
-            "user"  : self.user or artist,
-            "title" : title,
+            "id": text.parse_int(post_id),
+            "url": url,
+            "user": self.user or artist,
+            "title": title,
             "artist": artist,
-            "path"  : text.split_html(extr(
-                "cookiecrumb'>", '</span'))[4:-1:2],
-            "date"  : datetime(*parsedate_tz(lmod)[:6]),
-            "size"  : text.parse_int(clen),
-            "views" : text.parse_int(extr("Views</b>:", "<").replace(",", "")),
-            "width" : text.parse_int(extr("Resolution</b>:", "x")),
+            "path": text.split_html(extr("cookiecrumb'>", "</span"))[4:-1:2],
+            "date": datetime(*parsedate_tz(lmod)[:6]),
+            "size": text.parse_int(clen),
+            "views": text.parse_int(extr("Views</b>:", "<").replace(",", "")),
+            "width": text.parse_int(extr("Resolution</b>:", "x")),
             "height": text.parse_int(extr("", "<")),
-            "comments" : text.parse_int(extr("Comments</b>:", "<")),
+            "comments": text.parse_int(extr("Comments</b>:", "<")),
             "favorites": text.parse_int(extr("Favorites</b>:", "<")),
-            "tags"     : text.split_html(extr("class='taglist'>", "</span>")),
-            "description": text.unescape(text.remove_html(extr(
-                "<p>", "</p>"), "", "")),
-            "filename" : fname,
+            "tags": text.split_html(extr("class='taglist'>", "</span>")),
+            "description": text.unescape(text.remove_html(extr("<p>", "</p>"), "", "")),
+            "filename": fname,
             "extension": ext,
             "_http_lastmodified": lmod,
         }
@@ -174,6 +175,7 @@ class AryionExtractor(Extractor):
 
 class AryionGalleryExtractor(AryionExtractor):
     """Extractor for a user's gallery on eka's portal"""
+
     subcategory = "gallery"
     categorytransfer = True
     pattern = BASE_PATTERN + r"/(?:gallery/|user/|latest.php\?name=)([^/?#]+)"
@@ -203,6 +205,7 @@ class AryionGalleryExtractor(AryionExtractor):
 
 class AryionFavoriteExtractor(AryionExtractor):
     """Extractor for a user's favorites gallery"""
+
     subcategory = "favorite"
     directory_fmt = ("{category}", "{user!l}", "favorites")
     archive_fmt = "f_{user}_{id}"
@@ -217,6 +220,7 @@ class AryionFavoriteExtractor(AryionExtractor):
 
 class AryionTagExtractor(AryionExtractor):
     """Extractor for tag searches on eka's portal"""
+
     subcategory = "tag"
     directory_fmt = ("{category}", "tags", "{search_tags}")
     archive_fmt = "t_{search_tags}_{id}"
@@ -237,6 +241,7 @@ class AryionTagExtractor(AryionExtractor):
 
 class AryionPostExtractor(AryionExtractor):
     """Extractor for individual posts on eka's portal"""
+
     subcategory = "post"
     pattern = BASE_PATTERN + r"/view/(\d+)"
     example = "https://aryion.com/g4/view/12345"

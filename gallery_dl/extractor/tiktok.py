@@ -14,10 +14,12 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?tiktokv?\.com"
 
 class TiktokExtractor(Extractor):
     """Base class for TikTok extractors"""
+
     category = "tiktok"
     directory_fmt = ("{category}", "{user}")
     filename_fmt = (
-        "{id}{num:?_//>02} {title[b:150]}{img_id|audio_id:? [/]/}.{extension}")
+        "{id}{num:?_//>02} {title[b:150]}{img_id|audio_id:? [/]/}.{extension}"
+    )
     archive_fmt = "{id}_{num}_{img_id}"
     root = "https://www.tiktok.com"
     cookies_domain = ".tiktok.com"
@@ -33,8 +35,7 @@ class TiktokExtractor(Extractor):
             if "webapp.video-detail" not in data:
                 # Only /video/ links result in the video-detail dict we need.
                 # Try again using that form of link.
-                tiktok_url = self._sanitize_url(
-                    data["seo.abtest"]["canonical"])
+                tiktok_url = self._sanitize_url(data["seo.abtest"]["canonical"])
                 data = self._extract_rehydration_data(tiktok_url)
             video_detail = data["webapp.video-detail"]
 
@@ -56,15 +57,17 @@ class TiktokExtractor(Extractor):
                 for i, img in enumerate(img_list, 1):
                     url = img["imageURL"]["urlList"][0]
                     text.nameext_from_url(url, post)
-                    post.update({
-                        "type"  : "image",
-                        "image" : img,
-                        "title" : title,
-                        "num"   : i,
-                        "img_id": post["filename"].partition("~")[0],
-                        "width" : img["imageWidth"],
-                        "height": img["imageHeight"],
-                    })
+                    post.update(
+                        {
+                            "type": "image",
+                            "image": img,
+                            "title": title,
+                            "num": i,
+                            "img_id": post["filename"].partition("~")[0],
+                            "width": img["imageWidth"],
+                            "height": img["imageHeight"],
+                        }
+                    )
                     yield Message.Url, url, post
 
                 if self.audio and "music" in post:
@@ -83,17 +86,19 @@ class TiktokExtractor(Extractor):
             if ytdl_media:
                 if not original_title:
                     title = f"TikTok {ytdl_media} #{post['id']}"
-                post.update({
-                    "type"      : ytdl_media,
-                    "image"     : None,
-                    "filename"  : "",
-                    "extension" : "mp3" if ytdl_media == "audio" else "mp4",
-                    "title"     : title,
-                    "num"       : 0,
-                    "img_id"    : "",
-                    "width"     : 0,
-                    "height"    : 0,
-                })
+                post.update(
+                    {
+                        "type": ytdl_media,
+                        "image": None,
+                        "filename": "",
+                        "extension": "mp3" if ytdl_media == "audio" else "mp4",
+                        "title": title,
+                        "num": 0,
+                        "img_id": "",
+                        "width": 0,
+                        "height": 0,
+                    }
+                )
                 yield Message.Url, "ytdl:" + tiktok_url, post
 
     def _sanitize_url(self, url):
@@ -107,11 +112,15 @@ class TiktokExtractor(Extractor):
                 if response.history and "/login" in response.url:
                     raise exception.AuthorizationError(
                         "HTTP redirect to login page "
-                        f"('{response.url.partition('?')[0]}')")
+                        f"('{response.url.partition('?')[0]}')"
+                    )
                 html = response.text
                 data = text.extr(
-                    html, '<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" '
-                    'type="application/json">', '</script>')
+                    html,
+                    '<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" '
+                    'type="application/json">',
+                    "</script>",
+                )
                 return util.json_loads(data)["__DEFAULT_SCOPE__"]
             except ValueError:
                 # We failed to retrieve rehydration data. This happens
@@ -120,26 +129,31 @@ class TiktokExtractor(Extractor):
                 if tries >= self._retries:
                     raise
                 tries += 1
-                self.log.warning("%s: Failed to retrieve rehydration data "
-                                 "(%s/%s)", url.rpartition("/")[2], tries,
-                                 self._retries)
+                self.log.warning(
+                    "%s: Failed to retrieve rehydration data " "(%s/%s)",
+                    url.rpartition("/")[2],
+                    tries,
+                    self._retries,
+                )
                 self.sleep(self._timeout, "retry")
 
     def _extract_audio(self, post):
         audio = post["music"]
         url = audio["playUrl"]
         text.nameext_from_url(url, post)
-        post.update({
-            "type"     : "audio",
-            "image"    : None,
-            "title"    : post["desc"] or f"TikTok audio #{post['id']}",
-            "duration" : audio.get("duration"),
-            "num"      : 0,
-            "img_id"   : "",
-            "audio_id" : audio.get("id"),
-            "width"    : 0,
-            "height"   : 0,
-        })
+        post.update(
+            {
+                "type": "audio",
+                "image": None,
+                "title": post["desc"] or f"TikTok audio #{post['id']}",
+                "duration": audio.get("duration"),
+                "num": 0,
+                "img_id": "",
+                "audio_id": audio.get("id"),
+                "width": 0,
+                "height": 0,
+            }
+        )
         if not post["extension"]:
             post["extension"] = "mp3"
         return url
@@ -154,17 +168,23 @@ class TiktokExtractor(Extractor):
         elif status == 10204:
             self.log.error("%s: Requested post not available", url)
         elif status == 10231:
-            self.log.error("%s: Region locked - Try downloading with a "
-                           "VPN/proxy connection", url)
+            self.log.error(
+                "%s: Region locked - Try downloading with a " "VPN/proxy connection",
+                url,
+            )
         else:
             self.log.error(
                 "%s: Received unknown error code %s ('%s')",
-                url, status, detail.get("statusMsg") or "")
+                url,
+                status,
+                detail.get("statusMsg") or "",
+            )
         return False
 
 
 class TiktokPostExtractor(TiktokExtractor):
     """Extract a single video or photo TikTok link"""
+
     subcategory = "post"
     pattern = BASE_PATTERN + r"/(?:@([\w_.-]*)|share)/(?:phot|vide)o/(\d+)"
     example = "https://www.tiktok.com/@USER/photo/1234567890"
@@ -177,10 +197,13 @@ class TiktokPostExtractor(TiktokExtractor):
 
 class TiktokVmpostExtractor(TiktokExtractor):
     """Extract a single video or photo TikTok VM link"""
+
     subcategory = "vmpost"
-    pattern = (r"(?:https?://)?(?:"
-               r"(?:v[mt]\.)?tiktok\.com|(?:www\.)?tiktok\.com/t"
-               r")/(?!@)([^/?#]+)")
+    pattern = (
+        r"(?:https?://)?(?:"
+        r"(?:v[mt]\.)?tiktok\.com|(?:www\.)?tiktok\.com/t"
+        r")/(?!@)([^/?#]+)"
+    )
     example = "https://vm.tiktok.com/1a2B3c4E5"
 
     def items(self):
@@ -198,6 +221,7 @@ class TiktokVmpostExtractor(TiktokExtractor):
 
 class TiktokUserExtractor(TiktokExtractor):
     """Extract a TikTok user's profile"""
+
     subcategory = "user"
     pattern = BASE_PATTERN + r"/@([\w_.-]+)/?(?:$|\?|#)"
     example = "https://www.tiktok.com/@USER"
@@ -212,31 +236,30 @@ class TiktokUserExtractor(TiktokExtractor):
         try:
             module = ytdl.import_module(self.config("module"))
         except (ImportError, SyntaxError) as exc:
-            self.log.error("Cannot import module '%s'",
-                           getattr(exc, "name", ""))
+            self.log.error("Cannot import module '%s'", getattr(exc, "name", ""))
             self.log.debug("", exc_info=exc)
-            raise exception.ExtractionError("yt-dlp or youtube-dl is required "
-                                            "for this feature!")
+            raise exception.ExtractionError(
+                "yt-dlp or youtube-dl is required " "for this feature!"
+            )
 
         ytdl_range = self.config("tiktok-range")
         if ytdl_range is None or not ytdl_range and ytdl_range != 0:
             ytdl_range = ""
 
         extr_opts = {
-            "extract_flat"           : True,
+            "extract_flat": True,
             "ignore_no_formats_error": True,
         }
         user_opts = {
-            "retries"                : self._retries,
-            "socket_timeout"         : self._timeout,
-            "nocheckcertificate"     : not self._verify,
-            "playlist_items"         : str(ytdl_range),
+            "retries": self._retries,
+            "socket_timeout": self._timeout,
+            "nocheckcertificate": not self._verify,
+            "playlist_items": str(ytdl_range),
         }
         if self._proxies:
             user_opts["proxy"] = self._proxies.get("http")
 
-        ytdl_instance = ytdl.construct_YoutubeDL(
-            module, self, user_opts, extr_opts)
+        ytdl_instance = ytdl.construct_YoutubeDL(module, self, user_opts, extr_opts)
 
         # Transfer cookies to ytdl.
         if self.cookies:
@@ -248,19 +271,21 @@ class TiktokUserExtractor(TiktokExtractor):
         profile_url = f"{self.root}/@{user_name}"
         if self.avatar:
             try:
-                avatar_url, avatar = self._generate_avatar(
-                    user_name, profile_url)
+                avatar_url, avatar = self._generate_avatar(user_name, profile_url)
             except Exception as exc:
-                self.log.warning("Unable to extract 'avatar' URL (%s: %s)",
-                                 exc.__class__.__name__, exc)
+                self.log.warning(
+                    "Unable to extract 'avatar' URL (%s: %s)",
+                    exc.__class__.__name__,
+                    exc,
+                )
             else:
                 yield Message.Directory, avatar
                 yield Message.Url, avatar_url, avatar
 
         with ytdl_instance as ydl:
             info_dict = ydl._YoutubeDL__extract_info(
-                profile_url, ydl.get_info_extractor("TikTokUser"),
-                False, {}, True)
+                profile_url, ydl.get_info_extractor("TikTokUser"), False, {}, True
+            )
             # This should include video and photo posts in /video/ URL form.
             for video in info_dict["entries"]:
                 data = {"_extractor": TiktokPostExtractor}
@@ -272,11 +297,13 @@ class TiktokUserExtractor(TiktokExtractor):
         data["user"] = user_name
         avatar_url = data["avatarLarger"]
         avatar = text.nameext_from_url(avatar_url, data.copy())
-        avatar.update({
-            "type"  : "avatar",
-            "title" : "@" + user_name,
-            "id"    : data["id"],
-            "img_id": avatar["filename"].partition("~")[0],
-            "num"   : 0,
-        })
+        avatar.update(
+            {
+                "type": "avatar",
+                "title": "@" + user_name,
+                "id": data["id"],
+                "img_id": avatar["filename"].partition("~")[0],
+                "num": 0,
+            }
+        )
         return (avatar_url, avatar)

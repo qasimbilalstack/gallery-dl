@@ -14,30 +14,30 @@ from .job import DownloadJob
 from . import util, version, output, exception
 
 REPOS = {
-    "stable" : "mikf/gallery-dl",
-    "dev"    : "gdl-org/builds",
+    "stable": "mikf/gallery-dl",
+    "dev": "gdl-org/builds",
     "nightly": "gdl-org/builds",
-    "master" : "gdl-org/builds",
+    "master": "gdl-org/builds",
 }
 
 BINARIES_STABLE = {
-    "windows"    : "gallery-dl.exe",
+    "windows": "gallery-dl.exe",
     "windows_x64": "gallery-dl.exe",
     "windows_x86": "gallery-dl_x86.exe",
-    "linux"      : "gallery-dl.bin",
+    "linux": "gallery-dl.bin",
 }
 BINARIES_DEV = {
-    "windows"    : "gallery-dl_windows.exe",
+    "windows": "gallery-dl_windows.exe",
     "windows_x64": "gallery-dl_windows.exe",
     "windows_x86": "gallery-dl_windows_x86.exe",
-    "linux"      : "gallery-dl_linux",
-    "macos"      : "gallery-dl_macos",
+    "linux": "gallery-dl_linux",
+    "macos": "gallery-dl_macos",
 }
 BINARIES = {
-    "stable" : BINARIES_STABLE,
-    "dev"    : BINARIES_DEV,
+    "stable": BINARIES_STABLE,
+    "dev": BINARIES_DEV,
     "nightly": BINARIES_DEV,
-    "master" : BINARIES_DEV,
+    "master": BINARIES_DEV,
 }
 
 
@@ -48,16 +48,19 @@ class UpdateJob(DownloadJob):
             if kwdict["_check"]:
                 self.status |= 1
             return self.extractor.log.info(
-                "gallery-dl is up to date (%s)", version.__version__)
+                "gallery-dl is up to date (%s)", version.__version__
+            )
 
         if kwdict["_check"]:
             return self.extractor.log.info(
                 "A new release is available: %s -> %s",
-                version.__version__, kwdict["tag_name"])
+                version.__version__,
+                kwdict["tag_name"],
+            )
 
         self.extractor.log.info(
-            "Updating from %s to %s",
-            version.__version__, kwdict["tag_name"])
+            "Updating from %s to %s", version.__version__, kwdict["tag_name"]
+        )
 
         path_old = sys.executable + ".old"
         path_new = sys.executable + ".new"
@@ -99,8 +102,11 @@ class UpdateJob(DownloadJob):
 
             cmd = f'ping 127.0.0.1 -n 5 -w 1000 & del /F "{path_old}"'
             atexit.register(
-                util.Popen, cmd, shell=True,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                util.Popen,
+                cmd,
+                shell=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
             )
 
         else:
@@ -202,15 +208,15 @@ class UpdateExtractor(Extractor):
         data["_check"] = check
         data["_exact"] = exact
 
-        if binary == "linux" and \
-                repo != "stable" and \
-                data["tag_name"] <= "2024.05.28":
+        if binary == "linux" and repo != "stable" and data["tag_name"] <= "2024.05.28":
             binary_name = "gallery-dl_ubuntu"
         else:
             binary_name = BINARIES[repo][binary]
 
-        url = (f"{self.root}/{path_repo}/releases/download"
-               f"/{data['tag_name']}/{binary_name}")
+        url = (
+            f"{self.root}/{path_repo}/releases/download"
+            f"/{data['tag_name']}/{binary_name}"
+        )
 
         yield Message.Directory, data
         yield Message.Url, url, data

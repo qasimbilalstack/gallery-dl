@@ -14,6 +14,7 @@ from .. import text
 
 class ImgthGalleryExtractor(GalleryExtractor):
     """Extractor for image galleries from imgth.com"""
+
     category = "imgth"
     root = "https://imgth.com"
     pattern = r"(?:https?://)?(?:www\.)?imgth\.com/gallery/(\d+)"
@@ -29,20 +30,22 @@ class ImgthGalleryExtractor(GalleryExtractor):
         return {
             "gallery_id": text.parse_int(self.gallery_id),
             "title": text.unescape(extr("<h1>", "</h1>")),
-            "count": text.parse_int(extr(
-                "total of images in this gallery: ", " ")),
-            "date" : text.parse_datetime(
+            "count": text.parse_int(extr("total of images in this gallery: ", " ")),
+            "date": text.parse_datetime(
                 extr("created on ", " by <")
-                .replace("th, ", " ", 1).replace("nd, ", " ", 1)
-                .replace("st, ", " ", 1), "%B %d %Y at %H:%M"),
-            "user" : text.unescape(extr(">", "<")),
+                .replace("th, ", " ", 1)
+                .replace("nd, ", " ", 1)
+                .replace("st, ", " ", 1),
+                "%B %d %Y at %H:%M",
+            ),
+            "user": text.unescape(extr(">", "<")),
         }
 
     def images(self, page):
         pnum = 0
 
         while True:
-            thumbs = text.extr(page, '<ul class="thumbnails">', '</ul>')
+            thumbs = text.extr(page, '<ul class="thumbnails">', "</ul>")
             for url in text.extract_iter(thumbs, '<img src="', '"'):
                 path = url.partition("/thumbs/")[2]
                 yield (f"{self.root}/images/{path}", None)

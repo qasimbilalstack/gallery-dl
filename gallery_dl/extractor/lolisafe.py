@@ -14,13 +14,13 @@ from .. import text
 
 class LolisafeExtractor(BaseExtractor):
     """Base class for lolisafe extractors"""
+
     basecategory = "lolisafe"
     directory_fmt = ("{category}", "{album_name} ({album_id})")
     archive_fmt = "{album_id}_{id}"
 
 
-BASE_PATTERN = LolisafeExtractor.update({
-})
+BASE_PATTERN = LolisafeExtractor.update({})
 
 
 class LolisafeAlbumExtractor(LolisafeExtractor):
@@ -65,8 +65,7 @@ class LolisafeAlbumExtractor(LolisafeExtractor):
                 file["name"] = file["filename"]
                 file["filename"] = f"{file['name']}-{file['id']}"
             else:
-                file["name"], sep, file["id"] = \
-                    file["filename"].rpartition("-")
+                file["name"], sep, file["id"] = file["filename"].rpartition("-")
 
             yield Message.Url, url, file
 
@@ -75,7 +74,7 @@ class LolisafeAlbumExtractor(LolisafeExtractor):
         data = self.request_json(url)
 
         return data["files"], {
-            "album_id"  : self.album_id,
+            "album_id": self.album_id,
             "album_name": text.unescape(data["title"]),
-            "count"     : data["count"],
+            "count": data["count"],
         }

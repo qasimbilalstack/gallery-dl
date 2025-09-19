@@ -15,6 +15,7 @@ import itertools
 
 class ArtstationExtractor(Extractor):
     """Base class for artstation extractors"""
+
     category = "artstation"
     filename_fmt = "{category}_{id}_{asset[id]}_{title}.{extension}"
     directory_fmt = ("{category}", "{userinfo[username]}")
@@ -42,8 +43,7 @@ class ArtstationExtractor(Extractor):
         if self.max_posts:
             projects = itertools.islice(projects, self.max_posts)
         for project in projects:
-            for num, asset in enumerate(
-                    self.get_project_assets(project["hash_id"]), 1):
+            for num, asset in enumerate(self.get_project_assets(project["hash_id"]), 1):
                 asset.update(data)
                 adict = asset["asset"]
                 asset["num"] = num
@@ -72,8 +72,7 @@ class ArtstationExtractor(Extractor):
     def _extract_embed(self, asset):
         adict = asset["asset"]
         player = adict["player_embedded"]
-        url = (text.extr(player, 'src="', '"') or
-               text.extr(player, "src='", "'"))
+        url = text.extr(player, 'src="', '"') or text.extr(player, "src='", "'")
 
         if url.startswith(self.root):
             # embed or video clip hosted on artstation
@@ -98,8 +97,7 @@ class ArtstationExtractor(Extractor):
             return f"ytdl:{url}"
 
         self.log.debug(player)
-        self.log.warning("Failed to extract embedded player URL (%s)",
-                         adict.get("id"))
+        self.log.warning("Failed to extract embedded player URL (%s)", adict.get("id"))
 
     def _image_fallback(self, lhs, rhs):
         yield f"{lhs}/large/{rhs}"
@@ -124,10 +122,8 @@ class ArtstationExtractor(Extractor):
             return
 
         data["title"] = text.unescape(data["title"])
-        data["description"] = text.unescape(text.remove_html(
-            data["description"]))
-        data["date"] = text.parse_datetime(
-            data["created_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
+        data["description"] = text.unescape(text.remove_html(data["description"]))
+        data["date"] = text.parse_datetime(data["created_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
 
         assets = data["assets"]
         del data["assets"]
@@ -149,8 +145,8 @@ class ArtstationExtractor(Extractor):
 
     def _pagination(self, url, params=None, json=None):
         headers = {
-            "Accept" : "application/json, text/plain, */*",
-            "Origin" : self.root,
+            "Accept": "application/json, text/plain, */*",
+            "Origin": self.root,
         }
 
         if json:
@@ -178,11 +174,12 @@ class ArtstationExtractor(Extractor):
     def _init_csrf_token(self):
         url = self.root + "/api/v2/csrf_protection/token.json"
         headers = {
-            "Accept" : "*/*",
-            "Origin" : self.root,
+            "Accept": "*/*",
+            "Origin": self.root,
         }
-        return self.request_json(
-            url, method="POST", headers=headers, json={})["public_csrf_token"]
+        return self.request_json(url, method="POST", headers=headers, json={})[
+            "public_csrf_token"
+        ]
 
     def _no_cache(self, url):
         """Cause a cache miss to prevent Cloudflare 'optimizations'
@@ -203,10 +200,13 @@ class ArtstationExtractor(Extractor):
 
 class ArtstationUserExtractor(ArtstationExtractor):
     """Extractor for all projects of an artstation user"""
+
     subcategory = "user"
-    pattern = (r"(?:https?://)?(?:(?:www\.)?artstation\.com"
-               r"/(?!artwork|projects|search)([^/?#]+)(?:/albums/all)?"
-               r"|((?!www)[\w-]+)\.artstation\.com(?:/projects)?)/?$")
+    pattern = (
+        r"(?:https?://)?(?:(?:www\.)?artstation\.com"
+        r"/(?!artwork|projects|search)([^/?#]+)(?:/albums/all)?"
+        r"|((?!www)[\w-]+)\.artstation\.com(?:/projects)?)/?$"
+    )
     example = "https://www.artstation.com/USER"
 
     def projects(self):
@@ -217,13 +217,20 @@ class ArtstationUserExtractor(ArtstationExtractor):
 
 class ArtstationAlbumExtractor(ArtstationExtractor):
     """Extractor for all projects in an artstation album"""
+
     subcategory = "album"
-    directory_fmt = ("{category}", "{userinfo[username]}", "Albums",
-                     "{album[id]} - {album[title]}")
+    directory_fmt = (
+        "{category}",
+        "{userinfo[username]}",
+        "Albums",
+        "{album[id]} - {album[title]}",
+    )
     archive_fmt = "a_{album[id]}_{asset[id]}"
-    pattern = (r"(?:https?://)?(?:(?:www\.)?artstation\.com"
-               r"/(?!artwork|projects|search)([^/?#]+)"
-               r"|((?!www)[\w-]+)\.artstation\.com)/albums/(\d+)")
+    pattern = (
+        r"(?:https?://)?(?:(?:www\.)?artstation\.com"
+        r"/(?!artwork|projects|search)([^/?#]+)"
+        r"|((?!www)[\w-]+)\.artstation\.com)/albums/(\d+)"
+    )
     example = "https://www.artstation.com/USER/albums/12345"
 
     def __init__(self, match):
@@ -240,10 +247,7 @@ class ArtstationAlbumExtractor(ArtstationExtractor):
         else:
             raise exception.NotFoundError("album")
 
-        return {
-            "userinfo": userinfo,
-            "album": album
-        }
+        return {"userinfo": userinfo, "album": album}
 
     def projects(self):
         url = f"{self.root}/users/{self.user}/projects.json"
@@ -253,11 +257,14 @@ class ArtstationAlbumExtractor(ArtstationExtractor):
 
 class ArtstationLikesExtractor(ArtstationExtractor):
     """Extractor for liked projects of an artstation user"""
+
     subcategory = "likes"
     directory_fmt = ("{category}", "{userinfo[username]}", "Likes")
     archive_fmt = "f_{userinfo[id]}_{asset[id]}"
-    pattern = (r"(?:https?://)?(?:www\.)?artstation\.com"
-               r"/(?!artwork|projects|search)([^/?#]+)/likes")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?artstation\.com"
+        r"/(?!artwork|projects|search)([^/?#]+)/likes"
+    )
     example = "https://www.artstation.com/USER/likes"
 
     def projects(self):
@@ -267,12 +274,14 @@ class ArtstationLikesExtractor(ArtstationExtractor):
 
 class ArtstationCollectionExtractor(ArtstationExtractor):
     """Extractor for an artstation collection"""
+
     subcategory = "collection"
-    directory_fmt = ("{category}", "{user}",
-                     "{collection[id]} {collection[name]}")
+    directory_fmt = ("{category}", "{user}", "{collection[id]} {collection[name]}")
     archive_fmt = "c_{collection[id]}_{asset[id]}"
-    pattern = (r"(?:https?://)?(?:www\.)?artstation\.com"
-               r"/(?!artwork|projects|search)([^/?#]+)/collections/(\d+)")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?artstation\.com"
+        r"/(?!artwork|projects|search)([^/?#]+)/collections/(\d+)"
+    )
     example = "https://www.artstation.com/USER/collections/12345"
 
     def __init__(self, match):
@@ -282,8 +291,7 @@ class ArtstationCollectionExtractor(ArtstationExtractor):
     def metadata(self):
         url = f"{self.root}/collections/{self.collection_id}.json"
         params = {"username": self.user}
-        collection = self.request_json(
-            url, params=params, notfound="collection")
+        collection = self.request_json(url, params=params, notfound="collection")
         return {"collection": collection, "user": self.user}
 
     def projects(self):
@@ -294,17 +302,19 @@ class ArtstationCollectionExtractor(ArtstationExtractor):
 
 class ArtstationCollectionsExtractor(ArtstationExtractor):
     """Extractor for an artstation user's collections"""
+
     subcategory = "collections"
-    pattern = (r"(?:https?://)?(?:www\.)?artstation\.com"
-               r"/(?!artwork|projects|search)([^/?#]+)/collections/?$")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?artstation\.com"
+        r"/(?!artwork|projects|search)([^/?#]+)/collections/?$"
+    )
     example = "https://www.artstation.com/USER/collections"
 
     def items(self):
         url = self.root + "/collections.json"
         params = {"username": self.user}
 
-        for collection in self.request_json(
-                url, params=params, notfound="collections"):
+        for collection in self.request_json(url, params=params, notfound="collections"):
             url = f"{self.root}/{self.user}/collections/{collection['id']}"
             collection["_extractor"] = ArtstationCollectionExtractor
             yield Message.Queue, url, collection
@@ -312,14 +322,16 @@ class ArtstationCollectionsExtractor(ArtstationExtractor):
 
 class ArtstationChallengeExtractor(ArtstationExtractor):
     """Extractor for submissions of artstation challenges"""
+
     subcategory = "challenge"
     filename_fmt = "{submission_id}_{asset_id}_{filename}.{extension}"
-    directory_fmt = ("{category}", "Challenges",
-                     "{challenge[id]} - {challenge[title]}")
+    directory_fmt = ("{category}", "Challenges", "{challenge[id]} - {challenge[title]}")
     archive_fmt = "c_{challenge[id]}_{asset_id}"
-    pattern = (r"(?:https?://)?(?:www\.)?artstation\.com"
-               r"/contests/[^/?#]+/challenges/(\d+)"
-               r"/?(?:\?sorting=([a-z]+))?")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?artstation\.com"
+        r"/contests/[^/?#]+/challenges/(\d+)"
+        r"/?(?:\?sorting=([a-z]+))?"
+    )
     example = "https://www.artstation.com/contests/NAME/challenges/12345"
 
     def __init__(self, match):
@@ -345,7 +357,8 @@ class ArtstationChallengeExtractor(ArtstationExtractor):
                 del update["replies"]
                 update["challenge"] = challenge
                 for url in text.extract_iter(
-                        update["body_presentation_html"], ' href="', '"'):
+                    update["body_presentation_html"], ' href="', '"'
+                ):
                     update["asset_id"] = self._id_from_url(url)
                     text.nameext_from_url(url, update)
                     yield Message.Url, self._no_cache(url), update
@@ -358,11 +371,11 @@ class ArtstationChallengeExtractor(ArtstationExtractor):
 
 class ArtstationSearchExtractor(ArtstationExtractor):
     """Extractor for artstation search results"""
+
     subcategory = "search"
     directory_fmt = ("{category}", "Searches", "{search[query]}")
     archive_fmt = "s_{search[query]}_{asset[id]}"
-    pattern = (r"(?:https?://)?(?:\w+\.)?artstation\.com"
-               r"/search/?\?([^#]+)")
+    pattern = r"(?:https?://)?(?:\w+\.)?artstation\.com" r"/search/?\?([^#]+)"
     example = "https://www.artstation.com/search?query=QUERY"
 
     def __init__(self, match):
@@ -373,31 +386,34 @@ class ArtstationSearchExtractor(ArtstationExtractor):
         self.tags = query.get("tags", "").split(",")
 
     def metadata(self):
-        return {"search": {
-            "query"  : self.query,
-            "sorting": self.sorting,
-            "tags"   : self.tags,
-        }}
+        return {
+            "search": {
+                "query": self.query,
+                "sorting": self.sorting,
+                "tags": self.tags,
+            }
+        }
 
     def projects(self):
         filters = []
         for key, value in self.params.items():
             if key.endswith("_ids") or key == "tags":
-                filters.append({
-                    "field" : key,
-                    "method": "include",
-                    "value" : value.split(","),
-                })
+                filters.append(
+                    {
+                        "field": key,
+                        "method": "include",
+                        "value": value.split(","),
+                    }
+                )
 
         url = f"{self.root}/api/v2/search/projects.json"
         data = {
-            "query"            : self.query,
-            "page"             : None,
-            "per_page"         : 50,
-            "sorting"          : self.sorting,
-            "pro_first"        : ("1" if self.config("pro-first", True) else
-                                  "0"),
-            "filters"          : filters,
+            "query": self.query,
+            "page": None,
+            "per_page": 50,
+            "sorting": self.sorting,
+            "pro_first": ("1" if self.config("pro-first", True) else "0"),
+            "filters": filters,
             "additional_fields": (),
         }
         return self._pagination(url, json=data)
@@ -405,11 +421,11 @@ class ArtstationSearchExtractor(ArtstationExtractor):
 
 class ArtstationArtworkExtractor(ArtstationExtractor):
     """Extractor for projects on artstation's artwork page"""
+
     subcategory = "artwork"
     directory_fmt = ("{category}", "Artworks", "{artwork[sorting]!c}")
     archive_fmt = "A_{asset[id]}"
-    pattern = (r"(?:https?://)?(?:\w+\.)?artstation\.com"
-               r"/artwork/?\?([^#]+)")
+    pattern = r"(?:https?://)?(?:\w+\.)?artstation\.com" r"/artwork/?\?([^#]+)"
     example = "https://www.artstation.com/artwork?sorting=SORT"
 
     def __init__(self, match):
@@ -426,10 +442,13 @@ class ArtstationArtworkExtractor(ArtstationExtractor):
 
 class ArtstationImageExtractor(ArtstationExtractor):
     """Extractor for images from a single artstation project"""
+
     subcategory = "image"
-    pattern = (r"(?:https?://)?(?:"
-               r"(?:[\w-]+\.)?artstation\.com/(?:artwork|projects|search)"
-               r"|artstn\.co/p)/(\w+)")
+    pattern = (
+        r"(?:https?://)?(?:"
+        r"(?:[\w-]+\.)?artstation\.com/(?:artwork|projects|search)"
+        r"|artstn\.co/p)/(\w+)"
+    )
     example = "https://www.artstation.com/artwork/abcde"
 
     def __init__(self, match):
@@ -438,8 +457,9 @@ class ArtstationImageExtractor(ArtstationExtractor):
         self.assets = None
 
     def metadata(self):
-        self.assets = list(ArtstationExtractor.get_project_assets(
-            self, self.project_id))
+        self.assets = list(
+            ArtstationExtractor.get_project_assets(self, self.project_id)
+        )
         try:
             self.user = self.assets[0]["user"]["username"]
         except IndexError:
@@ -455,9 +475,12 @@ class ArtstationImageExtractor(ArtstationExtractor):
 
 class ArtstationFollowingExtractor(ArtstationExtractor):
     """Extractor for a user's followed users"""
+
     subcategory = "following"
-    pattern = (r"(?:https?://)?(?:www\.)?artstation\.com"
-               r"/(?!artwork|projects|search)([^/?#]+)/following")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?artstation\.com"
+        r"/(?!artwork|projects|search)([^/?#]+)/following"
+    )
     example = "https://www.artstation.com/USER/following"
 
     def items(self):

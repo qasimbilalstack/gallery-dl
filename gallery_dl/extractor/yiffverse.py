@@ -24,16 +24,16 @@ class YiffverseExtractor(BooruExtractor):
 
     TAG_TYPES = {
         None: "general",
-        1   : "general",
-        2   : "copyright",
-        4   : "character",
-        8   : "artist",
+        1: "general",
+        2: "copyright",
+        4: "character",
+        8: "artist",
     }
     FORMATS = (
         ("100", "mov.mp4"),
         ("101", "mov720.mp4"),
         ("102", "mov480.mp4"),
-        ("10" , "pic.jpg"),
+        ("10", "pic.jpg"),
     )
 
     def _file_url(self, post):
@@ -46,8 +46,9 @@ class YiffverseExtractor(BooruExtractor):
 
         post_id = post["id"]
         root = self.root_cdn if files[fmt][0] else self.root
-        post["file_url"] = url = \
+        post["file_url"] = url = (
             f"{root}/posts/{post_id // 1000}/{post_id}/{post_id}.{extension}"
+        )
         post["format_id"] = fmt
         post["format"] = extension.partition(".")[0]
 
@@ -55,8 +56,7 @@ class YiffverseExtractor(BooruExtractor):
 
     def _prepare(self, post):
         post.pop("files", None)
-        post["date"] = text.parse_datetime(
-            post["created"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        post["date"] = text.parse_datetime(post["created"], "%Y-%m-%dT%H:%M:%S.%fZ")
         post["filename"], _, post["format"] = post["filename"].rpartition(".")
         if "tags" in post:
             post["tags"] = [t["value"] for t in post["tags"]]

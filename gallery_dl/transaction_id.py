@@ -26,7 +26,7 @@ from . import text, util
 from .cache import cache
 
 
-class ClientTransaction():
+class ClientTransaction:
     __slots__ = ("key_bytes", "animation_key")
 
     def __getstate__(self):
@@ -41,8 +41,7 @@ class ClientTransaction():
 
         key = self._extract_verification_key(homepage)
         if not key:
-            extractor.log.error(
-                "Failed to extract 'twitter-site-verification' key")
+            extractor.log.error("Failed to extract 'twitter-site-verification' key")
 
         ondemand_s = text.extr(homepage, '"ondemand.s":"', '"')
         indices = self._extract_indices(ondemand_s, extractor)
@@ -55,7 +54,8 @@ class ClientTransaction():
 
         self.key_bytes = key_bytes = binascii.a2b_base64(key)
         self.animation_key = self._calculate_animation_key(
-            frames, indices[0], key_bytes, indices[1:])
+            frames, indices[0], key_bytes, indices[1:]
+        )
 
     def _extract_verification_key(self, homepage):
         pos = homepage.find('name="twitter-site-verification"')
@@ -63,20 +63,22 @@ class ClientTransaction():
         end = homepage.find(">", pos)
         return text.extr(homepage[beg:end], 'content="', '"')
 
-    @cache(maxage=36500*86400, keyarg=1)
+    @cache(maxage=36500 * 86400, keyarg=1)
     def _extract_indices(self, ondemand_s, extractor):
-        url = (f"https://abs.twimg.com/responsive-web/client-web"
-               f"/ondemand.s.{ondemand_s}a.js")
+        url = (
+            f"https://abs.twimg.com/responsive-web/client-web"
+            f"/ondemand.s.{ondemand_s}a.js"
+        )
         page = extractor.request(url).text
         pattern = util.re_compile(r"\(\w\[(\d\d?)\],\s*16\)")
         return [int(i) for i in pattern.findall(page)]
 
     def _extract_frames(self, homepage):
-        return list(text.extract_iter(
-            homepage, 'id="loading-x-anim-', "</svg>"))
+        return list(text.extract_iter(homepage, 'id="loading-x-anim-', "</svg>"))
 
-    def _calculate_animation_key(self, frames, row_index, key_bytes,
-                                 key_bytes_indices, total_time=4096):
+    def _calculate_animation_key(
+        self, frames, row_index, key_bytes, key_bytes_indices, total_time=4096
+    ):
         frame = frames[key_bytes[5] % 4]
         array = self._generate_2d_array(frame)
         frame_row = array[key_bytes[row_index] % 16]
@@ -93,20 +95,20 @@ class ClientTransaction():
         split = util.re_compile(r"[^\d]+").split
         return [
             [int(x) for x in split(path) if x]
-            for path in text.extr(
-                frame, '</path><path d="', '"')[9:].split("C")
+            for path in text.extr(frame, '</path><path d="', '"')[9:].split("C")
         ]
 
     def animate(self, frames, target_time):
-        curve = [scale(float(frame), is_odd(index), 1.0, False)
-                 for index, frame in enumerate(frames[7:])]
+        curve = [
+            scale(float(frame), is_odd(index), 1.0, False)
+            for index, frame in enumerate(frames[7:])
+        ]
         cubic = cubic_value(curve, target_time)
 
         color_a = (float(frames[0]), float(frames[1]), float(frames[2]))
         color_b = (float(frames[3]), float(frames[4]), float(frames[5]))
         color = interpolate_list(cubic, color_a, color_b)
-        color = [0.0 if c <= 0.0 else 255.0 if c >= 255.0 else c
-                 for c in color]
+        color = [0.0 if c <= 0.0 else 255.0 if c >= 255.0 else c for c in color]
 
         rotation_a = 0.0
         rotation_b = scale(float(frames[6]), 60.0, 360.0, True)
@@ -125,16 +127,17 @@ class ClientTransaction():
         )
         return "".join(result).replace(".", "").replace("-", "")
 
-    def generate_transaction_id(self, method, path,
-                                keyword="obfiowerehiring", rndnum=3):
+    def generate_transaction_id(
+        self, method, path, keyword="obfiowerehiring", rndnum=3
+    ):
         bytes_key = self.key_bytes
 
         nowf = time.time()
         nowi = int(nowf)
         now = nowi - 1682924400
         bytes_time = (
-            (now      ) & 0xFF,  # noqa: E202
-            (now >>  8) & 0xFF,  # noqa: E222
+            (now) & 0xFF,  # noqa: E202
+            (now >> 8) & 0xFF,  # noqa: E222
             (now >> 16) & 0xFF,
             (now >> 24) & 0xFF,
         )
@@ -146,12 +149,14 @@ class ClientTransaction():
         result = bytes(
             byte ^ num
             for byte in itertools.chain(
-                (0,), bytes_key, bytes_time, bytes_hash, (rndnum,))
+                (0,), bytes_key, bytes_time, bytes_hash, (rndnum,)
+            )
         )
         return binascii.b2a_base64(result).rstrip(b"=\n")
 
 
 # Cubic Curve
+
 
 def cubic_value(curve, t):
     if t <= 0.0:
@@ -188,16 +193,14 @@ def cubic_value(curve, t):
 
 def cubic_calculate(a, b, m):
     m1 = 1.0 - m
-    return 3.0*a*m1*m1*m + 3.0*b*m1*m*m + m*m*m
+    return 3.0 * a * m1 * m1 * m + 3.0 * b * m1 * m * m + m * m * m
 
 
 # Interpolation
 
+
 def interpolate_list(x, a, b):
-    return [
-        interpolate_value(x, a[i], b[i])
-        for i in range(len(a))
-    ]
+    return [interpolate_value(x, a[i], b[i]) for i in range(len(a))]
 
 
 def interpolate_value(x, a, b):
@@ -208,6 +211,7 @@ def interpolate_value(x, a, b):
 
 # Rotation
 
+
 def rotation_matrix_2d(deg):
     rad = math.radians(deg)
     cos = math.cos(rad)
@@ -216,6 +220,7 @@ def rotation_matrix_2d(deg):
 
 
 # Utilities
+
 
 def float_to_hex(numf):
     numi = int(numf)
@@ -243,5 +248,5 @@ def round_js(num):
 
 
 def scale(value, value_min, value_max, rounding):
-    result = value * (value_max-value_min) / 255.0 + value_min
+    result = value * (value_max - value_min) / 255.0 + value_min
     return math.floor(result) if rounding else round(result, 2)

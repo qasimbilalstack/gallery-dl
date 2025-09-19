@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.|[im]\.)?imgur\.(?:com|io)"
 
 class ImgurExtractor(Extractor):
     """Base class for imgur extractors"""
+
     category = "imgur"
     root = "https://imgur.com"
 
@@ -36,8 +37,7 @@ class ImgurExtractor(Extractor):
         elif image["is_animated"] and self.mp4 and image["ext"] == "gif":
             image["ext"] = "mp4"
 
-        image["url"] = url = \
-            f"https://i.imgur.com/{image['id']}.{image['ext']}"
+        image["url"] = url = f"https://i.imgur.com/{image['id']}.{image['ext']}"
         image["date"] = text.parse_datetime(image["created_at"])
         image["_http_validate"] = self._validate
         text.nameext_from_url(url, image)
@@ -45,8 +45,7 @@ class ImgurExtractor(Extractor):
         return url
 
     def _validate(self, response):
-        return (not response.history or
-                not response.url.endswith("/removed.png"))
+        return not response.history or not response.url.endswith("/removed.png")
 
     def _items_queue(self, items):
         album_ex = ImgurAlbumExtractor
@@ -64,11 +63,14 @@ class ImgurExtractor(Extractor):
 
 class ImgurImageExtractor(ImgurExtractor):
     """Extractor for individual images on imgur.com"""
+
     subcategory = "image"
     filename_fmt = "{category}_{id}{title:?_//}.{extension}"
     archive_fmt = "{id}"
-    pattern = (BASE_PATTERN + r"/(?!gallery|search)"
-               r"(?:r/\w+/)?(?:[^/?#]+-)?(\w{7}|\w{5})[sbtmlh]?")
+    pattern = (
+        BASE_PATTERN + r"/(?!gallery|search)"
+        r"(?:r/\w+/)?(?:[^/?#]+-)?(\w{7}|\w{5})[sbtmlh]?"
+    )
     example = "https://imgur.com/abcdefg"
 
     def items(self):
@@ -89,6 +91,7 @@ class ImgurImageExtractor(ImgurExtractor):
 
 class ImgurAlbumExtractor(ImgurExtractor):
     """Extractor for imgur albums"""
+
     subcategory = "album"
     directory_fmt = ("{category}", "{album[id]}{album[title]:? - //}")
     filename_fmt = "{category}_{album[id]}_{num:>03}_{id}.{extension}"
@@ -125,6 +128,7 @@ class ImgurAlbumExtractor(ImgurExtractor):
 
 class ImgurGalleryExtractor(ImgurExtractor):
     """Extractor for imgur galleries"""
+
     subcategory = "gallery"
     pattern = BASE_PATTERN + r"/(?:gallery|t/\w+)/(?:[^/?#]+-)?(\w{7}|\w{5})"
     example = "https://imgur.com/gallery/abcde"
@@ -141,9 +145,11 @@ class ImgurGalleryExtractor(ImgurExtractor):
 
 class ImgurUserExtractor(ImgurExtractor):
     """Extractor for all images posted by a user"""
+
     subcategory = "user"
-    pattern = (BASE_PATTERN + r"/user/(?!me(?:/|$|\?|#))"
-               r"([^/?#]+)(?:/posts|/submitted)?/?$")
+    pattern = (
+        BASE_PATTERN + r"/user/(?!me(?:/|$|\?|#))" r"([^/?#]+)(?:/posts|/submitted)?/?$"
+    )
     example = "https://imgur.com/user/USER"
 
     def items(self):
@@ -152,6 +158,7 @@ class ImgurUserExtractor(ImgurExtractor):
 
 class ImgurFavoriteExtractor(ImgurExtractor):
     """Extractor for a user's favorites"""
+
     subcategory = "favorite"
     pattern = BASE_PATTERN + r"/user/([^/?#]+)/favorites/?$"
     example = "https://imgur.com/user/USER/favorites"
@@ -162,6 +169,7 @@ class ImgurFavoriteExtractor(ImgurExtractor):
 
 class ImgurFavoriteFolderExtractor(ImgurExtractor):
     """Extractor for a user's favorites folder"""
+
     subcategory = "favorite-folder"
     pattern = BASE_PATTERN + r"/user/([^/?#]+)/favorites/folder/(\d+)"
     example = "https://imgur.com/user/USER/favorites/folder/12345/TITLE"
@@ -171,12 +179,14 @@ class ImgurFavoriteFolderExtractor(ImgurExtractor):
         self.folder_id = match[2]
 
     def items(self):
-        return self._items_queue(self.api.account_favorites_folder(
-            self.key, self.folder_id))
+        return self._items_queue(
+            self.api.account_favorites_folder(self.key, self.folder_id)
+        )
 
 
 class ImgurMeExtractor(ImgurExtractor):
     """Extractor for your personal uploads"""
+
     subcategory = "me"
     pattern = BASE_PATTERN + r"/user/me(?:/posts)?(/hidden)?"
     example = "https://imgur.com/user/me"
@@ -194,6 +204,7 @@ class ImgurMeExtractor(ImgurExtractor):
 
 class ImgurSubredditExtractor(ImgurExtractor):
     """Extractor for a subreddits's imgur links"""
+
     subcategory = "subreddit"
     pattern = BASE_PATTERN + r"/r/([^/?#]+)/?$"
     example = "https://imgur.com/r/SUBREDDIT"
@@ -204,6 +215,7 @@ class ImgurSubredditExtractor(ImgurExtractor):
 
 class ImgurTagExtractor(ImgurExtractor):
     """Extractor for imgur tag searches"""
+
     subcategory = "tag"
     pattern = BASE_PATTERN + r"/t/([^/?#]+)$"
     example = "https://imgur.com/t/TAG"
@@ -214,6 +226,7 @@ class ImgurTagExtractor(ImgurExtractor):
 
 class ImgurSearchExtractor(ImgurExtractor):
     """Extractor for imgur search results"""
+
     subcategory = "search"
     pattern = BASE_PATTERN + r"/search(?:/[^?#]+)?/?\?q=([^&#]+)"
     example = "https://imgur.com/search?q=UERY"
@@ -223,11 +236,12 @@ class ImgurSearchExtractor(ImgurExtractor):
         return self._items_queue(self.api.gallery_search(key))
 
 
-class ImgurAPI():
+class ImgurAPI:
     """Interface for the Imgur API
 
     Ref: https://apidocs.imgur.com/
     """
+
     def __init__(self, extractor):
         self.extractor = extractor
         self.client_id = extractor.config("client-id") or "546c25a59c58ad7"
@@ -249,8 +263,8 @@ class ImgurAPI():
         endpoint = "/post/v1/accounts/me/all_posts"
         params = {
             "include": "media,tags,account",
-            "page"   : 1,
-            "sort"   : "-created_at",
+            "page": 1,
+            "sort": "-created_at",
         }
         return self._pagination_v2(endpoint, params)
 
@@ -258,8 +272,8 @@ class ImgurAPI():
         endpoint = "/post/v1/accounts/me/hidden_albums"
         params = {
             "include": "media,tags,account",
-            "page"   : 1,
-            "sort"   : "-created_at",
+            "page": 1,
+            "sort": "-created_at",
         }
         return self._pagination_v2(endpoint, params)
 
@@ -295,10 +309,14 @@ class ImgurAPI():
             try:
                 return self.extractor.request_json(
                     "https://api.imgur.com" + endpoint,
-                    params=params, headers=(headers or self.headers))
+                    params=params,
+                    headers=(headers or self.headers),
+                )
             except exception.HttpError as exc:
-                if exc.status not in (403, 429) or \
-                        b"capacity" not in exc.response.content:
+                if (
+                    exc.status not in (403, 429)
+                    or b"capacity" not in exc.response.content
+                ):
                     raise
             self.extractor.wait(seconds=600)
 

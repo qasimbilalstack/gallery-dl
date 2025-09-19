@@ -37,8 +37,8 @@ class MtimePP(PostProcessor):
 
         pathfmt.kwdict["_mtime_meta"] = (
             util.datetime_to_timestamp(mtime)
-            if isinstance(mtime, datetime) else
-            text.parse_int(mtime)
+            if isinstance(mtime, datetime)
+            else text.parse_int(mtime)
         )
 
 

@@ -14,15 +14,16 @@ from .. import text, exception
 
 class KhinsiderSoundtrackExtractor(AsynchronousMixin, Extractor):
     """Extractor for soundtracks from khinsider.com"""
+
     category = "khinsider"
     subcategory = "soundtrack"
     root = "https://downloads.khinsider.com"
     directory_fmt = ("{category}", "{album[name]}")
     archive_fmt = "{filename}.{extension}"
-    pattern = (r"(?:https?://)?downloads\.khinsider\.com"
-               r"/game-soundtracks/album/([^/?#]+)")
-    example = ("https://downloads.khinsider.com"
-               "/game-soundtracks/album/TITLE")
+    pattern = (
+        r"(?:https?://)?downloads\.khinsider\.com" r"/game-soundtracks/album/([^/?#]+)"
+    )
+    example = "https://downloads.khinsider.com" "/game-soundtracks/album/TITLE"
 
     def __init__(self, match):
         Extractor.__init__(self, match)
@@ -40,7 +41,8 @@ class KhinsiderSoundtrackExtractor(AsynchronousMixin, Extractor):
         if self.config("covers", False):
             for num, url in enumerate(self._extract_covers(page), 1):
                 cover = text.nameext_from_url(
-                    url, {"url": url, "num": num, "type": "cover"})
+                    url, {"url": url, "num": num, "type": "cover"}
+                )
                 cover.update(data)
                 yield Message.Url, url, cover
 
@@ -51,20 +53,22 @@ class KhinsiderSoundtrackExtractor(AsynchronousMixin, Extractor):
 
     def metadata(self, page):
         extr = text.extract_from(page)
-        return {"album": {
-            "name" : text.unescape(extr("<h2>", "<")),
-            "platform": text.split_html(extr("Platforms: ", "<br>"))[::2],
-            "year": extr("Year: <b>", "<"),
-            "catalog": extr("Catalog Number: <b>", "<"),
-            "developer": text.remove_html(extr(" Developed by: ", "</")),
-            "publisher": text.remove_html(extr(" Published by: ", "</")),
-            "count": text.parse_int(extr("Number of Files: <b>", "<")),
-            "size" : text.parse_bytes(extr("Total Filesize: <b>", "<")[:-1]),
-            "date" : extr("Date Added: <b>", "<"),
-            "type" : text.remove_html(extr("Album type: <b>", "</b>")),
-            "uploader": text.remove_html(extr("Uploaded by: ", "</")),
-            "description": extr("<h2>Description</h2>", "<h2>").strip(),
-        }}
+        return {
+            "album": {
+                "name": text.unescape(extr("<h2>", "<")),
+                "platform": text.split_html(extr("Platforms: ", "<br>"))[::2],
+                "year": extr("Year: <b>", "<"),
+                "catalog": extr("Catalog Number: <b>", "<"),
+                "developer": text.remove_html(extr(" Developed by: ", "</")),
+                "publisher": text.remove_html(extr(" Published by: ", "</")),
+                "count": text.parse_int(extr("Number of Files: <b>", "<")),
+                "size": text.parse_bytes(extr("Total Filesize: <b>", "<")[:-1]),
+                "date": extr("Date Added: <b>", "<"),
+                "type": text.remove_html(extr("Album type: <b>", "</b>")),
+                "uploader": text.remove_html(extr("Uploaded by: ", "</")),
+                "description": extr("<h2>Description</h2>", "<h2>").strip(),
+            }
+        }
 
     def _extract_tracks(self, page):
         fmt = self.config("format", ("mp3",))
@@ -74,9 +78,10 @@ class KhinsiderSoundtrackExtractor(AsynchronousMixin, Extractor):
             else:
                 fmt = fmt.lower().split(",")
 
-        page = text.extr(page, '<table id="songlist">', '</table>')
-        for num, url in enumerate(text.extract_iter(
-                page, '<td class="clickable-row"><a href="', '"'), 1):
+        page = text.extr(page, '<table id="songlist">', "</table>")
+        for num, url in enumerate(
+            text.extract_iter(page, '<td class="clickable-row"><a href="', '"'), 1
+        ):
             url = text.urljoin(self.root, url)
             page = self.request(url, encoding="utf-8").text
             track = first = None
@@ -94,5 +99,5 @@ class KhinsiderSoundtrackExtractor(AsynchronousMixin, Extractor):
     def _extract_covers(self, page):
         return [
             text.unescape(text.extr(cover, ' href="', '"'))
-            for cover in text.extract_iter(page, ' class="albumImage', '</')
+            for cover in text.extract_iter(page, ' class="albumImage', "</")
         ]

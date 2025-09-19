@@ -14,6 +14,7 @@ from requests.exceptions import RequestException, ConnectionError, Timeout
 from .common import DownloaderBase
 from .. import text, util, output, exception
 from ssl import SSLError
+
 FLAGS = util.FLAGS
 
 
@@ -53,20 +54,17 @@ class HttpDownloader(DownloaderBase):
         if self.minsize:
             minsize = text.parse_bytes(self.minsize)
             if not minsize:
-                self.log.warning(
-                    "Invalid minimum file size (%r)", self.minsize)
+                self.log.warning("Invalid minimum file size (%r)", self.minsize)
             self.minsize = minsize
         if self.maxsize:
             maxsize = text.parse_bytes(self.maxsize)
             if not maxsize:
-                self.log.warning(
-                    "Invalid maximum file size (%r)", self.maxsize)
+                self.log.warning("Invalid maximum file size (%r)", self.maxsize)
             self.maxsize = maxsize
         if isinstance(self.chunk_size, str):
             chunk_size = text.parse_bytes(self.chunk_size)
             if not chunk_size:
-                self.log.warning(
-                    "Invalid chunk size (%r)", self.chunk_size)
+                self.log.warning("Invalid chunk size (%r)", self.chunk_size)
                 chunk_size = 32768
             self.chunk_size = chunk_size
         if self.rate:
@@ -109,10 +107,8 @@ class HttpDownloader(DownloaderBase):
 
         metadata = self.metadata
         kwdict = pathfmt.kwdict
-        expected_status = kwdict.get(
-            "_http_expected_status", ())
-        adjust_extension = kwdict.get(
-            "_http_adjust_extension", self.adjust_extension)
+        expected_status = kwdict.get("_http_expected_status", ())
+        adjust_extension = kwdict.get("_http_adjust_extension", self.adjust_extension)
 
         if self.part and not metadata:
             pathfmt.part_enable(self.partdir)
@@ -123,7 +119,7 @@ class HttpDownloader(DownloaderBase):
                     self.release_conn(response)
                     response = None
 
-                self.log.warning("%s (%s/%s)", msg, tries, self.retries+1)
+                self.log.warning("%s (%s/%s)", msg, tries, self.retries + 1)
                 if tries > self.retries:
                     return False
 
@@ -152,7 +148,8 @@ class HttpDownloader(DownloaderBase):
             # connect to (remote) source
             try:
                 response = self.session.request(
-                    kwdict.get("_http_method", "GET"), url,
+                    kwdict.get("_http_method", "GET"),
+                    url,
                     stream=True,
                     headers=headers,
                     data=kwdict.get("_http_data"),
@@ -203,8 +200,7 @@ class HttpDownloader(DownloaderBase):
                 return False
 
             # check for invalid responses
-            if self.validate and \
-                    (validate := kwdict.get("_http_validate")) is not None:
+            if self.validate and (validate := kwdict.get("_http_validate")) is not None:
                 try:
                     result = validate(response)
                 except Exception:
@@ -218,9 +214,11 @@ class HttpDownloader(DownloaderBase):
                     self.release_conn(response)
                     self.log.warning("Invalid response")
                     return False
-            if self.validate_html and response.headers.get(
-                    "content-type", "").startswith("text/html") and \
-                    pathfmt.extension not in ("html", "htm"):
+            if (
+                self.validate_html
+                and response.headers.get("content-type", "").startswith("text/html")
+                and pathfmt.extension not in ("html", "htm")
+            ):
                 if response.history:
                     self.log.warning("HTTP redirect to '%s'", response.url)
                 else:
@@ -234,14 +232,18 @@ class HttpDownloader(DownloaderBase):
                     self.release_conn(response)
                     self.log.warning(
                         "File size smaller than allowed minimum (%s < %s)",
-                        size, self.minsize)
+                        size,
+                        self.minsize,
+                    )
                     pathfmt.temppath = ""
                     return True
                 if self.maxsize and size > self.maxsize:
                     self.release_conn(response)
                     self.log.warning(
                         "File size larger than allowed maximum (%s > %s)",
-                        size, self.maxsize)
+                        size,
+                        self.maxsize,
+                    )
                     pathfmt.temppath = ""
                     return True
 
@@ -278,15 +280,15 @@ class HttpDownloader(DownloaderBase):
             content = response.iter_content(self.chunk_size)
 
             validate_sig = kwdict.get("_http_signature")
-            validate_ext = (adjust_extension and
-                            pathfmt.extension in SIGNATURE_CHECKS)
+            validate_ext = adjust_extension and pathfmt.extension in SIGNATURE_CHECKS
 
             # check filename extension against file header
             if not offset and (validate_ext or validate_sig):
                 try:
                     file_header = next(
-                        content if response.raw.chunked
-                        else response.iter_content(16), b"")
+                        content if response.raw.chunked else response.iter_content(16),
+                        b"",
+                    )
                 except (RequestException, SSLError) as exc:
                     msg = str(exc)
                     continue
@@ -294,11 +296,13 @@ class HttpDownloader(DownloaderBase):
                     result = validate_sig(file_header)
                     if result is not True:
                         self.release_conn(response)
-                        self.log.warning(
-                            result or "Invalid file signature bytes")
+                        self.log.warning(result or "Invalid file signature bytes")
                         return False
-                if validate_ext and self._adjust_extension(
-                        pathfmt, file_header) and pathfmt.exists():
+                if (
+                    validate_ext
+                    and self._adjust_extension(pathfmt, file_header)
+                    and pathfmt.exists()
+                ):
                     pathfmt.temppath = ""
                     response.close()
                     return True
@@ -322,8 +326,7 @@ class HttpDownloader(DownloaderBase):
                     fp.write(file_header)
                     offset += len(file_header)
                 elif offset:
-                    if adjust_extension and \
-                            pathfmt.extension in SIGNATURE_CHECKS:
+                    if adjust_extension and pathfmt.extension in SIGNATURE_CHECKS:
                         self._adjust_extension(pathfmt, fp.read(16))
                     fp.seek(offset)
 
@@ -369,7 +372,10 @@ class HttpDownloader(DownloaderBase):
             output.stderr_write("\n")
             self.log.debug(
                 "Unable to consume response body (%s: %s); "
-                "closing the connection anyway", exc.__class__.__name__, exc)
+                "closing the connection anyway",
+                exc.__class__.__name__,
+                exc,
+            )
             response.close()
 
     def receive(self, fp, content, bytes_total, bytes_start):
@@ -434,7 +440,9 @@ class HttpDownloader(DownloaderBase):
                 if check(file_header):
                     self.log.debug(
                         "Adjusting filename extension of '%s' to '%s'",
-                        pathfmt.filename, ext)
+                        pathfmt.filename,
+                        ext,
+                    )
                     pathfmt.set_extension(ext)
                     pathfmt.build_path()
                     return True
@@ -442,53 +450,47 @@ class HttpDownloader(DownloaderBase):
 
 
 MIME_TYPES = {
-    "image/jpeg"    : "jpg",
-    "image/jpg"     : "jpg",
-    "image/png"     : "png",
-    "image/gif"     : "gif",
-    "image/bmp"     : "bmp",
-    "image/x-bmp"   : "bmp",
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/bmp": "bmp",
+    "image/x-bmp": "bmp",
     "image/x-ms-bmp": "bmp",
-    "image/webp"    : "webp",
-    "image/avif"    : "avif",
-    "image/heic"    : "heic",
-    "image/heif"    : "heif",
-    "image/svg+xml" : "svg",
-    "image/ico"     : "ico",
-    "image/icon"    : "ico",
-    "image/x-icon"  : "ico",
-    "image/vnd.microsoft.icon" : "ico",
-    "image/x-photoshop"        : "psd",
-    "application/x-photoshop"  : "psd",
+    "image/webp": "webp",
+    "image/avif": "avif",
+    "image/heic": "heic",
+    "image/heif": "heif",
+    "image/svg+xml": "svg",
+    "image/ico": "ico",
+    "image/icon": "ico",
+    "image/x-icon": "ico",
+    "image/vnd.microsoft.icon": "ico",
+    "image/x-photoshop": "psd",
+    "application/x-photoshop": "psd",
     "image/vnd.adobe.photoshop": "psd",
-
     "video/webm": "webm",
-    "video/ogg" : "ogg",
-    "video/mp4" : "mp4",
-    "video/m4v" : "m4v",
+    "video/ogg": "ogg",
+    "video/mp4": "mp4",
+    "video/m4v": "m4v",
     "video/x-m4v": "m4v",
     "video/quicktime": "mov",
-
-    "audio/wav"  : "wav",
+    "audio/wav": "wav",
     "audio/x-wav": "wav",
-    "audio/webm" : "webm",
-    "audio/ogg"  : "ogg",
-    "audio/mpeg" : "mp3",
-
-    "application/zip"  : "zip",
+    "audio/webm": "webm",
+    "audio/ogg": "ogg",
+    "audio/mpeg": "mp3",
+    "application/zip": "zip",
     "application/x-zip": "zip",
     "application/x-zip-compressed": "zip",
-    "application/rar"  : "rar",
+    "application/rar": "rar",
     "application/x-rar": "rar",
     "application/x-rar-compressed": "rar",
-    "application/x-7z-compressed" : "7z",
-
-    "application/pdf"  : "pdf",
+    "application/x-7z-compressed": "7z",
+    "application/pdf": "pdf",
     "application/x-pdf": "pdf",
     "application/x-shockwave-flash": "swf",
-
     "text/html": "html",
-
     "application/ogg": "ogg",
     # https://www.iana.org/assignments/media-types/model/obj
     "model/obj": "obj",
@@ -503,45 +505,45 @@ def _signature_html(s):
 
 # https://en.wikipedia.org/wiki/List_of_file_signatures
 SIGNATURE_CHECKS = {
-    "jpg" : lambda s: s[0:3] == b"\xFF\xD8\xFF",
-    "png" : lambda s: s[0:8] == b"\x89PNG\r\n\x1A\n",
-    "gif" : lambda s: s[0:6] in (b"GIF87a", b"GIF89a"),
-    "bmp" : lambda s: s[0:2] == b"BM",
-    "webp": lambda s: (s[0:4] == b"RIFF" and
-                       s[8:12] == b"WEBP"),
+    "jpg": lambda s: s[0:3] == b"\xff\xd8\xff",
+    "png": lambda s: s[0:8] == b"\x89PNG\r\n\x1a\n",
+    "gif": lambda s: s[0:6] in (b"GIF87a", b"GIF89a"),
+    "bmp": lambda s: s[0:2] == b"BM",
+    "webp": lambda s: (s[0:4] == b"RIFF" and s[8:12] == b"WEBP"),
     "avif": lambda s: s[4:11] == b"ftypavi" and s[11] in b"fs",
-    "heic": lambda s: (s[4:10] == b"ftyphe" and s[10:12] in (
-                       b"ic", b"im", b"is", b"ix", b"vc", b"vm", b"vs")),
-    "svg" : lambda s: s[0:5] == b"<?xml",
-    "ico" : lambda s: s[0:4] == b"\x00\x00\x01\x00",
-    "cur" : lambda s: s[0:4] == b"\x00\x00\x02\x00",
-    "psd" : lambda s: s[0:4] == b"8BPS",
-    "mp4" : lambda s: (s[4:8] == b"ftyp" and s[8:11] in (
-                       b"mp4", b"avc", b"iso")),
-    "m4v" : lambda s: s[4:11] == b"ftypM4V",
-    "mov" : lambda s: s[4:12] == b"ftypqt  ",
-    "webm": lambda s: s[0:4] == b"\x1A\x45\xDF\xA3",
-    "ogg" : lambda s: s[0:4] == b"OggS",
-    "wav" : lambda s: (s[0:4] == b"RIFF" and
-                       s[8:12] == b"WAVE"),
-    "mp3" : lambda s: (s[0:3] == b"ID3" or
-                       s[0:2] in (b"\xFF\xFB", b"\xFF\xF3", b"\xFF\xF2")),
-    "zip" : lambda s: s[0:4] in (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"),
-    "rar" : lambda s: s[0:6] == b"Rar!\x1A\x07",
-    "7z"  : lambda s: s[0:6] == b"\x37\x7A\xBC\xAF\x27\x1C",
-    "pdf" : lambda s: s[0:5] == b"%PDF-",
-    "swf" : lambda s: s[0:3] in (b"CWS", b"FWS"),
+    "heic": lambda s: (
+        s[4:10] == b"ftyphe"
+        and s[10:12] in (b"ic", b"im", b"is", b"ix", b"vc", b"vm", b"vs")
+    ),
+    "svg": lambda s: s[0:5] == b"<?xml",
+    "ico": lambda s: s[0:4] == b"\x00\x00\x01\x00",
+    "cur": lambda s: s[0:4] == b"\x00\x00\x02\x00",
+    "psd": lambda s: s[0:4] == b"8BPS",
+    "mp4": lambda s: (s[4:8] == b"ftyp" and s[8:11] in (b"mp4", b"avc", b"iso")),
+    "m4v": lambda s: s[4:11] == b"ftypM4V",
+    "mov": lambda s: s[4:12] == b"ftypqt  ",
+    "webm": lambda s: s[0:4] == b"\x1a\x45\xdf\xa3",
+    "ogg": lambda s: s[0:4] == b"OggS",
+    "wav": lambda s: (s[0:4] == b"RIFF" and s[8:12] == b"WAVE"),
+    "mp3": lambda s: (
+        s[0:3] == b"ID3" or s[0:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2")
+    ),
+    "zip": lambda s: s[0:4] in (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"),
+    "rar": lambda s: s[0:6] == b"Rar!\x1a\x07",
+    "7z": lambda s: s[0:6] == b"\x37\x7a\xbc\xaf\x27\x1c",
+    "pdf": lambda s: s[0:5] == b"%PDF-",
+    "swf": lambda s: s[0:3] in (b"CWS", b"FWS"),
     "html": _signature_html,
-    "htm" : _signature_html,
+    "htm": _signature_html,
     "blend": lambda s: s[0:7] == b"BLENDER",
     # unfortunately the Wavefront .obj format doesn't have a signature,
     # so we check for the existence of Blender's comment
-    "obj" : lambda s: s[0:11] == b"# Blender v",
+    "obj": lambda s: s[0:11] == b"# Blender v",
     # Celsys Clip Studio Paint format
     # https://github.com/rasensuihei/cliputils/blob/master/README.md
     "clip": lambda s: s[0:8] == b"CSFCHUNK",
     # check 'bin' files against all other file signatures
-    "bin" : lambda s: False,
+    "bin": lambda s: False,
 }
 
 __downloader__ = HttpDownloader

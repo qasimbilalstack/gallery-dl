@@ -20,6 +20,7 @@ USER_PATTERN = BASE_PATTERN + r"/user/([^/?#]+)"
 
 class CivitaiExtractor(Extractor):
     """Base class for civitai extractors"""
+
     category = "civitai"
     root = "https://civitai.com"
     directory_fmt = ("{category}", "{user[username]}", "images")
@@ -39,7 +40,7 @@ class CivitaiExtractor(Extractor):
             if not isinstance(quality, str):
                 quality = ",".join(quality)
             self._image_quality = quality
-            self._image_ext = ("png" if quality == "original=true" else "jpg")
+            self._image_ext = "png" if quality == "original=true" else "jpg"
         else:
             self._image_quality = "original=true"
             self._image_ext = "png"
@@ -48,8 +49,7 @@ class CivitaiExtractor(Extractor):
             if not isinstance(quality_video, str):
                 quality_video = ",".join(quality_video)
             if quality_video[0] == "+":
-                quality_video = (self._image_quality + "," +
-                                 quality_video.lstrip("+,"))
+                quality_video = self._image_quality + "," + quality_video.lstrip("+,")
             self._video_quality = quality_video
         elif quality_video is not None and quality:
             self._video_quality = self._image_quality
@@ -62,12 +62,11 @@ class CivitaiExtractor(Extractor):
                 metadata = metadata.split(",")
             elif not isinstance(metadata, (list, tuple)):
                 metadata = ("generation", "version", "post")
-            self._meta_generation = ("generation" in metadata)
-            self._meta_version = ("version" in metadata)
-            self._meta_post = ("post" in metadata)
+            self._meta_generation = "generation" in metadata
+            self._meta_version = "version" in metadata
+            self._meta_post = "post" in metadata
         else:
-            self._meta_generation = self._meta_version = self._meta_post = \
-                False
+            self._meta_generation = self._meta_version = self._meta_post = False
 
     def items(self):
         if models := self.models():
@@ -87,14 +86,14 @@ class CivitaiExtractor(Extractor):
 
                 post = self.api.post(post["id"])
                 post["date"] = text.parse_datetime(
-                    post["publishedAt"], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    post["publishedAt"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                )
                 data = {
                     "post": post,
                     "user": post.pop("user"),
                 }
                 if self._meta_version:
-                    data["model"], data["version"] = \
-                        self._extract_meta_version(post)
+                    data["model"], data["version"] = self._extract_meta_version(post)
 
                 yield Message.Directory, data
                 for file in self._image_results(images):
@@ -111,11 +110,11 @@ class CivitaiExtractor(Extractor):
                 }
 
                 if self._meta_generation:
-                    data["generation"] = \
-                        self._extract_meta_generation(file)
+                    data["generation"] = self._extract_meta_generation(file)
                 if self._meta_version:
-                    data["model"], data["version"] = \
-                        self._extract_meta_version(file, False)
+                    data["model"], data["version"] = self._extract_meta_version(
+                        file, False
+                    )
                     if "post" in file:
                         data["post"] = file.pop("post")
                 if self._meta_post and "post" not in data:
@@ -123,14 +122,17 @@ class CivitaiExtractor(Extractor):
                     if post:
                         post.pop("user", None)
                 file["date"] = text.parse_datetime(
-                    file["createdAt"], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    file["createdAt"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                )
 
                 data["url"] = url = self._url(file)
                 text.nameext_from_url(url, data)
                 if not data["extension"]:
                     data["extension"] = (
-                        self._video_ext if file.get("type") == "video" else
-                        self._image_ext)
+                        self._video_ext
+                        if file.get("type") == "video"
+                        else self._image_ext
+                    )
                 yield Message.Directory, data
                 yield Message.Url, url, data
             return
@@ -163,25 +165,31 @@ class CivitaiExtractor(Extractor):
             else:
                 ext = self._video_ext if video else self._image_ext
                 name = f"{image.get('id')}.{ext}"
-        return (f"https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA"
-                f"/{url}/{quality}/{name}")
+        return (
+            f"https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA"
+            f"/{url}/{quality}/{name}"
+        )
 
     def _image_results(self, images):
         for num, file in enumerate(images, 1):
-            data = text.nameext_from_url(file["url"], {
-                "num" : num,
-                "file": file,
-                "url" : self._url(file),
-            })
+            data = text.nameext_from_url(
+                file["url"],
+                {
+                    "num": num,
+                    "file": file,
+                    "url": self._url(file),
+                },
+            )
             if not data["extension"]:
                 data["extension"] = (
-                    self._video_ext if file.get("type") == "video" else
-                    self._image_ext)
+                    self._video_ext if file.get("type") == "video" else self._image_ext
+                )
             if "id" not in file and data["filename"].isdecimal():
                 file["id"] = text.parse_int(data["filename"])
             if "date" not in file:
                 file["date"] = text.parse_datetime(
-                    file["createdAt"], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    file["createdAt"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                )
             if self._meta_generation:
                 file["generation"] = self._extract_meta_generation(file)
             yield data
@@ -197,15 +205,24 @@ class CivitaiExtractor(Extractor):
         return self.api.images(params)
 
     def _require_auth(self):
-        if "Authorization" not in self.api.headers and \
-                not self.cookies.get(
-                "__Secure-civitai-token", domain=".civitai.com"):
+        if "Authorization" not in self.api.headers and not self.cookies.get(
+            "__Secure-civitai-token", domain=".civitai.com"
+        ):
             raise exception.AuthRequired(("api-key", "authenticated cookies"))
 
     def _parse_query(self, value):
         return text.parse_query_list(
-            value, {"tags", "reactions", "baseModels", "tools", "techniques",
-                    "types", "fileFormats"})
+            value,
+            {
+                "tags",
+                "reactions",
+                "baseModels",
+                "tools",
+                "techniques",
+                "types",
+                "fileFormats",
+            },
+        )
 
     def _extract_meta_generation(self, image):
         try:
@@ -217,7 +234,8 @@ class CivitaiExtractor(Extractor):
         try:
             post = self.api.post(image["postId"])
             post["date"] = text.parse_datetime(
-                post["publishedAt"], "%Y-%m-%dT%H:%M:%S.%fZ")
+                post["publishedAt"], "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
             return post
         except Exception as exc:
             return self.log.debug("", exc_info=exc)
@@ -249,9 +267,12 @@ class CivitaiExtractor(Extractor):
 
 class CivitaiModelExtractor(CivitaiExtractor):
     subcategory = "model"
-    directory_fmt = ("{category}", "{user[username]}",
-                     "{model[id]}{model[name]:? //}",
-                     "{version[id]}{version[name]:? //}")
+    directory_fmt = (
+        "{category}",
+        "{user[username]}",
+        "{model[id]}{model[name]:? //}",
+        "{version[id]}{version[name]:? //}",
+    )
     pattern = BASE_PATTERN + r"/models/(\d+)(?:/?\?modelVersionId=(\d+))?"
     example = "https://civitai.com/models/12345/TITLE"
 
@@ -279,12 +300,13 @@ class CivitaiModelExtractor(CivitaiExtractor):
 
         for version in versions:
             version["date"] = text.parse_datetime(
-                version["createdAt"], "%Y-%m-%dT%H:%M:%S.%fZ")
+                version["createdAt"], "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
 
             data = {
-                "model"  : model,
+                "model": model,
                 "version": version,
-                "user"   : user,
+                "user": user,
             }
 
             yield Message.Directory, data
@@ -298,17 +320,16 @@ class CivitaiModelExtractor(CivitaiExtractor):
             return self._extract_files_image(model, version, user)
 
         generators = {
-            "model"   : self._extract_files_model,
-            "image"   : self._extract_files_image,
-            "gallery" : self._extract_files_gallery,
+            "model": self._extract_files_model,
+            "image": self._extract_files_image,
+            "gallery": self._extract_files_gallery,
             "gallerie": self._extract_files_gallery,
         }
         if isinstance(filetypes, str):
             filetypes = filetypes.split(",")
 
         return itertools.chain.from_iterable(
-            generators[ft.rstrip("s")](model, version, user)
-            for ft in filetypes
+            generators[ft.rstrip("s")](model, version, user) for ft in filetypes
         )
 
     def _extract_files_model(self, model, version, user):
@@ -320,18 +341,22 @@ class CivitaiModelExtractor(CivitaiExtractor):
                 name = ext
                 ext = "bin"
             file["uuid"] = f"model-{model['id']}-{version['id']}-{file['id']}"
-            files.append({
-                "num"      : num,
-                "file"     : file,
-                "filename" : name,
-                "extension": ext,
-                "url"      : (
-                    file.get("downloadUrl") or
-                    f"{self.root}/api/download/models/{version['id']}"),
-                "_http_headers" : {
-                    "Authorization": self.api.headers.get("Authorization")},
-                "_http_validate": self._validate_file_model,
-            })
+            files.append(
+                {
+                    "num": num,
+                    "file": file,
+                    "filename": name,
+                    "extension": ext,
+                    "url": (
+                        file.get("downloadUrl")
+                        or f"{self.root}/api/download/models/{version['id']}"
+                    ),
+                    "_http_headers": {
+                        "Authorization": self.api.headers.get("Authorization")
+                    },
+                    "_http_validate": self._validate_file_model,
+                }
+            )
 
         return files
 
@@ -358,7 +383,8 @@ class CivitaiModelExtractor(CivitaiExtractor):
     def _validate_file_model(self, response):
         if response.headers.get("Content-Type", "").startswith("text/html"):
             alert = text.extr(
-                response.text, 'mantine-Alert-message">', "</div></div></div>")
+                response.text, 'mantine-Alert-message">', "</div></div></div>"
+            )
             if alert:
                 msg = f"\"{text.remove_html(alert)}\" - 'api-key' required"
             else:
@@ -379,8 +405,12 @@ class CivitaiImageExtractor(CivitaiExtractor):
 
 class CivitaiCollectionExtractor(CivitaiExtractor):
     subcategory = "collection"
-    directory_fmt = ("{category}", "{user_collection[username]}",
-                     "collections", "{collection[id]}{collection[name]:? //}")
+    directory_fmt = (
+        "{category}",
+        "{user_collection[username]}",
+        "collections",
+        "{collection[id]}{collection[name]:? //}",
+    )
     pattern = BASE_PATTERN + r"/collections/(\d+)"
     example = "https://civitai.com/collections/12345"
 
@@ -390,19 +420,23 @@ class CivitaiCollectionExtractor(CivitaiExtractor):
         self.kwdict["user_collection"] = col.pop("user", None)
 
         params = {
-            "collectionId"  : cid,
-            "period"        : "AllTime",
-            "sort"          : "Newest",
-            "browsingLevel" : self.api.nsfw,
-            "include"       : ("cosmetics",),
+            "collectionId": cid,
+            "period": "AllTime",
+            "sort": "Newest",
+            "browsingLevel": self.api.nsfw,
+            "include": ("cosmetics",),
         }
         return self.api.images(params, defaults=False)
 
 
 class CivitaiPostExtractor(CivitaiExtractor):
     subcategory = "post"
-    directory_fmt = ("{category}", "{username|user[username]}", "posts",
-                     "{post[id]}{post[title]:? //}")
+    directory_fmt = (
+        "{category}",
+        "{username|user[username]}",
+        "posts",
+        "{post[id]}{post[title]:? //}",
+    )
     pattern = BASE_PATTERN + r"/posts/(\d+)"
     example = "https://civitai.com/posts/12345"
 
@@ -428,7 +462,8 @@ class CivitaiSearchModelsExtractor(CivitaiExtractor):
     def models(self):
         params = self._parse_query(self.groups[0])
         return CivitaiSearchAPI(self).search_models(
-            params.get("query"), params.get("sortBy"), self.api.nsfw)
+            params.get("query"), params.get("sortBy"), self.api.nsfw
+        )
 
 
 class CivitaiSearchImagesExtractor(CivitaiExtractor):
@@ -439,7 +474,8 @@ class CivitaiSearchImagesExtractor(CivitaiExtractor):
     def images(self):
         params = self._parse_query(self.groups[0])
         return CivitaiSearchAPI(self).search_images(
-            params.get("query"), params.get("sortBy"), self.api.nsfw)
+            params.get("query"), params.get("sortBy"), self.api.nsfw
+        )
 
 
 class CivitaiModelsExtractor(CivitaiExtractor):
@@ -490,13 +526,16 @@ class CivitaiUserExtractor(Dispatch, CivitaiExtractor):
 
     def items(self):
         base = f"{self.root}/user/{self.groups[0]}/"
-        return self._dispatch_extractors((
-            (CivitaiUserModelsExtractor, base + "models"),
-            (CivitaiUserPostsExtractor , base + "posts"),
-            (CivitaiUserImagesExtractor, base + "images"),
-            (CivitaiUserVideosExtractor, base + "videos"),
-            (CivitaiUserCollectionsExtractor, base + "collections"),
-        ), ("user-images", "user-videos"))
+        return self._dispatch_extractors(
+            (
+                (CivitaiUserModelsExtractor, base + "models"),
+                (CivitaiUserPostsExtractor, base + "posts"),
+                (CivitaiUserImagesExtractor, base + "images"),
+                (CivitaiUserVideosExtractor, base + "videos"),
+                (CivitaiUserCollectionsExtractor, base + "collections"),
+            ),
+            ("user-images", "user-videos"),
+        )
 
 
 class CivitaiUserModelsExtractor(CivitaiExtractor):
@@ -513,8 +552,12 @@ class CivitaiUserModelsExtractor(CivitaiExtractor):
 
 class CivitaiUserPostsExtractor(CivitaiExtractor):
     subcategory = "user-posts"
-    directory_fmt = ("{category}", "{username|user[username]}", "posts",
-                     "{post[id]}{post[title]:? //}")
+    directory_fmt = (
+        "{category}",
+        "{username|user[username]}",
+        "posts",
+        "{post[id]}{post[title]:? //}",
+    )
     pattern = USER_PATTERN + r"/posts/?(?:\?([^#]+))?"
     example = "https://civitai.com/user/USER/posts"
 
@@ -583,6 +626,7 @@ class CivitaiUserCollectionsExtractor(CivitaiExtractor):
 
 class CivitaiGeneratedExtractor(CivitaiExtractor):
     """Extractor for your generated files feed"""
+
     subcategory = "generated"
     filename_fmt = "{filename}.{extension}"
     directory_fmt = ("{category}", "generated")
@@ -593,8 +637,7 @@ class CivitaiGeneratedExtractor(CivitaiExtractor):
         self._require_auth()
 
         for gen in self.api.orchestrator_queryGeneratedImages():
-            gen["date"] = text.parse_datetime(
-                gen["createdAt"], "%Y-%m-%dT%H:%M:%S.%fZ")
+            gen["date"] = text.parse_datetime(gen["createdAt"], "%Y-%m-%dT%H:%M:%S.%fZ")
             yield Message.Directory, gen
             for step in gen.pop("steps", ()):
                 for image in step.pop("images", ()):
@@ -603,7 +646,7 @@ class CivitaiGeneratedExtractor(CivitaiExtractor):
                     yield Message.Url, url, text.nameext_from_url(url, data)
 
 
-class CivitaiRestAPI():
+class CivitaiRestAPI:
     """Interface for the Civitai Public REST API
 
     https://developer.civitai.com/docs/api/public-rest
@@ -626,9 +669,11 @@ class CivitaiRestAPI():
         self.nsfw = nsfw
 
     def image(self, image_id):
-        return self.images({
-            "imageId": image_id,
-        })
+        return self.images(
+            {
+                "imageId": image_id,
+            }
+        )
 
     def images(self, params):
         endpoint = "/v1/images"
@@ -637,10 +682,12 @@ class CivitaiRestAPI():
         return self._pagination(endpoint, params)
 
     def images_gallery(self, model, version, user):
-        return self.images({
-            "modelId"       : model["id"],
-            "modelVersionId": version["id"],
-        })
+        return self.images(
+            {
+                "modelId": model["id"],
+                "modelVersionId": version["id"],
+            }
+        )
 
     def model(self, model_id):
         endpoint = f"/v1/models/{model_id}"
@@ -663,8 +710,7 @@ class CivitaiRestAPI():
         else:
             url = endpoint
 
-        response = self.extractor.request(
-            url, params=params, headers=self.headers)
+        response = self.extractor.request(url, params=params, headers=self.headers)
         return response.json()
 
     def _pagination(self, endpoint, params):
@@ -679,18 +725,18 @@ class CivitaiRestAPI():
             params = None
 
 
-class CivitaiTrpcAPI():
+class CivitaiTrpcAPI:
     """Interface for the Civitai tRPC API"""
 
     def __init__(self, extractor):
         self.extractor = extractor
         self.root = extractor.root + "/api/trpc/"
         self.headers = {
-            "content-type"    : "application/json",
+            "content-type": "application/json",
             "x-client-version": "5.0.954",
-            "x-client-date"   : "",
-            "x-client"        : "web",
-            "x-fingerprint"   : "undefined",
+            "x-client-date": "",
+            "x-client": "web",
+            "x-fingerprint": "undefined",
         }
         if api_key := extractor.config("api-key"):
             extractor.log.debug("Using api_key authentication")
@@ -717,15 +763,18 @@ class CivitaiTrpcAPI():
         endpoint = "image.getInfinite"
 
         if defaults:
-            params = self._merge_params(params, {
-                "useIndex"     : True,
-                "period"       : "AllTime",
-                "sort"         : "Newest",
-                "withMeta"     : False,  # Metadata Only
-                "fromPlatform" : False,  # Made On-Site
-                "browsingLevel": self.nsfw,
-                "include"      : ("cosmetics",),
-            })
+            params = self._merge_params(
+                params,
+                {
+                    "useIndex": True,
+                    "period": "AllTime",
+                    "sort": "Newest",
+                    "withMeta": False,  # Metadata Only
+                    "fromPlatform": False,  # Made On-Site
+                    "browsingLevel": self.nsfw,
+                    "include": ("cosmetics",),
+                },
+            )
 
         params = self._type_params(params)
         return self._pagination(endpoint, params)
@@ -733,13 +782,13 @@ class CivitaiTrpcAPI():
     def images_gallery(self, model, version, user):
         endpoint = "image.getImagesAsPostsInfinite"
         params = {
-            "period"        : "AllTime",
-            "sort"          : "Newest",
+            "period": "AllTime",
+            "sort": "Newest",
             "modelVersionId": version["id"],
-            "modelId"       : model["id"],
-            "hidden"        : False,
-            "limit"         : 50,
-            "browsingLevel" : self.nsfw,
+            "modelId": model["id"],
+            "hidden": False,
+            "limit": 50,
+            "browsingLevel": self.nsfw,
         }
 
         for post in self._pagination(endpoint, params):
@@ -747,7 +796,7 @@ class CivitaiTrpcAPI():
 
     def images_post(self, post_id):
         params = {
-            "postId" : int(post_id),
+            "postId": int(post_id),
             "pending": True,
         }
         return self.images(params)
@@ -767,18 +816,21 @@ class CivitaiTrpcAPI():
         endpoint = "model.getAll"
 
         if defaults:
-            params = self._merge_params(params, {
-                "period"       : "AllTime",
-                "periodMode"   : "published",
-                "sort"         : "Newest",
-                "pending"      : False,
-                "hidden"       : False,
-                "followed"     : False,
-                "earlyAccess"  : False,
-                "fromPlatform" : False,
-                "supportsGeneration": False,
-                "browsingLevel": self.nsfw,
-            })
+            params = self._merge_params(
+                params,
+                {
+                    "period": "AllTime",
+                    "periodMode": "published",
+                    "sort": "Newest",
+                    "pending": False,
+                    "hidden": False,
+                    "followed": False,
+                    "earlyAccess": False,
+                    "fromPlatform": False,
+                    "supportsGeneration": False,
+                    "browsingLevel": self.nsfw,
+                },
+            )
 
         return self._pagination(endpoint, params)
 
@@ -795,16 +847,19 @@ class CivitaiTrpcAPI():
         meta = {"cursor": ("Date",)}
 
         if defaults:
-            params = self._merge_params(params, {
-                "browsingLevel": self.nsfw,
-                "period"       : "AllTime",
-                "periodMode"   : "published",
-                "sort"         : "Newest",
-                "followed"     : False,
-                "draftOnly"    : False,
-                "pending"      : True,
-                "include"      : ("cosmetics",),
-            })
+            params = self._merge_params(
+                params,
+                {
+                    "browsingLevel": self.nsfw,
+                    "period": "AllTime",
+                    "periodMode": "published",
+                    "sort": "Newest",
+                    "followed": False,
+                    "draftOnly": False,
+                    "pending": True,
+                    "include": ("cosmetics",),
+                },
+            )
 
         params = self._type_params(params)
         return self._pagination(endpoint, params, meta)
@@ -818,10 +873,13 @@ class CivitaiTrpcAPI():
         endpoint = "collection.getInfinite"
 
         if defaults:
-            params = self._merge_params(params, {
-                "browsingLevel": self.nsfw,
-                "sort"         : "Newest",
-            })
+            params = self._merge_params(
+                params,
+                {
+                    "browsingLevel": self.nsfw,
+                    "sort": "Newest",
+                },
+            )
 
         params = self._type_params(params)
         return self._pagination(endpoint, params)
@@ -835,8 +893,8 @@ class CivitaiTrpcAPI():
         endpoint = "orchestrator.queryGeneratedImages"
         params = {
             "ascending": False,
-            "tags"     : ("gen",),
-            "authed"   : True,
+            "tags": ("gen",),
+            "authed": True,
         }
         return self._pagination(endpoint, params)
 
@@ -851,8 +909,9 @@ class CivitaiTrpcAPI():
 
         params = {"input": util.json_dumps(input)}
         headers["x-client-date"] = str(int(time.time() * 1000))
-        return self.extractor.request_json(
-            url, params=params, headers=headers)["result"]["data"]["json"]
+        return self.extractor.request_json(url, params=params, headers=headers)[
+            "result"
+        ]["data"]["json"]
 
     def _pagination(self, endpoint, params, meta=None):
         if "cursor" not in params:
@@ -880,15 +939,15 @@ class CivitaiTrpcAPI():
     def _type_params(self, params):
         """Convert 'params' values to expected types"""
         types = {
-            "tags"          : int,
-            "tools"         : int,
-            "techniques"    : int,
-            "modelId"       : int,
+            "tags": int,
+            "tools": int,
+            "techniques": int,
+            "modelId": int,
             "modelVersionId": int,
-            "remixesOnly"   : _bool,
+            "remixesOnly": _bool,
             "nonRemixesOnly": _bool,
-            "withMeta"      : _bool,
-            "fromPlatform"  : _bool,
+            "withMeta": _bool,
+            "fromPlatform": _bool,
             "supportsGeneration": _bool,
         }
 
@@ -907,7 +966,7 @@ def _bool(value):
     return value == "true"
 
 
-class CivitaiSearchAPI():
+class CivitaiSearchAPI:
 
     def __init__(self, extractor):
         self.extractor = extractor
@@ -917,14 +976,16 @@ class CivitaiSearchAPI():
             if " " not in auth:
                 auth = f"Bearer {auth}"
         else:
-            auth = ("Bearer 8c46eb2508e21db1e9828a97968d"
-                    "91ab1ca1caa5f70a00e88a2ba1e286603b61")
+            auth = (
+                "Bearer 8c46eb2508e21db1e9828a97968d"
+                "91ab1ca1caa5f70a00e88a2ba1e286603b61"
+            )
 
         self.headers = {
             "Authorization": auth,
             "Content-Type": "application/json",
             "X-Meilisearch-Client": "Meilisearch instant-meilisearch (v0.13.5)"
-                                    " ; Meilisearch JavaScript (v0.34.0)",
+            " ; Meilisearch JavaScript (v0.34.0)",
             "Origin": extractor.root,
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
@@ -936,13 +997,13 @@ class CivitaiSearchAPI():
         endpoint = "/multi-search"
 
         query = {
-            "q"       : query,
+            "q": query,
             "indexUid": type,
-            "facets"  : facets,
+            "facets": facets,
             "attributesToHighlight": (),
-            "highlightPreTag" : "__ais-highlight__",
+            "highlightPreTag": "__ais-highlight__",
             "highlightPostTag": "__/ais-highlight__",
-            "limit" : 51,
+            "limit": 51,
             "offset": 0,
             "filter": (self._generate_filter(nsfw),),
         }
@@ -980,7 +1041,8 @@ class CivitaiSearchAPI():
         params = util.json_dumps({"queries": (query,)})
 
         data = self.extractor.request_json(
-            url, method="POST", headers=self.headers, data=params)
+            url, method="POST", headers=self.headers, data=params
+        )
 
         return data["results"][0]
 

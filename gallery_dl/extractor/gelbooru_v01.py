@@ -21,22 +21,22 @@ class GelbooruV01Extractor(booru.BooruExtractor):
         extr = text.extract_from(self.request(url).text)
 
         post = {
-            "id"        : post_id,
-            "created_at": extr('Posted: ', ' <'),
-            "uploader"  : extr('By: ', ' <'),
-            "width"     : extr('Size: ', 'x'),
-            "height"    : extr('', ' <'),
-            "source"    : extr('Source: ', ' <'),
-            "rating"    : (extr('Rating: ', '<') or "?")[0].lower(),
-            "score"     : extr('Score: ', ' <'),
-            "file_url"  : extr('<img alt="img" src="', '"'),
-            "tags"      : text.unescape(extr(
-                'id="tags" name="tags" cols="40" rows="5">', '<')),
+            "id": post_id,
+            "created_at": extr("Posted: ", " <"),
+            "uploader": extr("By: ", " <"),
+            "width": extr("Size: ", "x"),
+            "height": extr("", " <"),
+            "source": extr("Source: ", " <"),
+            "rating": (extr("Rating: ", "<") or "?")[0].lower(),
+            "score": extr("Score: ", " <"),
+            "file_url": extr('<img alt="img" src="', '"'),
+            "tags": text.unescape(
+                extr('id="tags" name="tags" cols="40" rows="5">', "<")
+            ),
         }
 
         post["md5"] = post["file_url"].rpartition("/")[2].partition(".")[0]
-        post["date"] = text.parse_datetime(
-            post["created_at"], "%Y-%m-%d %H:%M:%S")
+        post["date"] = text.parse_datetime(post["created_at"], "%Y-%m-%d %H:%M:%S")
 
         return post
 
@@ -60,28 +60,30 @@ class GelbooruV01Extractor(booru.BooruExtractor):
             pid += self.per_page
 
 
-BASE_PATTERN = GelbooruV01Extractor.update({
-    "thecollection": {
-        "root": "https://the-collection.booru.org",
-        "pattern": r"the-collection\.booru\.org",
-    },
-    "illusioncardsbooru": {
-        "root": "https://illusioncards.booru.org",
-        "pattern": r"illusioncards\.booru\.org",
-    },
-    "allgirlbooru": {
-        "root": "https://allgirl.booru.org",
-        "pattern": r"allgirl\.booru\.org",
-    },
-    "drawfriends": {
-        "root": "https://drawfriends.booru.org",
-        "pattern": r"drawfriends\.booru\.org",
-    },
-    "vidyart2": {
-        "root": "https://vidyart2.booru.org",
-        "pattern": r"vidyart2\.booru\.org",
-    },
-})
+BASE_PATTERN = GelbooruV01Extractor.update(
+    {
+        "thecollection": {
+            "root": "https://the-collection.booru.org",
+            "pattern": r"the-collection\.booru\.org",
+        },
+        "illusioncardsbooru": {
+            "root": "https://illusioncards.booru.org",
+            "pattern": r"illusioncards\.booru\.org",
+        },
+        "allgirlbooru": {
+            "root": "https://allgirl.booru.org",
+            "pattern": r"allgirl\.booru\.org",
+        },
+        "drawfriends": {
+            "root": "https://drawfriends.booru.org",
+            "pattern": r"drawfriends\.booru\.org",
+        },
+        "vidyart2": {
+            "root": "https://vidyart2.booru.org",
+            "pattern": r"vidyart2\.booru\.org",
+        },
+    }
+)
 
 
 class GelbooruV01TagExtractor(GelbooruV01Extractor):
@@ -113,8 +115,10 @@ class GelbooruV01FavoriteExtractor(GelbooruV01Extractor):
         return {"favorite_id": text.parse_int(fav_id)}
 
     def posts(self):
-        url = (f"{self.root}/index.php"
-               f"?page=favorites&s=view&id={self.favorite_id}&pid=")
+        url = (
+            f"{self.root}/index.php"
+            f"?page=favorites&s=view&id={self.favorite_id}&pid="
+        )
         return self._pagination(url, "posts[", "]")
 
 

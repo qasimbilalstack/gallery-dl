@@ -15,12 +15,37 @@ import os
 class ClassifyPP(PostProcessor):
 
     DEFAULT_MAPPING = {
-        "Pictures" : ("jpg", "jpeg", "png", "gif", "bmp", "svg", "webp",
-                      "avif", "heic", "heif", "ico", "psd"),
-        "Video"    : ("flv", "ogv", "avi", "mp4", "mpg", "mpeg", "3gp", "mkv",
-                      "webm", "vob", "wmv", "m4v", "mov"),
-        "Music"    : ("mp3", "aac", "flac", "ogg", "wma", "m4a", "wav"),
-        "Archives" : ("zip", "rar", "7z", "tar", "gz", "bz2"),
+        "Pictures": (
+            "jpg",
+            "jpeg",
+            "png",
+            "gif",
+            "bmp",
+            "svg",
+            "webp",
+            "avif",
+            "heic",
+            "heif",
+            "ico",
+            "psd",
+        ),
+        "Video": (
+            "flv",
+            "ogv",
+            "avi",
+            "mp4",
+            "mpg",
+            "mpeg",
+            "3gp",
+            "mkv",
+            "webm",
+            "vob",
+            "wmv",
+            "m4v",
+            "mov",
+        ),
+        "Music": ("mp3", "aac", "flac", "ogg", "wma", "m4a", "wav"),
+        "Archives": ("zip", "rar", "7z", "tar", "gz", "bz2"),
         "Documents": ("txt", "pdf"),
     }
 
@@ -30,15 +55,16 @@ class ClassifyPP(PostProcessor):
 
         mapping = options.get("mapping", self.DEFAULT_MAPPING)
         self.mapping = {
-            ext: directory
-            for directory, exts in mapping.items()
-            for ext in exts
+            ext: directory for directory, exts in mapping.items() for ext in exts
         }
 
-        job.register_hooks({
-            "post"   : self.initialize,
-            "prepare": self.prepare,
-        }, options)
+        job.register_hooks(
+            {
+                "post": self.initialize,
+                "prepare": self.prepare,
+            },
+            options,
+        )
 
     def initialize(self, pathfmt):
         # store base directory paths

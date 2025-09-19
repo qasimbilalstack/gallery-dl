@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?cyberfile\.me"
 
 class CyberfileExtractor(Extractor):
     """Base class for cyberfile extractors"""
+
     category = "cyberfile"
     root = "https://cyberfile.me"
 
@@ -25,23 +26,23 @@ class CyberfileExtractor(Extractor):
             "X-Requested-With": "XMLHttpRequest",
             "Origin": self.root,
         }
-        resp = self.request_json(
-            url, method="POST", headers=headers, data=data)
+        resp = self.request_json(url, method="POST", headers=headers, data=data)
 
         if "albumPasswordModel" in resp.get("javascript", ""):
             url_pw = f"{self.root}/ajax/folder_password_process"
             data_pw = {
                 "folderPassword": self._get_auth_info(password=True)[1],
                 "folderId": text.extr(
-                    resp["html"], '<input type="hidden" value="', '"'),
+                    resp["html"], '<input type="hidden" value="', '"'
+                ),
                 "submitme": "1",
             }
             resp = self.request_json(
-                url_pw, method="POST", headers=headers, data=data_pw)
+                url_pw, method="POST", headers=headers, data=data_pw
+            )
             if not resp.get("success"):
                 raise exception.AuthorizationError(f"'{resp.get('msg')}'")
-            resp = self.request_json(
-                url, method="POST", headers=headers, data=data)
+            resp = self.request_json(url, method="POST", headers=headers, data=data)
 
         return resp
 
@@ -60,19 +61,19 @@ class CyberfileFolderExtractor(CyberfileExtractor):
         perpage = 600
 
         data = {
-            "pageType" : "folder",
-            "nodeId"   : folder_num,
+            "pageType": "folder",
+            "nodeId": folder_num,
             "pageStart": 1,
-            "perPage"  : perpage,
+            "perPage": perpage,
             "filterOrderBy": "",
         }
         resp = self.request_api("/account/ajax/load_files", data)
 
         folder = {
-            "_extractor" : CyberfileFileExtractor,
+            "_extractor": CyberfileFileExtractor,
             "folder_hash": folder_hash,
-            "folder_num" : text.parse_int(folder_num),
-            "folder"     : resp["page_title"],
+            "folder_num": text.parse_int(folder_num),
+            "folder": resp["page_title"],
         }
 
         while True:
@@ -104,19 +105,19 @@ class CyberfileFileExtractor(CyberfileExtractor):
         folder = info[0] if len(info) > 1 else ""
 
         file = {
-            "file_id" : file_id,
+            "file_id": file_id,
             "file_num": text.parse_int(file_num),
-            "name"    : resp["page_title"],
-            "folder"  : folder,
+            "name": resp["page_title"],
+            "folder": folder,
             "uploader": info[-1][2:].strip(),
-            "size"    : text.parse_bytes(text.remove_html(extr(
-                "Filesize:", "</tr>"))[:-1]),
-            "tags"    : text.split_html(extr(
-                "Keywords:", "</tr>")),
-            "date"    : text.parse_datetime(text.remove_html(extr(
-                "Uploaded:", "</tr>")), "%d/%m/%Y %H:%M:%S"),
-            "permissions": text.remove_html(extr(
-                "Permissions:", "</tr>")).split(" &amp; "),
+            "size": text.parse_bytes(text.remove_html(extr("Filesize:", "</tr>"))[:-1]),
+            "tags": text.split_html(extr("Keywords:", "</tr>")),
+            "date": text.parse_datetime(
+                text.remove_html(extr("Uploaded:", "</tr>")), "%d/%m/%Y %H:%M:%S"
+            ),
+            "permissions": text.remove_html(extr("Permissions:", "</tr>")).split(
+                " &amp; "
+            ),
         }
 
         file["file_url"] = url = extr("openUrl('", "'")

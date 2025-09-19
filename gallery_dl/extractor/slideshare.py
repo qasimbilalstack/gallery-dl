@@ -15,13 +15,15 @@ from .. import text
 
 class SlidesharePresentationExtractor(GalleryExtractor):
     """Extractor for images from a presentation on slideshare.net"""
+
     category = "slideshare"
     subcategory = "presentation"
     directory_fmt = ("{category}", "{user}")
     filename_fmt = "{presentation}-{num:>02}.{extension}"
     archive_fmt = "{presentation}_{num}"
-    pattern = (r"(?:https?://)?(?:www\.)?slideshare\.net"
-               r"/(?:mobile/)?([^/?#]+)/([^/?#]+)")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?slideshare\.net" r"/(?:mobile/)?([^/?#]+)/([^/?#]+)"
+    )
     example = "https://www.slideshare.net/USER/PRESENTATION"
 
     def __init__(self, match):
@@ -34,23 +36,21 @@ class SlidesharePresentationExtractor(GalleryExtractor):
         self.slideshow = slideshow = data["props"]["pageProps"]["slideshow"]
 
         return {
-            "user"        : slideshow["username"],
+            "user": slideshow["username"],
             "presentation": self.presentation,
-            "title"       : slideshow["title"].strip(),
-            "description" : slideshow["description"].strip(),
-            "views"       : slideshow["views"],
-            "likes"       : slideshow["likes"],
-            "date"        : text.parse_datetime(
-                slideshow["createdAt"], "%Y-%m-%d %H:%M:%S %Z"),
+            "title": slideshow["title"].strip(),
+            "description": slideshow["description"].strip(),
+            "views": slideshow["views"],
+            "likes": slideshow["likes"],
+            "date": text.parse_datetime(slideshow["createdAt"], "%Y-%m-%d %H:%M:%S %Z"),
         }
 
     def images(self, page):
         slides = self.slideshow["slides"]
-        begin = (f"{slides['host']}/{slides['imageLocation']}"
-                 f"/95/{slides['title']}-")
+        begin = f"{slides['host']}/{slides['imageLocation']}" f"/95/{slides['title']}-"
         end = "-1024.jpg"
 
         return [
             (begin + str(n) + end, None)
-            for n in range(1, self.slideshow["totalSlides"]+1)
+            for n in range(1, self.slideshow["totalSlides"] + 1)
         ]

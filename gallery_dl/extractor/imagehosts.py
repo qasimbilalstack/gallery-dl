@@ -16,6 +16,7 @@ from os.path import splitext
 
 class ImagehostImageExtractor(Extractor):
     """Base class for single-image extractors for various imagehosts"""
+
     basecategory = "imagehost"
     subcategory = "image"
     archive_fmt = "{token}"
@@ -73,9 +74,11 @@ class ImagehostImageExtractor(Extractor):
 
 class ImxtoImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from imx.to"""
+
     category = "imxto"
-    pattern = (r"(?:https?://)?(?:www\.)?((?:imx\.to|img\.yt)"
-               r"/(?:i/|img-)(\w+)(\.html)?)")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?((?:imx\.to|img\.yt)" r"/(?:i/|img-)(\w+)(\.html)?)"
+    )
     example = "https://imx.to/i/ID"
     _params = "simple"
     _encoding = "utf-8"
@@ -89,8 +92,7 @@ class ImxtoImageExtractor(ImagehostImageExtractor):
             self.url_ext = False
 
     def get_info(self, page):
-        url, pos = text.extract(
-            page, '<div style="text-align:center;"><a href="', '"')
+        url, pos = text.extract(page, '<div style="text-align:center;"><a href="', '"')
         if not url:
             raise exception.NotFoundError("image")
         filename, pos = text.extract(page, ' title="', '"', pos)
@@ -103,15 +105,16 @@ class ImxtoImageExtractor(ImagehostImageExtractor):
         size = extr(">", "</span>").replace(" ", "")[:-1]
         width, _, height = extr(">", " px</span>").partition("x")
         return {
-            "size"  : text.parse_bytes(size),
-            "width" : text.parse_int(width),
+            "size": text.parse_bytes(size),
+            "width": text.parse_int(width),
             "height": text.parse_int(height),
-            "hash"  : extr(">", "</span>"),
+            "hash": extr(">", "</span>"),
         }
 
 
 class ImxtoGalleryExtractor(ImagehostImageExtractor):
     """Extractor for image galleries from imx.to"""
+
     category = "imxto"
     subcategory = "gallery"
     pattern = r"(?:https?://)?(?:www\.)?(imx\.to/g/([^/?#]+))"
@@ -119,7 +122,7 @@ class ImxtoGalleryExtractor(ImagehostImageExtractor):
 
     def items(self):
         page = self.request(self.page_url).text
-        title, pos = text.extract(page, '<div class="title', '<')
+        title, pos = text.extract(page, '<div class="title', "<")
         data = {
             "_extractor": ImxtoImageExtractor,
             "title": text.unescape(title.partition(">")[2]).strip(),
@@ -131,6 +134,7 @@ class ImxtoGalleryExtractor(ImagehostImageExtractor):
 
 class AcidimgImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from acidimg.cc"""
+
     category = "acidimg"
     pattern = r"(?:https?://)?((?:www\.)?acidimg\.cc/img-([a-z0-9]+)\.html)"
     example = "https://acidimg.cc/img-abc123.html"
@@ -153,9 +157,12 @@ class AcidimgImageExtractor(ImagehostImageExtractor):
 
 class ImagevenueImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from imagevenue.com"""
+
     category = "imagevenue"
-    pattern = (r"(?:https?://)?((?:www|img\d+)\.imagevenue\.com"
-               r"/([A-Z0-9]{8,10}|view/.*|img\.php\?.*))")
+    pattern = (
+        r"(?:https?://)?((?:www|img\d+)\.imagevenue\.com"
+        r"/([A-Z0-9]{8,10}|view/.*|img\.php\?.*))"
+    )
     example = "https://www.imagevenue.com/ME123456789"
 
     def get_info(self, page):
@@ -169,41 +176,45 @@ class ImagevenueImageExtractor(ImagehostImageExtractor):
     def _validate(self, response):
         hget = response.headers.get
         return not (
-            hget("content-length") == "14396" and
-            hget("content-type") == "image/jpeg" and
-            hget("last-modified") == "Mon, 04 May 2020 07:19:52 GMT"
+            hget("content-length") == "14396"
+            and hget("content-type") == "image/jpeg"
+            and hget("last-modified") == "Mon, 04 May 2020 07:19:52 GMT"
         )
 
 
 class ImagetwistImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from imagetwist.com"""
+
     category = "imagetwist"
-    pattern = (r"(?:https?://)?((?:www\.|phun\.)?"
-               r"image(?:twist|haha)\.com/([a-z0-9]{12}))")
+    pattern = (
+        r"(?:https?://)?((?:www\.|phun\.)?" r"image(?:twist|haha)\.com/([a-z0-9]{12}))"
+    )
     example = "https://imagetwist.com/123456abcdef/NAME.EXT"
 
     @property
-    @memcache(maxage=3*3600)
+    @memcache(maxage=3 * 3600)
     def _cookies(self):
         return self.request(self.page_url).cookies
 
     def get_info(self, page):
-        url     , pos = text.extract(page, '<img src="', '"')
+        url, pos = text.extract(page, '<img src="', '"')
         filename, pos = text.extract(page, ' alt="', '"', pos)
         return url, filename
 
 
 class ImagetwistGalleryExtractor(ImagehostImageExtractor):
     """Extractor for galleries from imagetwist.com"""
+
     category = "imagetwist"
     subcategory = "gallery"
-    pattern = (r"(?:https?://)?((?:www\.|phun\.)?"
-               r"image(?:twist|haha)\.com/(p/[^/?#]+/\d+))")
+    pattern = (
+        r"(?:https?://)?((?:www\.|phun\.)?" r"image(?:twist|haha)\.com/(p/[^/?#]+/\d+))"
+    )
     example = "https://imagetwist.com/p/USER/12345/NAME"
 
     def items(self):
         data = {"_extractor": ImagetwistImageExtractor}
-        root = self.page_url[:self.page_url.find("/", 8)]
+        root = self.page_url[: self.page_url.find("/", 8)]
         page = self.request(self.page_url).text
         gallery = text.extr(page, 'class="gallerys', "</div")
         for path in text.extract_iter(gallery, ' href="', '"'):
@@ -212,13 +223,14 @@ class ImagetwistGalleryExtractor(ImagehostImageExtractor):
 
 class ImgadultImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from imgadult.com"""
+
     category = "imgadult"
     _cookies = {"img_i_d": "1"}
     pattern = r"(?:https?://)?((?:www\.)?imgadult\.com/img-([0-9a-f]+)\.html)"
     example = "https://imgadult.com/img-0123456789abc.html"
 
     def get_info(self, page):
-        url , pos = text.extract(page, "' src='", "'")
+        url, pos = text.extract(page, "' src='", "'")
         name, pos = text.extract(page, "alt='", "'", pos)
 
         if name:
@@ -232,6 +244,7 @@ class ImgadultImageExtractor(ImagehostImageExtractor):
 
 class ImgspiceImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from imgspice.com"""
+
     category = "imgspice"
     pattern = r"(?:https?://)?((?:www\.)?imgspice\.com/([^/?#]+))"
     example = "https://imgspice.com/ID/NAME.EXT.html"
@@ -240,36 +253,37 @@ class ImgspiceImageExtractor(ImagehostImageExtractor):
         pos = page.find('id="imgpreview"')
         if pos < 0:
             raise exception.NotFoundError("image")
-        url , pos = text.extract(page, 'src="', '"', pos)
+        url, pos = text.extract(page, 'src="', '"', pos)
         name, pos = text.extract(page, 'alt="', '"', pos)
         return url, text.unescape(name)
 
 
 class PixhostImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from pixhost.to"""
+
     category = "pixhost"
-    pattern = (r"(?:https?://)?((?:www\.)?pixhost\.(?:to|org)"
-               r"/show/\d+/(\d+)_[^/?#]+)")
+    pattern = (
+        r"(?:https?://)?((?:www\.)?pixhost\.(?:to|org)" r"/show/\d+/(\d+)_[^/?#]+)"
+    )
     example = "https://pixhost.to/show/123/12345_NAME.EXT"
     _cookies = {"pixhostads": "1", "pixhosttest": "1"}
 
     def get_info(self, page):
-        url     , pos = text.extract(page, "class=\"image-img\" src=\"", "\"")
-        filename, pos = text.extract(page, "alt=\"", "\"", pos)
+        url, pos = text.extract(page, 'class="image-img" src="', '"')
+        filename, pos = text.extract(page, 'alt="', '"', pos)
         return url, filename
 
 
 class PixhostGalleryExtractor(ImagehostImageExtractor):
     """Extractor for image galleries from pixhost.to"""
+
     category = "pixhost"
     subcategory = "gallery"
-    pattern = (r"(?:https?://)?((?:www\.)?pixhost\.(?:to|org)"
-               r"/gallery/([^/?#]+))")
+    pattern = r"(?:https?://)?((?:www\.)?pixhost\.(?:to|org)" r"/gallery/([^/?#]+))"
     example = "https://pixhost.to/gallery/ID"
 
     def items(self):
-        page = text.extr(self.request(
-            self.page_url).text, 'class="images"', "</div>")
+        page = text.extr(self.request(self.page_url).text, 'class="images"', "</div>")
         data = {"_extractor": PixhostImageExtractor}
         for url in text.extract_iter(page, '<a href="', '"'):
             yield Message.Queue, url, data
@@ -277,24 +291,30 @@ class PixhostGalleryExtractor(ImagehostImageExtractor):
 
 class PostimgImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from postimages.org"""
+
     category = "postimg"
-    pattern = (r"(?:https?://)?((?:www\.)?(?:postim(?:ages|g)|pixxxels)"
-               r"\.(?:cc|org)/(?!gallery/)(?:image/)?([^/?#]+)/?)")
+    pattern = (
+        r"(?:https?://)?((?:www\.)?(?:postim(?:ages|g)|pixxxels)"
+        r"\.(?:cc|org)/(?!gallery/)(?:image/)?([^/?#]+)/?)"
+    )
     example = "https://postimages.org/ID"
 
     def get_info(self, page):
         pos = page.index(' id="download"')
-        url     , pos = text.rextract(page, ' href="', '"', pos)
-        filename, pos = text.extract(page, 'class="imagename">', '<', pos)
+        url, pos = text.rextract(page, ' href="', '"', pos)
+        filename, pos = text.extract(page, 'class="imagename">', "<", pos)
         return url, text.unescape(filename)
 
 
 class PostimgGalleryExtractor(ImagehostImageExtractor):
     """Extractor for images galleries from postimages.org"""
+
     category = "postimg"
     subcategory = "gallery"
-    pattern = (r"(?:https?://)?((?:www\.)?(?:postim(?:ages|g)|pixxxels)"
-               r"\.(?:cc|org)/gallery/([^/?#]+))")
+    pattern = (
+        r"(?:https?://)?((?:www\.)?(?:postim(?:ages|g)|pixxxels)"
+        r"\.(?:cc|org)/gallery/([^/?#]+))"
+    )
     example = "https://postimages.org/gallery/ID"
 
     def items(self):
@@ -306,9 +326,9 @@ class PostimgGalleryExtractor(ImagehostImageExtractor):
 
 class TurboimagehostImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from www.turboimagehost.com"""
+
     category = "turboimagehost"
-    pattern = (r"(?:https?://)?((?:www\.)?turboimagehost\.com"
-               r"/p/(\d+)/[^/?#]+\.html)")
+    pattern = r"(?:https?://)?((?:www\.)?turboimagehost\.com" r"/p/(\d+)/[^/?#]+\.html)"
     example = "https://www.turboimagehost.com/p/12345/NAME.EXT.html"
 
     def get_info(self, page):
@@ -318,10 +338,10 @@ class TurboimagehostImageExtractor(ImagehostImageExtractor):
 
 class TurboimagehostGalleryExtractor(ImagehostImageExtractor):
     """Extractor for image galleries from turboimagehost.com"""
+
     category = "turboimagehost"
     subcategory = "gallery"
-    pattern = (r"(?:https?://)?((?:www\.)?turboimagehost\.com"
-               r"/album/(\d+)/([^/?#]*))")
+    pattern = r"(?:https?://)?((?:www\.)?turboimagehost\.com" r"/album/(\d+)/([^/?#]*))"
     example = "https://www.turboimagehost.com/album/12345/GALLERY_NAME"
 
     def items(self):
@@ -331,8 +351,10 @@ class TurboimagehostGalleryExtractor(ImagehostImageExtractor):
         while True:
             page = self.request(self.page_url, params=params).text
 
-            if params["p"] == 1 and \
-                    "Requested gallery don`t exist on our website." in page:
+            if (
+                params["p"] == 1
+                and "Requested gallery don`t exist on our website." in page
+            ):
                 raise exception.NotFoundError("gallery")
 
             thumb_url = None
@@ -346,6 +368,7 @@ class TurboimagehostGalleryExtractor(ImagehostImageExtractor):
 
 class ViprImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from vipr.im"""
+
     category = "vipr"
     pattern = r"(?:https?://)?(vipr\.im/(\w+))"
     example = "https://vipr.im/abc123.html"
@@ -357,6 +380,7 @@ class ViprImageExtractor(ImagehostImageExtractor):
 
 class ImgclickImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from imgclick.net"""
+
     category = "imgclick"
     pattern = r"(?:https?://)?((?:www\.)?imgclick\.net/([^/?#]+))"
     example = "http://imgclick.net/abc123/NAME.EXT.html"
@@ -364,16 +388,19 @@ class ImgclickImageExtractor(ImagehostImageExtractor):
     _params = "complex"
 
     def get_info(self, page):
-        url     , pos = text.extract(page, '<br><img src="', '"')
+        url, pos = text.extract(page, '<br><img src="', '"')
         filename, pos = text.extract(page, 'alt="', '"', pos)
         return url, filename
 
 
 class FappicImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from fappic.com"""
+
     category = "fappic"
-    pattern = (r"(?:https?://)?(?:www\.|img\d+\.)?fappic\.com"
-               r"/(?:i/\d+/())?(\w{10,})(?:/|\.)\w+")
+    pattern = (
+        r"(?:https?://)?(?:www\.|img\d+\.)?fappic\.com"
+        r"/(?:i/\d+/())?(\w{10,})(?:/|\.)\w+"
+    )
     example = "https://fappic.com/abcde12345/NAME.EXT"
 
     def __init__(self, match):
@@ -387,29 +414,33 @@ class FappicImageExtractor(ImagehostImageExtractor):
         self.page_url = f"https://fappic.com/{token}/pic.jpg"
 
     def get_info(self, page):
-        url     , pos = text.extract(page, '<a href="#"><img src="', '"')
+        url, pos = text.extract(page, '<a href="#"><img src="', '"')
         filename, pos = text.extract(page, 'alt="', '"', pos)
         return url, text.re(r"^Porn[ -]Pic(?:s|ture)[ -]").sub("", filename)
 
 
 class PicstateImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from picstate.com"""
+
     category = "picstate"
     pattern = r"(?:https?://)?((?:www\.)?picstate\.com/view/full/([^/?#]+))"
     example = "https://picstate.com/view/full/123"
 
     def get_info(self, page):
         pos = page.index(' id="image_container"')
-        url     , pos = text.extract(page, '<img src="', '"', pos)
+        url, pos = text.extract(page, '<img src="', '"', pos)
         filename, pos = text.extract(page, 'alt="', '"', pos)
         return url, filename
 
 
 class ImgdriveImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from imgdrive.net"""
+
     category = "imgdrive"
-    pattern = (r"(?:https?://)?(?:www\.)?(img(drive|taxi|wallet)\.(?:com|net)"
-               r"/img-(\w+)\.html)")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?(img(drive|taxi|wallet)\.(?:com|net)"
+        r"/img-(\w+)\.html)"
+    )
     example = "https://imgdrive.net/img-0123456789abc.html"
 
     def __init__(self, match):
@@ -419,18 +450,18 @@ class ImgdriveImageExtractor(ImagehostImageExtractor):
         Extractor.__init__(self, match)
 
     def get_info(self, page):
-        title, pos = text.extract(
-            page, 'property="og:title" content="', '"')
-        image, pos = text.extract(
-            page, 'property="og:image" content="', '"', pos)
+        title, pos = text.extract(page, 'property="og:title" content="', '"')
+        image, pos = text.extract(page, 'property="og:image" content="', '"', pos)
         return image.replace("/small/", "/big/"), title.rsplit(" | ", 2)[0]
 
 
 class SilverpicImageExtractor(ImagehostImageExtractor):
     """Extractor for single images from silverpic.com"""
+
     category = "silverpic"
-    pattern = (r"(?:https?://)?((?:www\.)?silverpic\.com"
-               r"/([a-z0-9]{10,})/[\S]+\.html)")
+    pattern = (
+        r"(?:https?://)?((?:www\.)?silverpic\.com" r"/([a-z0-9]{10,})/[\S]+\.html)"
+    )
     example = "https://silverpic.com/a1b2c3d4f5g6/NAME.EXT.html"
 
     def get_info(self, page):
@@ -444,6 +475,6 @@ class SilverpicImageExtractor(ImagehostImageExtractor):
         height = text.extract(page, 'height="', '"', pos)[0]
 
         return {
-            "width" : text.parse_int(width),
+            "width": text.parse_int(width),
             "height": text.parse_int(height),
         }

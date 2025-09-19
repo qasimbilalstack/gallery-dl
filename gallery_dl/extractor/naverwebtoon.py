@@ -12,12 +12,12 @@
 from .common import GalleryExtractor, Extractor, Message
 from .. import text
 
-BASE_PATTERN = (r"(?:https?://)?comic\.naver\.com"
-                r"/(webtoon|challenge|bestChallenge)")
+BASE_PATTERN = r"(?:https?://)?comic\.naver\.com" r"/(webtoon|challenge|bestChallenge)"
 
 
-class NaverWebtoonBase():
+class NaverWebtoonBase:
     """Base class for comic.naver.com extractors"""
+
     category = "naver-webtoon"
     root = "https://comic.naver.com"
 
@@ -43,19 +43,25 @@ class NaverWebtoonEpisodeExtractor(NaverWebtoonBase, GalleryExtractor):
         extr = text.extract_from(page)
         return {
             "title_id": self.title_id,
-            "episode" : self.episode,
-            "comic"   : extr('titleName: "', '"'),
-            "tags"    : [t.strip() for t in text.extract_iter(
-                extr("tagList: [", "],"), '"tagName":"', '"')],
-            "title"   : extr('"subtitle":"', '"'),
-            "author"  : [a.strip() for a in text.extract_iter(
-                extr('"writers":[', ']'), '"name":"', '"')],
-            "artist"  : [a.strip() for a in text.extract_iter(
-                extr('"painters":[', ']'), '"name":"', '"')]
+            "episode": self.episode,
+            "comic": extr('titleName: "', '"'),
+            "tags": [
+                t.strip()
+                for t in text.extract_iter(extr("tagList: [", "],"), '"tagName":"', '"')
+            ],
+            "title": extr('"subtitle":"', '"'),
+            "author": [
+                a.strip()
+                for a in text.extract_iter(extr('"writers":[', "]"), '"name":"', '"')
+            ],
+            "artist": [
+                a.strip()
+                for a in text.extract_iter(extr('"painters":[', "]"), '"name":"', '"')
+            ],
         }
 
     def images(self, page):
-        view_area = text.extr(page, 'id="comic_view_area"', '</div>')
+        view_area = text.extr(page, 'id="comic_view_area"', "</div>")
         return [
             (url, None)
             for url in text.extract_iter(view_area, '<img src="', '"')
@@ -84,8 +90,8 @@ class NaverWebtoonComicExtractor(NaverWebtoonBase, Extractor):
         }
         params = {
             "titleId": self.title_id,
-            "page"   : self.page_no,
-            "sort"   : self.sort,
+            "page": self.page_no,
+            "sort": self.sort,
         }
 
         while True:

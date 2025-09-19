@@ -15,6 +15,7 @@ import datetime
 
 class DanbooruExtractor(BaseExtractor):
     """Base class for danbooru extractors"""
+
     basecategory = "Danbooru"
     filename_fmt = "{category}_{id}_{filename}.{extension}"
     page_limit = 1000
@@ -70,32 +71,40 @@ class DanbooruExtractor(BaseExtractor):
 
             text.nameext_from_url(url, post)
             post["date"] = text.parse_datetime(
-                post["created_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
+                post["created_at"], "%Y-%m-%dT%H:%M:%S.%f%z"
+            )
 
-            post["tags"] = (
-                post["tag_string"].split(" ")
-                if post["tag_string"] else ())
+            post["tags"] = post["tag_string"].split(" ") if post["tag_string"] else ()
             post["tags_artist"] = (
                 post["tag_string_artist"].split(" ")
-                if post["tag_string_artist"] else ())
+                if post["tag_string_artist"]
+                else ()
+            )
             post["tags_character"] = (
                 post["tag_string_character"].split(" ")
-                if post["tag_string_character"] else ())
+                if post["tag_string_character"]
+                else ()
+            )
             post["tags_copyright"] = (
                 post["tag_string_copyright"].split(" ")
-                if post["tag_string_copyright"] else ())
+                if post["tag_string_copyright"]
+                else ()
+            )
             post["tags_general"] = (
                 post["tag_string_general"].split(" ")
-                if post["tag_string_general"] else ())
+                if post["tag_string_general"]
+                else ()
+            )
             post["tags_meta"] = (
-                post["tag_string_meta"].split(" ")
-                if post["tag_string_meta"] else ())
+                post["tag_string_meta"].split(" ") if post["tag_string_meta"] else ()
+            )
 
             if post["extension"] == "zip":
                 if self.ugoira:
                     post["_ugoira_original"] = False
-                    post["_ugoira_frame_data"] = post["frames"] = \
-                        self._ugoira_frames(post)
+                    post["_ugoira_frame_data"] = post["frames"] = self._ugoira_frames(
+                        post
+                    )
                     post["_http_adjust_extension"] = False
                 else:
                     url = post["large_file_url"]
@@ -137,9 +146,9 @@ class DanbooruExtractor(BaseExtractor):
             if posts:
                 if self.includes:
                     params_meta = {
-                        "only" : self.includes,
+                        "only": self.includes,
                         "limit": len(posts),
-                        "tags" : "id:" + ",".join(str(p["id"]) for p in posts),
+                        "tags": "id:" + ",".join(str(p["id"]) for p in posts),
                     }
                     data = {
                         meta["id"]: meta
@@ -178,8 +187,9 @@ class DanbooruExtractor(BaseExtractor):
 
         fmt = ("{:>06}." + ext).format
         delays = data["Ugoira:FrameDelays"]
-        return [{"file": fmt(index), "delay": delay}
-                for index, delay in enumerate(delays)]
+        return [
+            {"file": fmt(index), "delay": delay} for index, delay in enumerate(delays)
+        ]
 
     def _collection_posts(self, cid, ctype):
         reverse = prefix = None
@@ -227,29 +237,32 @@ class DanbooruExtractor(BaseExtractor):
         return posts
 
 
-BASE_PATTERN = DanbooruExtractor.update({
-    "danbooru": {
-        "root": None,
-        "pattern": r"(?:(?:danbooru|hijiribe|sonohara|safebooru)\.donmai\.us"
-                   r"|donmai\.moe)",
-    },
-    "atfbooru": {
-        "root": "https://booru.allthefallen.moe",
-        "pattern": r"booru\.allthefallen\.moe",
-    },
-    "aibooru": {
-        "root": None,
-        "pattern": r"(?:safe\.|general\.)?aibooru\.(?:online|download)",
-    },
-    "booruvar": {
-        "root": "https://booru.borvar.art",
-        "pattern": r"booru\.borvar\.art",
-    },
-})
+BASE_PATTERN = DanbooruExtractor.update(
+    {
+        "danbooru": {
+            "root": None,
+            "pattern": r"(?:(?:danbooru|hijiribe|sonohara|safebooru)\.donmai\.us"
+            r"|donmai\.moe)",
+        },
+        "atfbooru": {
+            "root": "https://booru.allthefallen.moe",
+            "pattern": r"booru\.allthefallen\.moe",
+        },
+        "aibooru": {
+            "root": None,
+            "pattern": r"(?:safe\.|general\.)?aibooru\.(?:online|download)",
+        },
+        "booruvar": {
+            "root": "https://booru.borvar.art",
+            "pattern": r"booru\.borvar\.art",
+        },
+    }
+)
 
 
 class DanbooruTagExtractor(DanbooruExtractor):
     """Extractor for danbooru posts from tag searches"""
+
     subcategory = "tag"
     directory_fmt = ("{category}", "{search_tags}")
     archive_fmt = "t_{search_tags}_{id}"
@@ -270,8 +283,7 @@ class DanbooruTagExtractor(DanbooruExtractor):
                     prefix = "b"
                 else:
                     prefix = None
-            elif tag.startswith(
-                    ("id:", "md5:", "ordfav:", "ordfavgroup:", "ordpool:")):
+            elif tag.startswith(("id:", "md5:", "ordfav:", "ordfavgroup:", "ordpool:")):
                 prefix = None
                 break
 
@@ -280,6 +292,7 @@ class DanbooruTagExtractor(DanbooruExtractor):
 
 class DanbooruPoolExtractor(DanbooruExtractor):
     """Extractor for Danbooru pools"""
+
     subcategory = "pool"
     directory_fmt = ("{category}", "pool", "{pool[id]} {pool[name]}")
     filename_fmt = "{num:>04}_{id}_{filename}.{extension}"
@@ -297,17 +310,16 @@ class DanbooruPoolExtractor(DanbooruExtractor):
 
 class DanbooruFavgroupExtractor(DanbooruExtractor):
     """Extractor for Danbooru favorite groups"""
+
     subcategory = "favgroup"
-    directory_fmt = ("{category}", "Favorite Groups",
-                     "{favgroup[id]} {favgroup[name]}")
+    directory_fmt = ("{category}", "Favorite Groups", "{favgroup[id]} {favgroup[name]}")
     filename_fmt = "{num:>04}_{id}_{filename}.{extension}"
     archive_fmt = "fg_{favgroup[id]}_{id}"
     pattern = BASE_PATTERN + r"/favorite_group(?:s|/show)/(\d+)"
     example = "https://danbooru.donmai.us/favorite_groups/12345"
 
     def metadata(self):
-        return self._collection_metadata(
-            self.groups[-1], "favgroup", "favorite_group")
+        return self._collection_metadata(self.groups[-1], "favgroup", "favorite_group")
 
     def posts(self):
         return self._collection_posts(self.groups[-1], "favgroup")
@@ -315,6 +327,7 @@ class DanbooruFavgroupExtractor(DanbooruExtractor):
 
 class DanbooruPostExtractor(DanbooruExtractor):
     """Extractor for single danbooru posts"""
+
     subcategory = "post"
     archive_fmt = "{id}"
     pattern = BASE_PATTERN + r"/post(?:s|/show)/(\d+)"
@@ -331,6 +344,7 @@ class DanbooruPostExtractor(DanbooruExtractor):
 
 class DanbooruPopularExtractor(DanbooruExtractor):
     """Extractor for popular images from danbooru"""
+
     subcategory = "popular"
     directory_fmt = ("{category}", "popular", "{scale}", "{date}")
     archive_fmt = "P_{scale[0]}_{date}_{id}"
@@ -356,6 +370,7 @@ class DanbooruPopularExtractor(DanbooruExtractor):
 
 class DanbooruArtistExtractor(DanbooruExtractor):
     """Extractor for danbooru artists"""
+
     subcategory = "artist"
     pattern = BASE_PATTERN + r"/artists/(\d+)"
     example = "https://danbooru.donmai.us/artists/12345"
@@ -369,6 +384,7 @@ class DanbooruArtistExtractor(DanbooruExtractor):
 
 class DanbooruArtistSearchExtractor(DanbooruExtractor):
     """Extractor for danbooru artist searches"""
+
     subcategory = "artist-search"
     pattern = BASE_PATTERN + r"/artists/?\?([^#]+)"
     example = "https://danbooru.donmai.us/artists?QUERY"

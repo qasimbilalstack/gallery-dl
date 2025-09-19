@@ -16,12 +16,12 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?simpcity\.(?:cr|su)"
 
 class SimpcityExtractor(Extractor):
     """Base class for simpcity extractors"""
+
     category = "simpcity"
     root = "https://simpcity.cr"
 
     def items(self):
-        extract_urls = text.re(
-            r'<(?:a [^>]*?href|iframe [^>]*?src)="([^"]+)').findall
+        extract_urls = text.re(r'<(?:a [^>]*?href|iframe [^>]*?src)="([^"]+)').findall
 
         for post in self.posts():
             urls = extract_urls(post["content"])
@@ -37,8 +37,8 @@ class SimpcityExtractor(Extractor):
             if exc.status == 403 and b">Log in<" in exc.response.content:
                 msg = text.extr(exc.response.text, "blockMessage--error", "</")
                 raise exception.AuthRequired(
-                    "'authenticated cookies'", None,
-                    msg.rpartition(">")[2].strip())
+                    "'authenticated cookies'", None, msg.rpartition(">")[2].strip()
+                )
             raise
 
     def _pagination(self, base, pnum=None):
@@ -69,17 +69,16 @@ class SimpcityExtractor(Extractor):
         url_a = author["url"]
 
         thread = {
-            "id"   : url_t[url_t.rfind(".")+1:-1],
-            "url"  : url_t,
+            "id": url_t[url_t.rfind(".") + 1 : -1],
+            "url": url_t,
             "title": schema["headline"],
-            "date" : text.parse_datetime(schema["datePublished"]),
+            "date": text.parse_datetime(schema["datePublished"]),
             "views": stats[0]["userInteractionCount"],
             "posts": stats[1]["userInteractionCount"],
-            "tags" : (schema["keywords"].split(", ")
-                      if "keywords" in schema else ()),
-            "section"   : schema["articleSection"],
-            "author"    : author["name"],
-            "author_id" : url_a[url_a.rfind(".")+1:-1],
+            "tags": (schema["keywords"].split(", ") if "keywords" in schema else ()),
+            "section": schema["articleSection"],
+            "author": author["name"],
+            "author_id": url_a[url_a.rfind(".") + 1 : -1],
             "author_url": url_a,
         }
 
@@ -93,12 +92,13 @@ class SimpcityExtractor(Extractor):
             "id": extr('data-content="post-', '"'),
             "author_url": extr('itemprop="url" content="', '"'),
             "date": text.parse_datetime(extr('datetime="', '"')),
-            "content": extr('<div itemprop="text">',
-                            '<div class="js-selectToQuote').strip(),
+            "content": extr(
+                '<div itemprop="text">', '<div class="js-selectToQuote'
+            ).strip(),
         }
 
         url_a = post["author_url"]
-        post["author_id"] = url_a[url_a.rfind(".")+1:-1]
+        post["author_id"] = url_a[url_a.rfind(".") + 1 : -1]
 
         return post
 
@@ -116,7 +116,7 @@ class SimpcityPostExtractor(SimpcityExtractor):
         pos = page.find(f'data-content="post-{post_id}"')
         if pos < 0:
             raise exception.NotFoundError("post")
-        html = text.extract(page, "<article ", "</article>", pos-200)[0]
+        html = text.extract(page, "<article ", "</article>", pos - 200)[0]
 
         self.kwdict["thread"] = self._parse_thread(page)
         return (self._parse_post(html),)

@@ -28,8 +28,7 @@ class LeakgalleryExtractor(Extractor):
 
             if creator is None:
                 try:
-                    media["creator"] = \
-                        media["profile"]["username"] or "unknown"
+                    media["creator"] = media["profile"]["username"] or "unknown"
                 except Exception:
                     media["creator"] = "unknown"
             else:
@@ -55,17 +54,16 @@ class LeakgalleryExtractor(Extractor):
                 yield from self._yield_media_items(data, creator)
                 pnum += 1
             except Exception as exc:
-                self.log.error("Failed to retrieve %s page %s: %s",
-                               type, pnum, exc)
+                self.log.error("Failed to retrieve %s page %s: %s", type, pnum, exc)
                 return
 
 
 class LeakgalleryUserExtractor(LeakgalleryExtractor):
     """Extractor for profile posts on leakgallery.com"""
+
     subcategory = "user"
     pattern = (
-        BASE_PATTERN +
-        r"/(?!trending-medias|most-liked|random/medias)([^/?#]+)"
+        BASE_PATTERN + r"/(?!trending-medias|most-liked|random/medias)([^/?#]+)"
         r"(?:/(Photos|Videos|All))?"
         r"(?:/(MostRecent|MostViewed|MostLiked))?/?$"
     )
@@ -80,6 +78,7 @@ class LeakgalleryUserExtractor(LeakgalleryExtractor):
 
 class LeakgalleryTrendingExtractor(LeakgalleryExtractor):
     """Extractor for trending posts on leakgallery.com"""
+
     subcategory = "trending"
     pattern = BASE_PATTERN + r"/trending-medias(?:/([\w-]+))?"
     example = "https://leakgallery.com/trending-medias/Week"
@@ -92,6 +91,7 @@ class LeakgalleryTrendingExtractor(LeakgalleryExtractor):
 
 class LeakgalleryMostlikedExtractor(LeakgalleryExtractor):
     """Extractor for most liked posts on leakgallery.com"""
+
     subcategory = "mostliked"
     pattern = BASE_PATTERN + r"/most-liked"
     example = "https://leakgallery.com/most-liked"
@@ -103,6 +103,7 @@ class LeakgalleryMostlikedExtractor(LeakgalleryExtractor):
 
 class LeakgalleryPostExtractor(LeakgalleryExtractor):
     """Extractor for individual posts on leakgallery.com"""
+
     subcategory = "post"
     pattern = BASE_PATTERN + r"/([^/?#]+)/(\d+)"
     example = "https://leakgallery.com/CREATOR/12345"
@@ -137,5 +138,6 @@ class LeakgalleryPostExtractor(LeakgalleryExtractor):
                 yield Message.Directory, data
                 yield Message.Url, url, data
         except Exception as exc:
-            self.log.error("Failed to extract post page %s/%s: %s",
-                           creator, post_id, exc)
+            self.log.error(
+                "Failed to extract post page %s/%s: %s", creator, post_id, exc
+            )

@@ -16,10 +16,10 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?imgpile\.com"
 
 class ImgpileExtractor(Extractor):
     """Base class for imgpile extractors"""
+
     category = "imgpile"
     root = "https://imgpile.com"
-    directory_fmt = ("{category}", "{post[author]}",
-                     "{post[title]} ({post[id_slug]})")
+    directory_fmt = ("{category}", "{post[author]}", "{post[title]} ({post[id_slug]})")
     archive_fmt = "{post[id_slug]}_{id}"
 
     def items(self):
@@ -39,15 +39,14 @@ class ImgpilePostExtractor(ImgpileExtractor):
 
         post = {
             "id_slug": post_id,
-            "title"  : text.unescape(extr("<title>", " - imgpile<")),
-            "id"     : text.parse_int(extr('data-post-id="', '"')),
-            "author" : extr('/u/', '"'),
-            "score"  : text.parse_int(text.remove_html(extr(
-                'class="post-score">', "</"))),
-            "views"  : text.parse_int(extr(
-                'class="meta-value">', "<").replace(",", "")),
-            "tags"   : text.split_html(extr(
-                " <!-- Tags -->", '<!-- "')),
+            "title": text.unescape(extr("<title>", " - imgpile<")),
+            "id": text.parse_int(extr('data-post-id="', '"')),
+            "author": extr("/u/", '"'),
+            "score": text.parse_int(
+                text.remove_html(extr('class="post-score">', "</"))
+            ),
+            "views": text.parse_int(extr('class="meta-value">', "<").replace(",", "")),
+            "tags": text.split_html(extr(" <!-- Tags -->", '<!-- "')),
         }
 
         files = self._extract_files(extr)
@@ -64,15 +63,16 @@ class ImgpilePostExtractor(ImgpileExtractor):
         files = []
 
         while True:
-            media = extr('lass="post-media', '</div>')
+            media = extr('lass="post-media', "</div>")
             if not media:
                 break
-            files.append({
-                "id_slug": text.extr(media, 'data-id="', '"'),
-                "id" : text.parse_int(text.extr(
-                    media, 'data-media-id="', '"')),
-                "url": f"""http{text.extr(media, '<a href="http', '"')}""",
-            })
+            files.append(
+                {
+                    "id_slug": text.extr(media, 'data-id="', '"'),
+                    "id": text.parse_int(text.extr(media, 'data-media-id="', '"')),
+                    "url": f"""http{text.extr(media, '<a href="http', '"')}""",
+                }
+            )
         return files
 
 
@@ -84,17 +84,17 @@ class ImgpileUserExtractor(ImgpileExtractor):
     def items(self):
         url = f"{self.root}/api/v1/posts"
         params = {
-            "limit"     : "100",
-            "sort"      : "latest",
-            "period"    : "all",
+            "limit": "100",
+            "sort": "latest",
+            "period": "all",
             "visibility": "public",
             #  "moderation_status": "approved",
-            "username"  : self.groups[0],
+            "username": self.groups[0],
         }
         headers = {
-            "Accept"        : "application/json",
+            "Accept": "application/json",
             #  "Referer"       : "https://imgpile.com/u/USER",
-            "Content-Type"  : "application/json",
+            "Content-Type": "application/json",
             #  "X-CSRF-TOKEN": "",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",

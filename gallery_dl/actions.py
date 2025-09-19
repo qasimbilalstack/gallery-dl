@@ -108,7 +108,7 @@ def parse_signals(actionspec):
         signal.signal(signal_num, signals_handler(action))
 
 
-class LoggerAdapter():
+class LoggerAdapter:
 
     def __init__(self, logger, job):
         self.logger = logger
@@ -160,20 +160,24 @@ def _chain_actions(actions):
     def _chain(args):
         for action in actions:
             action(args)
+
     return _chain
 
 
 def signals_handler(action, args={}):
     def handler(signal_num, frame):
         action(args)
+
     return handler
 
 
 # --------------------------------------------------------------------
 
+
 def action_print(opts):
     def _print(_):
         print(opts)
+
     return None, _print
 
 
@@ -191,6 +195,7 @@ def action_status(opts):
 
     def _status(args):
         args["job"].status = op(args["job"].status, value)
+
     return _status, None
 
 
@@ -199,12 +204,14 @@ def action_level(opts):
 
     def _level(args):
         args["level"] = level
+
     return _level, None
 
 
 def action_exec(opts):
     def _exec(_):
         util.Popen(opts, shell=True).wait()
+
     return None, _exec
 
 
@@ -214,7 +221,9 @@ def action_wait(opts):
 
         def _wait(args):
             time.sleep(seconds())
+
     else:
+
         def _wait(args):
             input("Press Enter to continue")
 
@@ -222,14 +231,17 @@ def action_wait(opts):
 
 
 def action_flag(opts):
-    flag, value = util.re(
-        r"(?i)(file|post|child|download)(?:\s*[= ]\s*(.+))?"
-    ).match(opts).groups()
+    flag, value = (
+        util.re(r"(?i)(file|post|child|download)(?:\s*[= ]\s*(.+))?")
+        .match(opts)
+        .groups()
+    )
     flag = flag.upper()
     value = "stop" if value is None else value.lower()
 
     def _flag(args):
         util.FLAGS.__dict__[flag] = value
+
     return _flag, None
 
 
@@ -239,12 +251,16 @@ def action_raise(opts):
     exc = getattr(exception, name, None)
     if exc is None:
         import builtins
+
         exc = getattr(builtins, name, Exception)
 
     if arg:
+
         def _raise(args):
             raise exc(arg)
+
     else:
+
         def _raise(args):
             raise exc()
 
@@ -271,19 +287,20 @@ def action_exit(opts):
 
     def _exit(args):
         raise SystemExit(opts)
+
     return None, _exit
 
 
 ACTIONS = {
-    "abort"    : action_abort,
-    "exec"     : action_exec,
-    "exit"     : action_exit,
-    "flag"     : action_flag,
-    "level"    : action_level,
-    "print"    : action_print,
-    "raise"    : action_raise,
-    "restart"  : action_restart,
-    "status"   : action_status,
+    "abort": action_abort,
+    "exec": action_exec,
+    "exit": action_exit,
+    "flag": action_flag,
+    "level": action_level,
+    "print": action_print,
+    "raise": action_raise,
+    "restart": action_restart,
+    "status": action_status,
     "terminate": action_terminate,
-    "wait"     : action_wait,
+    "wait": action_wait,
 }

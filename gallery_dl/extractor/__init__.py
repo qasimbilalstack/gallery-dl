@@ -270,10 +270,7 @@ def add_module(module):
 
 def extractors():
     """Yield all available extractor classes"""
-    return sorted(
-        _list_classes(),
-        key=lambda x: x.__name__
-    )
+    return sorted(_list_classes(), key=lambda x: x.__name__)
 
 
 # --------------------------------------------------------------------
@@ -287,7 +284,7 @@ def _list_classes():
     for module in _module_iter:
         yield from add_module(module)
 
-    globals()["_list_classes"] = lambda : _cache
+    globals()["_list_classes"] = lambda: _cache
 
 
 def _modules_internal():
@@ -299,11 +296,7 @@ def _modules_internal():
 def _modules_path(path, files):
     sys.path.insert(0, path)
     try:
-        return [
-            __import__(name[:-3])
-            for name in files
-            if name.endswith(".py")
-        ]
+        return [__import__(name[:-3]) for name in files if name.endswith(".py")]
     finally:
         del sys.path[0]
 
@@ -311,9 +304,9 @@ def _modules_path(path, files):
 def _get_classes(module):
     """Return a list of all extractor classes in a module"""
     return [
-        cls for cls in module.__dict__.values() if (
-            hasattr(cls, "pattern") and cls.__module__ == module.__name__
-        )
+        cls
+        for cls in module.__dict__.values()
+        if (hasattr(cls, "pattern") and cls.__module__ == module.__name__)
     ]
 
 

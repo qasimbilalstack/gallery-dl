@@ -15,8 +15,9 @@ from ..cache import memcache
 BASE_PATTERN = r"(?:https?://)?(?:www\.)?danke\.moe"
 
 
-class DankefuerslesenBase():
+class DankefuerslesenBase:
     """Base class for dankefuerslesen extractors"""
+
     category = "dankefuerslesen"
     root = "https://danke.moe"
 
@@ -28,6 +29,7 @@ class DankefuerslesenBase():
 
 class DankefuerslesenChapterExtractor(DankefuerslesenBase, ChapterExtractor):
     """Extractor for Danke fürs Lesen manga chapters"""
+
     pattern = BASE_PATTERN + r"/read/manga/([\w-]+)/([\w-]+)"
     example = "https://danke.moe/read/manga/TITLE/123/1/"
 
@@ -53,24 +55,26 @@ class DankefuerslesenChapterExtractor(DankefuerslesenBase, ChapterExtractor):
         group_id, self._files = next(iter(data["groups"].items()))
 
         if not self.zip:
-            self.base = (f"{self.root}/media/manga/{slug}/chapters"
-                         f"/{data['folder']}/{group_id}/")
+            self.base = (
+                f"{self.root}/media/manga/{slug}/chapters"
+                f"/{data['folder']}/{group_id}/"
+            )
 
         return {
-            "manga"     : manga["title"],
+            "manga": manga["title"],
             "manga_slug": manga["slug"],
-            "author"    : manga["author"],
-            "artist"    : manga["artist"],
+            "author": manga["author"],
+            "artist": manga["artist"],
             "description": manga["description"],
-            "title"     : data["title"],
-            "volume"    : text.parse_int(data["volume"]),
-            "chapter"   : text.parse_int(chapter),
+            "title": data["title"],
+            "volume": text.parse_int(data["volume"]),
+            "chapter": text.parse_int(chapter),
             "chapter_minor": minor,
-            "group"     : manga["groups"][group_id].split(" & "),
-            "group_id"  : text.parse_int(group_id),
-            "date"      : text.parse_timestamp(data["release_date"][group_id]),
-            "lang"      : util.NONE,
-            "language"  : util.NONE,
+            "group": manga["groups"][group_id].split(" & "),
+            "group_id": text.parse_int(group_id),
+            "date": text.parse_timestamp(data["release_date"][group_id]),
+            "lang": util.NONE,
+            "language": util.NONE,
         }
 
     def images(self, page):
@@ -84,15 +88,18 @@ class DankefuerslesenChapterExtractor(DankefuerslesenBase, ChapterExtractor):
         if self.zip:
             slug, ch = self.groups
             url = f"{self.root}/api/download_chapter/{slug}/{ch}/"
-            return ({
-                "type"     : "archive",
-                "extension": "zip",
-                "url"      : url,
-            },)
+            return (
+                {
+                    "type": "archive",
+                    "extension": "zip",
+                    "url": url,
+                },
+            )
 
 
 class DankefuerslesenMangaExtractor(DankefuerslesenBase, MangaExtractor):
     """Extractor for Danke fürs Lesen manga"""
+
     chapterclass = DankefuerslesenChapterExtractor
     reverse = False
     pattern = BASE_PATTERN + r"/read/manga/([^/?#]+)"
@@ -110,7 +117,7 @@ class DankefuerslesenMangaExtractor(DankefuerslesenBase, MangaExtractor):
 
             if "." in ch:
                 chapter, sep, minor = ch.rpartition(".")
-                ch = ch.replace('.', '-')
+                ch = ch.replace(".", "-")
                 data["chapter"] = text.parse_int(chapter)
                 data["chapter_minor"] = sep + minor
             else:

@@ -35,7 +35,7 @@ class AgnphExtractor(booru.BooruExtractor):
     def _prepare(self, post):
         post["date"] = text.parse_timestamp(post["created_at"])
         post["status"] = post["status"].strip()
-        post["has_children"] = ("true" in post["has_children"])
+        post["has_children"] = "true" in post["has_children"]
 
     def _xml_to_dict(self, xml):
         return {element.tag: element.text for element in xml}
@@ -43,8 +43,7 @@ class AgnphExtractor(booru.BooruExtractor):
     def _pagination(self, url, params):
         params["api"] = "xml"
         if "page" in params:
-            params["page"] = \
-                self.page_start + text.parse_int(params["page"]) - 1
+            params["page"] = self.page_start + text.parse_int(params["page"]) - 1
         else:
             params["page"] = self.page_start
 
@@ -64,8 +63,7 @@ class AgnphExtractor(booru.BooruExtractor):
         return self.request(url).text
 
     def _tags(self, post, page):
-        tag_container = text.extr(
-            page, '<ul class="taglist">', '<h3>Statistics</h3>')
+        tag_container = text.extr(page, '<ul class="taglist">', "<h3>Statistics</h3>")
         if not tag_container:
             return
 

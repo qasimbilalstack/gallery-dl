@@ -13,6 +13,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?girlswithmuscle\.com"
 
 class GirlswithmuscleExtractor(Extractor):
     """Base class for girlswithmuscle extractors"""
+
     category = "girlswithmuscle"
     root = "https://www.girlswithmuscle.com"
     directory_fmt = ("{category}", "{model}")
@@ -24,7 +25,7 @@ class GirlswithmuscleExtractor(Extractor):
         if username:
             self.cookies_update(self._login_impl(username, password))
 
-    @cache(maxage=14*86400, keyarg=1)
+    @cache(maxage=14 * 86400, keyarg=1)
     def _login_impl(self, username, password):
         self.log.info("Logging in as %s", username)
 
@@ -33,7 +34,7 @@ class GirlswithmuscleExtractor(Extractor):
         csrf_token = text.extr(page, 'name="csrfmiddlewaretoken" value="', '"')
 
         headers = {
-            "Origin" : self.root,
+            "Origin": self.root,
             "Referer": url,
         }
         data = {
@@ -42,8 +43,7 @@ class GirlswithmuscleExtractor(Extractor):
             "password": password,
             "next": "/",
         }
-        response = self.request(
-            url, method="POST", headers=headers, data=data)
+        response = self.request(url, method="POST", headers=headers, data=data)
 
         if not response.history:
             raise exception.AuthenticationError()
@@ -59,6 +59,7 @@ class GirlswithmuscleExtractor(Extractor):
 
 class GirlswithmusclePostExtractor(GirlswithmuscleExtractor):
     """Extractor for individual posts on girlswithmuscle.com"""
+
     subcategory = "post"
     pattern = BASE_PATTERN + r"/(\d+)"
     example = "https://www.girlswithmuscle.com/12345/"
@@ -84,16 +85,18 @@ class GirlswithmusclePostExtractor(GirlswithmuscleExtractor):
         yield Message.Url, url, metadata
 
     def metadata(self, page):
-        source = text.remove_html(text.extr(
-            page, '<div id="info-source" style="display: none">', "</div>"))
-        image_info = text.extr(
-            page, '<div class="image-info">', "</div>")
-        uploader = text.remove_html(text.extr(
-            image_info, '<span class="username-html">', "</a>"))
+        source = text.remove_html(
+            text.extr(page, '<div id="info-source" style="display: none">', "</div>")
+        )
+        image_info = text.extr(page, '<div class="image-info">', "</div>")
+        uploader = text.remove_html(
+            text.extr(image_info, '<span class="username-html">', "</a>")
+        )
 
         tags = text.extr(page, 'id="tags-text">', "</div>")
-        score = text.parse_int(text.remove_html(text.extr(
-            page, "Score: <b>", "</span")))
+        score = text.parse_int(
+            text.remove_html(text.extr(page, "Score: <b>", "</span"))
+        )
         model = self._extract_model(page)
 
         return {
@@ -103,7 +106,8 @@ class GirlswithmusclePostExtractor(GirlswithmuscleExtractor):
             "tags": text.split_html(tags)[1::2],
             "date": text.parse_datetime(
                 text.extr(page, 'class="hover-time"  title="', '"')[:19],
-                "%Y-%m-%d %H:%M:%S"),
+                "%Y-%m-%d %H:%M:%S",
+            ),
             "is_favorite": self._parse_is_favorite(page),
             "source_filename": source,
             "uploader": uploader,
@@ -122,10 +126,10 @@ class GirlswithmusclePostExtractor(GirlswithmuscleExtractor):
             return [name.strip() for name in model.split(",")]
 
     def _parse_is_favorite(self, page):
-        fav_button = text.extr(
-            page, 'id="favorite-button">', "</span>")
+        fav_button = text.extr(page, 'id="favorite-button">', "</span>")
         unfav_button = text.extr(
-            page, 'class="actionbutton unfavorite-button">', "</span>")
+            page, 'class="actionbutton unfavorite-button">', "</span>"
+        )
 
         is_favorite = None
         if unfav_button == "Unfavorite":
@@ -136,13 +140,13 @@ class GirlswithmusclePostExtractor(GirlswithmuscleExtractor):
         return is_favorite
 
     def _extract_comments(self, page):
-        comments = text.extract_iter(
-            page, '<div class="comment-body-inner">', "</div>")
+        comments = text.extract_iter(page, '<div class="comment-body-inner">', "</div>")
         return [comment.strip() for comment in comments]
 
 
 class GirlswithmuscleSearchExtractor(GirlswithmuscleExtractor):
     """Extractor for search results on girlswithmuscle.com"""
+
     subcategory = "search"
     pattern = BASE_PATTERN + r"/images/(.*)"
     example = "https://www.girlswithmuscle.com/images/?name=MODEL"
@@ -169,7 +173,7 @@ class GirlswithmuscleSearchExtractor(GirlswithmuscleExtractor):
         self.login()
         for page in self.pages():
             data = {
-                "_extractor"  : GirlswithmusclePostExtractor,
+                "_extractor": GirlswithmusclePostExtractor,
                 "gallery_name": text.unescape(text.extr(page, "<title>", "<")),
             }
             for imgid in text.extract_iter(page, 'id="imgid-', '"'):

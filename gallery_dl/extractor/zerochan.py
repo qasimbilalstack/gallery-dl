@@ -18,6 +18,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?zerochan\.net"
 
 class ZerochanExtractor(BooruExtractor):
     """Base class for zerochan extractors"""
+
     category = "zerochan"
     root = "https://www.zerochan.net"
     filename_fmt = "{id}.{extension}"
@@ -39,24 +40,25 @@ class ZerochanExtractor(BooruExtractor):
 
         self._logged_in = False
 
-    @cache(maxage=90*86400, keyarg=1)
+    @cache(maxage=90 * 86400, keyarg=1)
     def _login_impl(self, username, password):
         self.log.info("Logging in as %s", username)
 
         url = self.root + "/login"
         headers = {
-            "Origin"  : self.root,
-            "Referer" : url,
+            "Origin": self.root,
+            "Referer": url,
         }
         data = {
-            "ref"     : "/",
-            "name"    : username,
+            "ref": "/",
+            "name": username,
             "password": password,
-            "login"   : "Login",
+            "login": "Login",
         }
 
         response = self.request(
-            url, method="POST", headers=headers, data=data, expected=(500,))
+            url, method="POST", headers=headers, data=data, expected=(500,)
+        )
         if not response.history:
             raise exception.AuthenticationError()
 
@@ -73,18 +75,18 @@ class ZerochanExtractor(BooruExtractor):
 
         extr = text.extract_from(page)
         data = {
-            "id"      : text.parse_int(entry_id),
+            "id": text.parse_int(entry_id),
             "file_url": jsonld["contentUrl"],
-            "date"    : text.parse_datetime(jsonld["datePublished"]),
-            "width"   : text.parse_int(jsonld["width"][:-3]),
-            "height"  : text.parse_int(jsonld["height"][:-3]),
-            "size"    : text.parse_bytes(jsonld["contentSize"][:-1]),
-            "path"    : text.split_html(extr(
-                'class="breadcrumbs', '</nav>'))[2:],
+            "date": text.parse_datetime(jsonld["datePublished"]),
+            "width": text.parse_int(jsonld["width"][:-3]),
+            "height": text.parse_int(jsonld["height"][:-3]),
+            "size": text.parse_bytes(jsonld["contentSize"][:-1]),
+            "path": text.split_html(extr('class="breadcrumbs', "</nav>"))[2:],
             "uploader": extr('href="/user/', '"'),
-            "tags"    : extr('<ul id="tags"', '</ul>'),
-            "source"  : text.unescape(text.remove_html(extr(
-                'id="source-url"', '</p>').rpartition("</s>")[2])),
+            "tags": extr('<ul id="tags"', "</ul>"),
+            "source": text.unescape(
+                text.remove_html(extr('id="source-url"', "</p>").rpartition("</s>")[2])
+            ),
         }
 
         try:
@@ -111,14 +113,14 @@ class ZerochanExtractor(BooruExtractor):
             item["id"] = text.parse_int(entry_id)
 
         data = {
-            "id"      : item["id"],
+            "id": item["id"],
             "file_url": item["full"],
-            "width"   : item["width"],
-            "height"  : item["height"],
-            "size"    : item["size"],
-            "name"    : item["primary"],
-            "md5"     : item["hash"],
-            "source"  : item.get("source"),
+            "width": item["width"],
+            "height": item["height"],
+            "size": item["size"],
+            "name": item["primary"],
+            "md5": item["hash"],
+            "source": item.get("source"),
         }
 
         if not self._logged_in:
@@ -182,8 +184,7 @@ class ZerochanTagExtractor(ZerochanExtractor):
             self.exts = ("jpg", "png", "webp", "gif")
 
     def metadata(self):
-        return {"search_tags": text.unquote(
-            self.search_tag.replace("+", " "))}
+        return {"search_tags": text.unquote(self.search_tag.replace("+", " "))}
 
     def posts_html(self):
         url = self.root + "/" + self.search_tag
@@ -193,11 +194,11 @@ class ZerochanTagExtractor(ZerochanExtractor):
 
         while True:
             page = self.request(url, params=params, expected=(500,)).text
-            thumbs = text.extr(page, '<ul id="thumbs', '</ul>')
+            thumbs = text.extr(page, '<ul id="thumbs', "</ul>")
             extr = text.extract_from(thumbs)
 
             while True:
-                post = extr('<li class="', '>')
+                post = extr('<li class="', ">")
                 if not post:
                     break
 
@@ -208,13 +209,13 @@ class ZerochanTagExtractor(ZerochanExtractor):
                     yield post
                 else:
                     yield {
-                        "id"    : extr('href="/', '"'),
-                        "name"  : extr('alt="', '"'),
-                        "width" : extr('title="', '&#10005;'),
-                        "height": extr('', ' '),
-                        "size"  : extr('', 'b'),
-                        "file_url": "https://static." + extr(
-                            '<a href="https://static.', '"'),
+                        "id": extr('href="/', '"'),
+                        "name": extr('alt="', '"'),
+                        "width": extr('title="', "&#10005;"),
+                        "height": extr("", " "),
+                        "size": extr("", "b"),
+                        "file_url": "https://static."
+                        + extr('<a href="https://static.', '"'),
                     }
 
             if 'rel="next"' not in page:
@@ -226,8 +227,8 @@ class ZerochanTagExtractor(ZerochanExtractor):
         metadata = self.config("metadata")
         params = {
             "json": "1",
-            "l"   : self.per_page,
-            "p"   : self.page_start,
+            "l": self.per_page,
+            "p": self.page_start,
         }
 
         while True:

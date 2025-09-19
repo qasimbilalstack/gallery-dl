@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.|secure\.|m\.)?flickr\.com"
 
 class FlickrExtractor(Extractor):
     """Base class for flickr extractors"""
+
     category = "flickr"
     filename_fmt = "{category}_{id}.{extension}"
     directory_fmt = ("{category}", "{user[username]}")
@@ -37,7 +38,10 @@ class FlickrExtractor(Extractor):
             except Exception as exc:
                 self.log.warning(
                     "Skipping photo %s (%s: %s)",
-                    photo["id"], exc.__class__.__name__, exc)
+                    photo["id"],
+                    exc.__class__.__name__,
+                    exc,
+                )
                 self.log.debug("", exc_info=exc)
             else:
                 photo.update(data)
@@ -67,18 +71,20 @@ class FlickrExtractor(Extractor):
 
 class FlickrImageExtractor(FlickrExtractor):
     """Extractor for individual images from flickr.com"""
+
     subcategory = "image"
-    pattern = (r"(?:https?://)?(?:"
-               r"(?:(?:www\.|secure\.|m\.)?flickr\.com/photos/[^/?#]+/"
-               r"|[\w-]+\.static\.?flickr\.com/(?:\d+/)+)(\d+)"
-               r"|flic\.kr/p/([A-Za-z1-9]+))")
+    pattern = (
+        r"(?:https?://)?(?:"
+        r"(?:(?:www\.|secure\.|m\.)?flickr\.com/photos/[^/?#]+/"
+        r"|[\w-]+\.static\.?flickr\.com/(?:\d+/)+)(\d+)"
+        r"|flic\.kr/p/([A-Za-z1-9]+))"
+    )
     example = "https://www.flickr.com/photos/USER/12345"
 
     def items(self):
         item_id, enc_id = self.groups
         if enc_id is not None:
-            alphabet = ("123456789abcdefghijkmnopqrstu"
-                        "vwxyzABCDEFGHJKLMNPQRSTUVWXYZ")
+            alphabet = "123456789abcdefghijkmnopqrstu" "vwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
             item_id = util.bdecode(enc_id, alphabet)
 
         photo = self.api.photos_getInfo(item_id)
@@ -115,9 +121,14 @@ class FlickrImageExtractor(FlickrExtractor):
 
 class FlickrAlbumExtractor(FlickrExtractor):
     """Extractor for photo albums from flickr.com"""
+
     subcategory = "album"
-    directory_fmt = ("{category}", "{user[username]}",
-                     "Albums", "{album[id]} {album[title]}")
+    directory_fmt = (
+        "{category}",
+        "{user[username]}",
+        "Albums",
+        "{album[id]} {album[title]}",
+    )
     archive_fmt = "a_{album[id]}_{id}"
     pattern = BASE_PATTERN + r"/photos/([^/?#]+)/(?:album|set)s(?:/(\d+))?"
     example = "https://www.flickr.com/photos/USER/albums/12345"
@@ -134,19 +145,19 @@ class FlickrAlbumExtractor(FlickrExtractor):
 
         for album in self.api.photosets_getList(self.user["nsid"]):
             self.api._clean_info(album).update(data)
-            url = (f"https://www.flickr.com/photos/{self.user['path_alias']}"
-                   f"/albums/{album['id']}")
+            url = (
+                f"https://www.flickr.com/photos/{self.user['path_alias']}"
+                f"/albums/{album['id']}"
+            )
             yield Message.Queue, url, album
 
     def metadata(self):
         data = FlickrExtractor.metadata(self)
         try:
-            data["album"] = self.api.photosets_getInfo(
-                self.album_id, self.user["nsid"])
+            data["album"] = self.api.photosets_getInfo(self.album_id, self.user["nsid"])
         except Exception:
             data["album"] = {}
-            self.log.warning("%s: Unable to retrieve album metadata",
-                             self.album_id)
+            self.log.warning("%s: Unable to retrieve album metadata", self.album_id)
         return data
 
     def photos(self):
@@ -155,9 +166,14 @@ class FlickrAlbumExtractor(FlickrExtractor):
 
 class FlickrGalleryExtractor(FlickrExtractor):
     """Extractor for photo galleries from flickr.com"""
+
     subcategory = "gallery"
-    directory_fmt = ("{category}", "{user[username]}",
-                     "Galleries", "{gallery[gallery_id]} {gallery[title]}")
+    directory_fmt = (
+        "{category}",
+        "{user[username]}",
+        "Galleries",
+        "{gallery[gallery_id]} {gallery[title]}",
+    )
     archive_fmt = "g_{gallery[id]}_{id}"
     pattern = BASE_PATTERN + r"/photos/([^/?#]+)/galleries/(\d+)"
     example = "https://www.flickr.com/photos/USER/galleries/12345/"
@@ -174,6 +190,7 @@ class FlickrGalleryExtractor(FlickrExtractor):
 
 class FlickrGroupExtractor(FlickrExtractor):
     """Extractor for group pools from flickr.com"""
+
     subcategory = "group"
     directory_fmt = ("{category}", "Groups", "{group[groupname]}")
     archive_fmt = "G_{group[nsid]}_{id}"
@@ -190,6 +207,7 @@ class FlickrGroupExtractor(FlickrExtractor):
 
 class FlickrUserExtractor(FlickrExtractor):
     """Extractor for the photostream of a flickr user"""
+
     subcategory = "user"
     archive_fmt = "u_{user[nsid]}_{id}"
     pattern = BASE_PATTERN + r"/photos/([^/?#]+)/?$"
@@ -201,6 +219,7 @@ class FlickrUserExtractor(FlickrExtractor):
 
 class FlickrFavoriteExtractor(FlickrExtractor):
     """Extractor for favorite photos of a flickr user"""
+
     subcategory = "favorite"
     directory_fmt = ("{category}", "{user[username]}", "Favorites")
     archive_fmt = "f_{user[nsid]}_{id}"
@@ -213,6 +232,7 @@ class FlickrFavoriteExtractor(FlickrExtractor):
 
 class FlickrSearchExtractor(FlickrExtractor):
     """Extractor for flickr photos based on search results"""
+
     subcategory = "search"
     directory_fmt = ("{category}", "Search", "{search[text]}")
     archive_fmt = "s_{search}_{id}"
@@ -239,33 +259,33 @@ class FlickrAPI(oauth.OAuth1API):
     API_KEY = "90c368449018a0cb880ea4889cbb8681"
     API_SECRET = "e4b83e319c11e9e1"
     FORMATS = [
-        ("o" , "Original"    , None),
-        ("6k", "X-Large 6K"  , 6144),
-        ("5k", "X-Large 5K"  , 5120),
-        ("4k", "X-Large 4K"  , 4096),
-        ("3k", "X-Large 3K"  , 3072),
-        ("k" , "Large 2048"  , 2048),
-        ("h" , "Large 1600"  , 1600),
-        ("l" , "Large"       , 1024),
-        ("c" , "Medium 800"  , 800),
-        ("z" , "Medium 640"  , 640),
-        ("m" , "Medium"      , 500),
-        ("n" , "Small 320"   , 320),
-        ("s" , "Small"       , 240),
-        ("q" , "Large Square", 150),
-        ("t" , "Thumbnail"   , 100),
-        ("s" , "Square"      , 75),
+        ("o", "Original", None),
+        ("6k", "X-Large 6K", 6144),
+        ("5k", "X-Large 5K", 5120),
+        ("4k", "X-Large 4K", 4096),
+        ("3k", "X-Large 3K", 3072),
+        ("k", "Large 2048", 2048),
+        ("h", "Large 1600", 1600),
+        ("l", "Large", 1024),
+        ("c", "Medium 800", 800),
+        ("z", "Medium 640", 640),
+        ("m", "Medium", 500),
+        ("n", "Small 320", 320),
+        ("s", "Small", 240),
+        ("q", "Large Square", 150),
+        ("t", "Thumbnail", 100),
+        ("s", "Square", 75),
     ]
     VIDEO_FORMATS = {
-        "orig"       : 9,
-        "1080p"      : 8,
-        "720p"       : 7,
-        "360p"       : 6,
-        "288p"       : 5,
-        "700"        : 4,
-        "300"        : 3,
-        "100"        : 2,
-        "appletv"    : 1,
+        "orig": 9,
+        "1080p": 8,
+        "720p": 7,
+        "360p": 6,
+        "288p": 5,
+        "700": 4,
+        "300": 3,
+        "100": 2,
+        "appletv": 1,
         "iphone_wifi": 0,
     }
     LICENSES = {
@@ -299,10 +319,12 @@ class FlickrAPI(oauth.OAuth1API):
             else:
                 self.maxsize = None
                 extractor.log.warning(
-                    "Could not match '%s' to any format", self.maxsize)
+                    "Could not match '%s' to any format", self.maxsize
+                )
         if self.maxsize:
-            self.formats = [fmt for fmt in self.FORMATS
-                            if not fmt[2] or fmt[2] <= self.maxsize]
+            self.formats = [
+                fmt for fmt in self.FORMATS if not fmt[2] or fmt[2] <= self.maxsize
+            ]
         else:
             self.formats = self.FORMATS
         self.formats = self.formats[:8]
@@ -335,8 +357,15 @@ class FlickrAPI(oauth.OAuth1API):
 
         try:
             user = user["person"]
-            for key in ("description", "username", "realname", "location",
-                        "profileurl", "photosurl", "mobileurl"):
+            for key in (
+                "description",
+                "username",
+                "realname",
+                "location",
+                "profileurl",
+                "photosurl",
+                "mobileurl",
+            ):
                 if isinstance(user.get(key), dict):
                     user[key] = user[key]["_content"]
             photos = user["photos"]
@@ -376,8 +405,10 @@ class FlickrAPI(oauth.OAuth1API):
         sizes = self._call("photos.getSizes", params)["sizes"]["size"]
         if self.maxsize:
             for index, size in enumerate(sizes):
-                if index > 0 and (int(size["width"]) > self.maxsize or
-                                  int(size["height"]) > self.maxsize):
+                if index > 0 and (
+                    int(size["width"]) > self.maxsize
+                    or int(size["height"]) > self.maxsize
+                ):
                     del sizes[index:]
                     break
         return sizes
@@ -406,17 +437,19 @@ class FlickrAPI(oauth.OAuth1API):
         """Returns a group NSID, given the url to a group's page."""
         params = {"url": "https://www.flickr.com/groups/" + groupname}
         group = self._call("urls.lookupGroup", params)["group"]
-        return {"nsid": group["id"],
-                "path_alias": groupname,
-                "groupname": group["groupname"]["_content"]}
+        return {
+            "nsid": group["id"],
+            "path_alias": groupname,
+            "groupname": group["groupname"]["_content"],
+        }
 
     def urls_lookupUser(self, username):
         """Returns a user NSID, given the url to a user's photos or profile."""
         params = {"url": "https://www.flickr.com/photos/" + username}
         user = self._call("urls.lookupUser", params)["user"]
         return {
-            "nsid"      : user["id"],
-            "username"  : user["username"]["_content"],
+            "nsid": user["id"],
+            "username": user["username"]["_content"],
             "path_alias": username,
         }
 
@@ -455,14 +488,15 @@ class FlickrAPI(oauth.OAuth1API):
         return data
 
     def _pagination(self, method, params, key="photos"):
-        extras = ("description,date_upload,tags,views,media,"
-                  "path_alias,owner_name,")
+        extras = "description,date_upload,tags,views,media," "path_alias,owner_name,"
         if includes := self.extractor.config("metadata"):
             if isinstance(includes, (list, tuple)):
                 includes = ",".join(includes)
             elif not isinstance(includes, str):
-                includes = ("license,date_taken,original_format,last_update,"
-                            "geo,machine_tags,o_dims")
+                includes = (
+                    "license,date_taken,original_format,last_update,"
+                    "geo,machine_tags,o_dims"
+                )
             extras = extras + includes + ","
         extras += ",".join("url_" + fmt[0] for fmt in self.formats)
 
@@ -499,8 +533,8 @@ class FlickrAPI(oauth.OAuth1API):
             photo["owner"] = self.extractor.user
         elif not self.meta_info:
             photo["owner"] = {
-                "nsid"      : photo["owner"],
-                "username"  : photo["ownername"],
+                "nsid": photo["owner"],
+                "username": photo["ownername"],
                 "path_alias": photo["pathalias"],
             }
 
@@ -515,15 +549,17 @@ class FlickrAPI(oauth.OAuth1API):
             if key in photo:
                 photo["width"] = text.parse_int(photo["width_" + fmt])
                 photo["height"] = text.parse_int(photo["height_" + fmt])
-                if self.maxsize and (photo["width"] > self.maxsize or
-                                     photo["height"] > self.maxsize):
+                if self.maxsize and (
+                    photo["width"] > self.maxsize or photo["height"] > self.maxsize
+                ):
                     continue
                 photo["url"] = photo[key]
                 photo["label"] = fmtname
 
                 # remove excess data
                 keys = [
-                    key for key in photo
+                    key
+                    for key in photo
                     if key.startswith(("url_", "width_", "height_"))
                 ]
                 for key in keys:
@@ -554,8 +590,7 @@ class FlickrAPI(oauth.OAuth1API):
             try:
                 photo.update(self.photos_getInfo(photo["id"]))
                 photo["title"] = photo["title"]["_content"]
-                photo["comments"] = text.parse_int(
-                    photo["comments"]["_content"])
+                photo["comments"] = text.parse_int(photo["comments"]["_content"])
                 photo["description"] = photo["description"]["_content"]
                 photo["tags"] = [t["raw"] for t in photo["tags"]["tag"]]
                 photo["views"] = text.parse_int(photo["views"])
@@ -563,7 +598,10 @@ class FlickrAPI(oauth.OAuth1API):
             except Exception as exc:
                 self.log.warning(
                     "Unable to retrieve 'info' data for %s (%s: %s)",
-                    photo["id"], exc.__class__.__name__, exc)
+                    photo["id"],
+                    exc.__class__.__name__,
+                    exc,
+                )
 
         if self.meta_exif:
             try:
@@ -571,7 +609,10 @@ class FlickrAPI(oauth.OAuth1API):
             except Exception as exc:
                 self.log.warning(
                     "Unable to retrieve 'exif' data for %s (%s: %s)",
-                    photo["id"], exc.__class__.__name__, exc)
+                    photo["id"],
+                    exc.__class__.__name__,
+                    exc,
+                )
 
         if self.meta_contexts:
             try:
@@ -579,7 +620,10 @@ class FlickrAPI(oauth.OAuth1API):
             except Exception as exc:
                 self.log.warning(
                     "Unable to retrieve 'contexts' data for %s (%s: %s)",
-                    photo["id"], exc.__class__.__name__, exc)
+                    photo["id"],
+                    exc.__class__.__name__,
+                    exc,
+                )
 
         if "license" in photo:
             photo["license_name"] = self.LICENSES.get(photo["license"])

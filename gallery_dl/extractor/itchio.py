@@ -14,6 +14,7 @@ from .. import text
 
 class ItchioGameExtractor(Extractor):
     """Extractor for itch.io games"""
+
     category = "itchio"
     subcategory = "game"
     root = "https://itch.io"
@@ -47,8 +48,9 @@ class ItchioGameExtractor(Extractor):
 
         for upload_id in text.extract_iter(page, 'data-upload_id="', '"'):
             file_url = f"{game_url}/file/{upload_id}"
-            info = self.request_json(file_url, method="POST", params=params,
-                                     headers=headers, data=data)
+            info = self.request_json(
+                file_url, method="POST", params=params, headers=headers, data=data
+            )
 
             game = info["lightbox"]["game"]
             user = info["lightbox"]["user"]

@@ -14,11 +14,12 @@ from .. import text
 
 def decode_nozomi(n):
     for i in range(0, len(n), 4):
-        yield (n[i] << 24) + (n[i+1] << 16) + (n[i+2] << 8) + n[i+3]
+        yield (n[i] << 24) + (n[i + 1] << 16) + (n[i + 2] << 8) + n[i + 3]
 
 
 class NozomiExtractor(Extractor):
     """Base class for nozomi extractors"""
+
     category = "nozomi"
     root = "https://nozomi.la"
     domain = "gold-usergeneratedcontent.net"
@@ -32,14 +33,19 @@ class NozomiExtractor(Extractor):
         data = self.metadata()
 
         for post_id in map(str, self.posts()):
-            url = (f"https://j.{self.domain}/post"
-                   f"/{post_id[-1]}/{post_id[-3:-1]}/{post_id}.json")
+            url = (
+                f"https://j.{self.domain}/post"
+                f"/{post_id[-1]}/{post_id[-3:-1]}/{post_id}.json"
+            )
             response = self.request(url, fatal=False)
 
             if response.status_code >= 400:
                 self.log.warning(
                     "Skipping post %s ('%s %s')",
-                    post_id, response.status_code, response.reason)
+                    post_id,
+                    response.status_code,
+                    response.reason,
+                )
                 continue
 
             post = response.json()
@@ -50,7 +56,8 @@ class NozomiExtractor(Extractor):
 
             try:
                 post["date"] = text.parse_datetime(
-                    post["date"] + ":00", "%Y-%m-%d %H:%M:%S%z")
+                    post["date"] + ":00", "%Y-%m-%d %H:%M:%S%z"
+                )
             except Exception:
                 post["date"] = None
 
@@ -64,8 +71,7 @@ class NozomiExtractor(Extractor):
             yield Message.Directory, post
             for post["num"], image in enumerate(images, 1):
                 post["filename"] = post["dataid"] = did = image["dataid"]
-                post["is_video"] = video = \
-                    True if image.get("is_video") else False
+                post["is_video"] = video = True if image.get("is_video") else False
 
                 ext = image["type"]
                 if video:
@@ -77,8 +83,10 @@ class NozomiExtractor(Extractor):
                     ext = "webp"
 
                 post["extension"] = ext
-                post["url"] = url = (f"https://{subdomain}.{self.domain}"
-                                     f"/{did[-1]}/{did[-3:-1]}/{did}.{ext}")
+                post["url"] = url = (
+                    f"https://{subdomain}.{self.domain}"
+                    f"/{did[-1]}/{did[-3:-1]}/{did}.{ext}"
+                )
                 yield Message.Url, url, post
 
     def posts(self):
@@ -104,6 +112,7 @@ class NozomiExtractor(Extractor):
 
 class NozomiPostExtractor(NozomiExtractor):
     """Extractor for individual posts on nozomi.la"""
+
     subcategory = "post"
     pattern = r"(?:https?://)?nozomi\.la/post/(\d+)"
     example = "https://nozomi.la/post/12345.html"
@@ -118,9 +127,11 @@ class NozomiPostExtractor(NozomiExtractor):
 
 class NozomiIndexExtractor(NozomiExtractor):
     """Extractor for the nozomi.la index"""
+
     subcategory = "index"
-    pattern = (r"(?:https?://)?nozomi\.la/"
-               r"(?:(index(?:-Popular)?)-(\d+)\.html)?(?:$|#|\?)")
+    pattern = (
+        r"(?:https?://)?nozomi\.la/" r"(?:(index(?:-Popular)?)-(\d+)\.html)?(?:$|#|\?)"
+    )
     example = "https://nozomi.la/index-1.html"
 
     def __init__(self, match):
@@ -131,6 +142,7 @@ class NozomiIndexExtractor(NozomiExtractor):
 
 class NozomiTagExtractor(NozomiExtractor):
     """Extractor for posts from tag searches on nozomi.la"""
+
     subcategory = "tag"
     directory_fmt = ("{category}", "{search_tags}")
     archive_fmt = "t_{search_tags}_{dataid}"
@@ -149,6 +161,7 @@ class NozomiTagExtractor(NozomiExtractor):
 
 class NozomiSearchExtractor(NozomiExtractor):
     """Extractor for search results on nozomi.la"""
+
     subcategory = "search"
     directory_fmt = ("{category}", "{search_tags:J }")
     archive_fmt = "t_{search_tags}_{dataid}"
@@ -172,8 +185,7 @@ class NozomiSearchExtractor(NozomiExtractor):
             return decode_nozomi(self.request(url).content)
 
         for tag in self.tags:
-            (negative if tag[0] == "-" else positive).append(
-                tag.replace("/", ""))
+            (negative if tag[0] == "-" else positive).append(tag.replace("/", ""))
 
         for tag in positive:
             ids = nozomi("nozomi/" + tag)

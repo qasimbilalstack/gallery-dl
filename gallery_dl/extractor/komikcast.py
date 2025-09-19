@@ -11,12 +11,14 @@
 from .common import ChapterExtractor, MangaExtractor
 from .. import text, util
 
-BASE_PATTERN = (r"(?:https?://)?(?:www\.)?"
-                r"komikcast\d*\.(?:l(?:i|a|ol)|com|cz|site|mo?e)")
+BASE_PATTERN = (
+    r"(?:https?://)?(?:www\.)?" r"komikcast\d*\.(?:l(?:i|a|ol)|com|cz|site|mo?e)"
+)
 
 
-class KomikcastBase():
+class KomikcastBase:
     """Base class for komikcast extractors"""
+
     category = "komikcast"
     root = "https://komikcast.li"
 
@@ -44,6 +46,7 @@ class KomikcastBase():
 
 class KomikcastChapterExtractor(KomikcastBase, ChapterExtractor):
     """Extractor for komikcast manga chapters"""
+
     pattern = BASE_PATTERN + r"(/chapter/[^/?#]+/)"
     example = "https://komikcast.li/chapter/TITLE/"
 
@@ -52,17 +55,14 @@ class KomikcastChapterExtractor(KomikcastBase, ChapterExtractor):
         return self.parse_chapter_string(info)
 
     def images(self, page):
-        readerarea = text.extr(
-            page, '<div class="main-reading-area', '</div')
+        readerarea = text.extr(page, '<div class="main-reading-area', "</div")
         pattern = util.re(r"<img[^>]* src=[\"']([^\"']+)")
-        return [
-            (text.unescape(url), None)
-            for url in pattern.findall(readerarea)
-        ]
+        return [(text.unescape(url), None) for url in pattern.findall(readerarea)]
 
 
 class KomikcastMangaExtractor(KomikcastBase, MangaExtractor):
     """Extractor for komikcast manga"""
+
     chapterclass = KomikcastChapterExtractor
     pattern = BASE_PATTERN + r"(/(?:komik/)?[^/?#]+/?)$"
     example = "https://komikcast.li/komik/TITLE"
@@ -72,7 +72,8 @@ class KomikcastMangaExtractor(KomikcastBase, MangaExtractor):
         data = self.metadata(page)
 
         for item in text.extract_iter(
-                page, '<a class="chapter-link-item" href="', '</a'):
+            page, '<a class="chapter-link-item" href="', "</a"
+        ):
             url, _, chapter = item.rpartition('">Chapter')
             chapter, sep, minor = chapter.strip().partition(".")
             data["chapter"] = text.parse_int(chapter)
@@ -82,11 +83,12 @@ class KomikcastMangaExtractor(KomikcastBase, MangaExtractor):
 
     def metadata(self, page):
         """Return a dict with general metadata"""
-        manga , pos = text.extract(page, "<title>" , " - Komikcast<")
+        manga, pos = text.extract(page, "<title>", " - Komikcast<")
         genres, pos = text.extract(
-            page, 'class="komik_info-content-genre">', "</span>", pos)
+            page, 'class="komik_info-content-genre">', "</span>", pos
+        )
         author, pos = text.extract(page, ">Author:", "</span>", pos)
-        mtype , pos = text.extract(page, ">Type:"  , "</span>", pos)
+        mtype, pos = text.extract(page, ">Type:", "</span>", pos)
 
         return {
             "manga": text.unescape(manga),

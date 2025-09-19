@@ -15,9 +15,13 @@ from ..cache import cache
 
 class ImgbbExtractor(Extractor):
     """Base class for imgbb extractors"""
+
     category = "imgbb"
-    directory_fmt = ("{category}", "{user[name]:?//}{user[id]:? (/)/}",
-                     "{album[title]} ({album[id]})")
+    directory_fmt = (
+        "{category}",
+        "{user[name]:?//}{user[id]:? (/)/}",
+        "{album[title]} ({album[id]})",
+    )
     filename_fmt = "{title} ({id}).{extension}"
     archive_fmt = "{user[id]} {id}"
     cookies_domain = ".imgbb.com"
@@ -41,7 +45,7 @@ class ImgbbExtractor(Extractor):
         if username:
             return self.cookies_update(self._login_impl(username, password))
 
-    @cache(maxage=365*86400, keyarg=1)
+    @cache(maxage=365 * 86400, keyarg=1)
     def _login_impl(self, username, password):
         self.log.info("Logging in as %s", username)
 
@@ -53,9 +57,9 @@ class ImgbbExtractor(Extractor):
             "Referer": url,
         }
         data = {
-            "auth_token"   : token,
+            "auth_token": token,
             "login-subject": username,
-            "password"     : password,
+            "password": password,
         }
         response = self.request(url, method="POST", headers=headers, data=data)
 
@@ -74,8 +78,7 @@ class ImgbbExtractor(Extractor):
             for obj in text.extract_iter(page, "data-object='", "'"):
                 post = util.json_loads(text.unquote(obj))
                 image = post["image"]
-                image["filename"], image["name"] = \
-                    image["name"], image["filename"]
+                image["filename"], image["name"] = image["name"], image["filename"]
                 image["id"] = post["id_encoded"]
                 image["title"] = post["title"]
                 image["width"] = text.parse_int(post["width"])
@@ -105,13 +108,13 @@ class ImgbbExtractor(Extractor):
                     "Sec-Fetch-Site": "same-origin",
                 }
 
-            data = self.request_json(
-                url, method="POST", headers=headers, data=params)
+            data = self.request_json(url, method="POST", headers=headers, data=params)
             page = data["html"]
 
 
 class ImgbbAlbumExtractor(ImgbbExtractor):
     """Extractor for imgbb albums"""
+
     subcategory = "album"
     pattern = r"(?:https?://)?ibb\.co/album/([^/?#]+)/?(?:\?([^#]+))?"
     example = "https://ibb.co/album/ID"
@@ -124,16 +127,13 @@ class ImgbbAlbumExtractor(ImgbbExtractor):
         extr = text.extract_from(page)
 
         self.kwdict["album"] = album = {
-            "url": extr(
-                'property="og:url" content="', '"'),
-            "title": text.unescape(extr(
-                'property="og:title" content="', '"')),
-            "description": text.unescape(extr(
-                'property="og:description" content="', '"')),
-            "id": extr(
-                'data-text="album-name" href="https://ibb.co/album/', '"'),
-            "count": text.parse_int(extr(
-                'data-text="image-count">', "<")),
+            "url": extr('property="og:url" content="', '"'),
+            "title": text.unescape(extr('property="og:title" content="', '"')),
+            "description": text.unescape(
+                extr('property="og:description" content="', '"')
+            ),
+            "id": extr('data-text="album-name" href="https://ibb.co/album/', '"'),
+            "count": text.parse_int(extr('data-text="image-count">', "<")),
         }
 
         url = f"{self.root}/json"
@@ -152,22 +152,21 @@ class ImgbbImageExtractor(ImgbbExtractor):
         extr = text.extract_from(page)
 
         image = {
-            "id"    : extr('property="og:url" content="https://ibb.co/', '"'),
-            "title" : text.unescape(extr(
-                '"og:title" content="', ' hosted at ImgBB"')),
-            "url"   : extr('"og:image" content="', '"'),
-            "width" : text.parse_int(extr('"og:image:width" content="', '"')),
+            "id": extr('property="og:url" content="https://ibb.co/', '"'),
+            "title": text.unescape(extr('"og:title" content="', ' hosted at ImgBB"')),
+            "url": extr('"og:image" content="', '"'),
+            "width": text.parse_int(extr('"og:image:width" content="', '"')),
             "height": text.parse_int(extr('"og:image:height" content="', '"')),
-            "album" : extr("Added to <a", "</a>"),
-            "date"  : text.parse_datetime(extr(
-                '<span title="', '"'), "%Y-%m-%d %H:%M:%S"),
-            "user"  : util.json_loads(extr(
-                "CHV.obj.resource=", "};") + "}").get("user"),
+            "album": extr("Added to <a", "</a>"),
+            "date": text.parse_datetime(
+                extr('<span title="', '"'), "%Y-%m-%d %H:%M:%S"
+            ),
+            "user": util.json_loads(extr("CHV.obj.resource=", "};") + "}").get("user"),
         }
 
         if album := image["album"]:
             image["album"] = {
-                "id"   : text.extr(album, "/album/", '"'),
+                "id": text.extr(album, "/album/", '"'),
                 "title": text.unescape(album.rpartition(">")[2]),
             }
         else:
@@ -178,6 +177,7 @@ class ImgbbImageExtractor(ImgbbExtractor):
 
 class ImgbbUserExtractor(ImgbbExtractor):
     """Extractor for imgbb user profiles"""
+
     subcategory = "user"
     directory_fmt = ("{category}", "{user[name]} ({user[id]})")
     pattern = r"(?:https?://)?([\w-]+)\.imgbb\.com/?(?:\?([^#]+))?"
@@ -198,6 +198,6 @@ class ImgbbUserExtractor(ImgbbExtractor):
         redirect = f"HTTP redirect to {response.headers.get('Location')}"
         if response.status_code == 302:
             raise exception.AuthRequired(
-                ("username & password", "authenticated cookies"),
-                "profile", redirect)
+                ("username & password", "authenticated cookies"), "profile", redirect
+            )
         raise exception.AbortExtraction(redirect)

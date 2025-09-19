@@ -14,6 +14,7 @@ from .. import text, exception
 
 class PhilomenaExtractor(BooruExtractor):
     """Base class for philomena extractors"""
+
     basecategory = "philomena"
     filename_fmt = "{filename}.{extension}"
     archive_fmt = "{id}"
@@ -36,31 +37,33 @@ class PhilomenaExtractor(BooruExtractor):
         return url
 
     def _prepare(self, post):
-        post["date"] = text.parse_datetime(
-            post["created_at"][:19], "%Y-%m-%dT%H:%M:%S")
+        post["date"] = text.parse_datetime(post["created_at"][:19], "%Y-%m-%dT%H:%M:%S")
 
 
-BASE_PATTERN = PhilomenaExtractor.update({
-    "derpibooru": {
-        "root": "https://derpibooru.org",
-        "pattern": r"(?:www\.)?derpibooru\.org",
-        "filter_id": "56027",
-    },
-    "ponybooru": {
-        "root": "https://ponybooru.org",
-        "pattern": r"(?:www\.)?ponybooru\.org",
-        "filter_id": "3",
-    },
-    "furbooru": {
-        "root": "https://furbooru.org",
-        "pattern": r"furbooru\.org",
-        "filter_id": "2",
-    },
-})
+BASE_PATTERN = PhilomenaExtractor.update(
+    {
+        "derpibooru": {
+            "root": "https://derpibooru.org",
+            "pattern": r"(?:www\.)?derpibooru\.org",
+            "filter_id": "56027",
+        },
+        "ponybooru": {
+            "root": "https://ponybooru.org",
+            "pattern": r"(?:www\.)?ponybooru\.org",
+            "filter_id": "3",
+        },
+        "furbooru": {
+            "root": "https://furbooru.org",
+            "pattern": r"furbooru\.org",
+            "filter_id": "2",
+        },
+    }
+)
 
 
 class PhilomenaPostExtractor(PhilomenaExtractor):
     """Extractor for single posts on a Philomena booru"""
+
     subcategory = "post"
     pattern = BASE_PATTERN + r"/(?:images/)?(\d+)"
     example = "https://derpibooru.org/images/12345"
@@ -71,6 +74,7 @@ class PhilomenaPostExtractor(PhilomenaExtractor):
 
 class PhilomenaSearchExtractor(PhilomenaExtractor):
     """Extractor for Philomena search results"""
+
     subcategory = "search"
     directory_fmt = ("{category}", "{search_tags}")
     pattern = BASE_PATTERN + r"/(?:search/?\?([^#]+)|tags/([^/?#]+))"
@@ -82,10 +86,10 @@ class PhilomenaSearchExtractor(PhilomenaExtractor):
         if q := self.groups[-1]:
             q = q.replace("+", " ")
             for old, new in (
-                ("-colon-"  , ":"),
-                ("-dash-"   , "-"),
-                ("-dot-"    , "."),
-                ("-plus-"   , "+"),
+                ("-colon-", ":"),
+                ("-dash-", "-"),
+                ("-dot-", "."),
+                ("-plus-", "+"),
                 ("-fwslash-", "/"),
                 ("-bwslash-", "\\"),
             ):
@@ -104,9 +108,9 @@ class PhilomenaSearchExtractor(PhilomenaExtractor):
 
 class PhilomenaGalleryExtractor(PhilomenaExtractor):
     """Extractor for Philomena galleries"""
+
     subcategory = "gallery"
-    directory_fmt = ("{category}", "galleries",
-                     "{gallery[id]} {gallery[title]}")
+    directory_fmt = ("{category}", "galleries", "{gallery[id]} {gallery[title]}")
     pattern = BASE_PATTERN + r"/galleries/(\d+)"
     example = "https://derpibooru.org/galleries/12345"
 
@@ -122,7 +126,7 @@ class PhilomenaGalleryExtractor(PhilomenaExtractor):
         return self.api.search(params)
 
 
-class PhilomenaAPI():
+class PhilomenaAPI:
     """Interface for the Philomena API
 
     https://www.derpibooru.org/pages/api

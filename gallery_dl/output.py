@@ -72,17 +72,29 @@ LOG_LEVELS = ("debug", "info", "warning", "error")
 class Logger(logging.Logger):
     """Custom Logger that includes extra info in log records"""
 
-    def makeRecord(self, name, level, fn, lno, msg, args, exc_info,
-                   func=None, extra=None, sinfo=None,
-                   factory=logging._logRecordFactory):
+    def makeRecord(
+        self,
+        name,
+        level,
+        fn,
+        lno,
+        msg,
+        args,
+        exc_info,
+        func=None,
+        extra=None,
+        sinfo=None,
+        factory=logging._logRecordFactory,
+    ):
         rv = factory(name, level, fn, lno, msg, args, exc_info, func, sinfo)
         if extra:
             rv.__dict__.update(extra)
         return rv
 
 
-class LoggerAdapter():
+class LoggerAdapter:
     """Trimmed-down version of logging.LoggingAdapter"""
+
     __slots__ = ("logger", "extra")
 
     def __init__(self, logger, job):
@@ -110,7 +122,7 @@ class LoggerAdapter():
             self.logger._log(logging.ERROR, msg, args, **kwargs)
 
 
-class PathfmtProxy():
+class PathfmtProxy:
     __slots__ = ("job",)
 
     def __init__(self, job):
@@ -126,7 +138,7 @@ class PathfmtProxy():
         return ""
 
 
-class KwdictProxy():
+class KwdictProxy:
     __slots__ = ("job",)
 
     def __init__(self, job):
@@ -144,8 +156,7 @@ class Formatter(logging.Formatter):
         if isinstance(fmt, dict):
             for key in LOG_LEVELS:
                 value = fmt[key] if key in fmt else LOG_FORMAT
-                fmt[key] = (formatter.parse(value).format_map,
-                            "{asctime" in value)
+                fmt[key] = (formatter.parse(value).format_map, "{asctime" in value)
         else:
             if fmt == LOG_FORMAT:
                 fmt = (fmt.format_map, False)
@@ -224,8 +235,9 @@ def configure_logging(loglevel):
                 lf[level] = ansifmt(c, logfmt) if c else logfmt
             logfmt = lf
 
-        handler.setFormatter(Formatter(
-            logfmt, opts.get("format-date", LOG_FORMAT_DATE)))
+        handler.setFormatter(
+            Formatter(logfmt, opts.get("format-date", LOG_FORMAT_DATE))
+        )
 
         if "level" in opts and handler.level == LOG_LEVEL:
             handler.setLevel(opts["level"])
@@ -260,24 +272,27 @@ def setup_logging_handler(key, fmt=LOG_FORMAT, lvl=LOG_LEVEL, mode="w"):
         os.makedirs(os.path.dirname(path))
         handler = logging.FileHandler(path, mode, encoding)
     except (OSError, ValueError) as exc:
-        logging.getLogger("gallery-dl").warning(
-            "%s: %s", key, exc)
+        logging.getLogger("gallery-dl").warning("%s: %s", key, exc)
         return None
     except TypeError as exc:
         logging.getLogger("gallery-dl").warning(
-            "%s: missing or invalid path (%s)", key, exc)
+            "%s: missing or invalid path (%s)", key, exc
+        )
         return None
 
     handler.setLevel(opts.get("level", lvl))
-    handler.setFormatter(Formatter(
-        opts.get("format", fmt),
-        opts.get("format-date", LOG_FORMAT_DATE),
-    ))
+    handler.setFormatter(
+        Formatter(
+            opts.get("format", fmt),
+            opts.get("format-date", LOG_FORMAT_DATE),
+        )
+    )
     return handler
 
 
 # --------------------------------------------------------------------
 # Utility functions
+
 
 def stdout_write_flush(s):
     sys.stdout.write(s)
@@ -290,15 +305,19 @@ def stderr_write_flush(s):
 
 
 if getattr(sys.stdout, "line_buffering", None):
+
     def stdout_write(s):
         sys.stdout.write(s)
+
 else:
     stdout_write = stdout_write_flush
 
 
 if getattr(sys.stderr, "line_buffering", None):
+
     def stderr_write(s):
         sys.stderr.write(s)
+
 else:
     stderr_write = stderr_write_flush
 
@@ -323,6 +342,7 @@ def configure_standard_streams():
 # --------------------------------------------------------------------
 # Downloader output
 
+
 def select():
     """Select a suitable output class"""
     mode = config.get(("output",), "mode")
@@ -341,12 +361,12 @@ def select():
         output = NullOutput()
     else:
         output = {
-            "default" : PipeOutput,
-            "pipe"    : PipeOutput,
-            "term"    : TerminalOutput,
+            "default": PipeOutput,
+            "pipe": PipeOutput,
+            "term": TerminalOutput,
             "terminal": TerminalOutput,
-            "color"   : ColorOutput,
-            "null"    : NullOutput,
+            "color": ColorOutput,
+            "null": NullOutput,
         }[mode.lower()]()
 
     if not config.get(("output",), "skip", True):
@@ -354,7 +374,7 @@ def select():
     return output
 
 
-class NullOutput():
+class NullOutput:
 
     def start(self, path):
         """Print a message indicating the start of a download"""
@@ -378,7 +398,7 @@ class PipeOutput(NullOutput):
         stdout_write(f"{path}\n")
 
 
-class TerminalOutput():
+class TerminalOutput:
 
     def __init__(self):
         if shorten := config.get(("output",), "shorten", True):
@@ -404,8 +424,10 @@ class TerminalOutput():
         if bytes_total is None:
             stderr_write(f"\r{bdl:>7}B {bps:>7}B/s ")
         else:
-            stderr_write(f"\r{bytes_downloaded * 100 // bytes_total:>3}% "
-                         f"{bdl:>7}B {bps:>7}B/s ")
+            stderr_write(
+                f"\r{bytes_downloaded * 100 // bytes_total:>3}% "
+                f"{bdl:>7}B {bps:>7}B/s "
+            )
 
 
 class ColorOutput(TerminalOutput):
@@ -430,7 +452,7 @@ class ColorOutput(TerminalOutput):
         stdout_write(f"{self.color_success}{self.shorten(path)}\x1b[0m\n")
 
 
-class CustomOutput():
+class CustomOutput:
 
     def __init__(self, options):
 
@@ -450,21 +472,18 @@ class CustomOutput():
             func = shorten_string_eaw if shorten == "eaw" else shorten_string
             width = shutil.get_terminal_size().columns
 
-            self._fmt_skip = self._make_func(
-                func, fmt_skip, width - off_skip)
-            self._fmt_start = self._make_func(
-                func, fmt_start, width - off_start)
-            self._fmt_success = self._make_func(
-                func, fmt_success, width - off_success)
+            self._fmt_skip = self._make_func(func, fmt_skip, width - off_skip)
+            self._fmt_start = self._make_func(func, fmt_start, width - off_start)
+            self._fmt_success = self._make_func(func, fmt_success, width - off_success)
         else:
             self._fmt_skip = fmt_skip.format
             self._fmt_start = fmt_start.format
             self._fmt_success = fmt_success.format
 
-        self._fmt_progress = (options.get("progress") or
-                              "\r{0:>7}B {1:>7}B/s ").format
-        self._fmt_progress_total = (options.get("progress-total") or
-                                    "\r{3:>3}% {0:>7}B {1:>7}B/s ").format
+        self._fmt_progress = (options.get("progress") or "\r{0:>7}B {1:>7}B/s ").format
+        self._fmt_progress_total = (
+            options.get("progress-total") or "\r{3:>3}% {0:>7}B {1:>7}B/s "
+        ).format
 
     def _make_func(self, shorten, format_string, limit):
         fmt = format_string.format
@@ -485,16 +504,20 @@ class CustomOutput():
         if bytes_total is None:
             stderr_write(self._fmt_progress(bdl, bps))
         else:
-            stderr_write(self._fmt_progress_total(
-                bdl, bps, util.format_value(bytes_total),
-                bytes_downloaded * 100 // bytes_total))
+            stderr_write(
+                self._fmt_progress_total(
+                    bdl,
+                    bps,
+                    util.format_value(bytes_total),
+                    bytes_downloaded * 100 // bytes_total,
+                )
+            )
 
 
 class EAWCache(dict):
 
     def __missing__(self, key):
-        width = self[key] = \
-            2 if unicodedata.east_asian_width(key) in "WF" else 1
+        width = self[key] = 2 if unicodedata.east_asian_width(key) in "WF" else 1
         return width
 
 
@@ -530,7 +553,7 @@ def shorten_string_eaw(txt, limit, sep="…", cache=EAWCache()):
         left += 1
 
     right = -1
-    rwidth = (limit+1) // 2 + (lwidth + char_widths[left])
+    rwidth = (limit + 1) // 2 + (lwidth + char_widths[left])
     while True:
         rwidth -= char_widths[right]
         if rwidth < 0:

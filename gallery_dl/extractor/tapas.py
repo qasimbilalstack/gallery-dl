@@ -17,6 +17,7 @@ BASE_PATTERN = r"(?:https?://)?tapas\.io"
 
 class TapasExtractor(Extractor):
     """Base class for tapas.io extractors"""
+
     category = "tapas"
     root = "https://tapas.io"
     directory_fmt = ("{category}", "{series[title]}", "{id} {title}")
@@ -38,29 +39,25 @@ class TapasExtractor(Extractor):
         if username:
             return self.cookies_update(self._login_impl(username, password))
 
-        self.cookies.set(
-            "birthDate"        , "1981-02-03", domain=self.cookies_domain)
-        self.cookies.set(
-            "adjustedBirthDate", "1981-02-03", domain=self.cookies_domain)
+        self.cookies.set("birthDate", "1981-02-03", domain=self.cookies_domain)
+        self.cookies.set("adjustedBirthDate", "1981-02-03", domain=self.cookies_domain)
 
-    @cache(maxage=14*86400, keyarg=1)
+    @cache(maxage=14 * 86400, keyarg=1)
     def _login_impl(self, username, password):
         self.log.info("Logging in as %s", username)
 
         url = self.root + "/account/authenticate"
         headers = {
-            "Referer" : url,
+            "Referer": url,
         }
         data = {
-            "from"    : "https://tapas.io/",
-            "email"   : username,
+            "from": "https://tapas.io/",
+            "email": username,
             "password": password,
         }
-        response = self.request(
-            url, method="POST", headers=headers, data=data)
+        response = self.request(url, method="POST", headers=headers, data=data)
 
-        if not response.history or \
-                "/account/signin_fail" in response.history[-1].url:
+        if not response.history or "/account/signin_fail" in response.history[-1].url:
             raise exception.AuthenticationError()
 
         return {"_cpc_": response.history[0].cookies.get("_cpc_")}
@@ -85,7 +82,8 @@ class TapasEpisodeExtractor(TapasExtractor):
         episode = data["episode"]
         if not episode.get("free") and not episode.get("unlocked"):
             raise exception.AuthorizationError(
-                f"{episode_id}: Episode '{episode['title']}' not unlocked")
+                f"{episode_id}: Episode '{episode['title']}' not unlocked"
+            )
 
         html = data["html"]
         episode["series"] = self._extract_series(html)
@@ -94,14 +92,16 @@ class TapasEpisodeExtractor(TapasExtractor):
 
         if episode["book"]:
             content = text.extr(
-                html, '<div class="viewer">', '<div class="viewer-bottom')
+                html, '<div class="viewer">', '<div class="viewer-bottom'
+            )
             episode["num"] = 1
             episode["extension"] = "html"
             yield Message.Url, "text:" + content, episode
 
         else:  # comic
-            for episode["num"], url in enumerate(text.extract_iter(
-                    html, 'data-src="', '"'), 1):
+            for episode["num"], url in enumerate(
+                text.extract_iter(html, 'data-src="', '"'), 1
+            ):
                 yield Message.Url, url, text.nameext_from_url(url, episode)
 
     def _extract_series(self, html):
@@ -124,16 +124,18 @@ class TapasSeriesExtractor(TapasExtractor):
 
         url = f"{self.root}/series/{self.groups[0]}"
         series_id, _, episode_id = text.extr(
-            self.request(url).text, 'content="tapastic://series/', '"',
+            self.request(url).text,
+            'content="tapastic://series/',
+            '"',
         ).partition("/episodes/")
 
         url = f"{self.root}/series/{series_id}/episodes"
         params = {
-            "eid"        : episode_id,
-            "page"       : 1,
-            "sort"       : "OLDEST",
+            "eid": episode_id,
+            "page": 1,
+            "sort": "OLDEST",
             "last_access": "0",
-            "max_limit"  : "20",
+            "max_limit": "20",
         }
 
         base = self.root + "/episode/"

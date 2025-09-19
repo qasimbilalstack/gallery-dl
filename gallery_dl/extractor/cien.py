@@ -33,8 +33,7 @@ class CienExtractor(Extractor):
         while True:
             page = self.request(url, params=params).text
 
-            for card in text.extract_iter(
-                    page, ' class="c-cardCase-item', '</div>'):
+            for card in text.extract_iter(page, ' class="c-cardCase-item', "</div>"):
                 article_url = text.extr(card, ' href="', '"')
                 yield Message.Queue, article_url, data
 
@@ -88,10 +87,10 @@ class CienArticleExtractor(CienExtractor):
             self._extract_files_gallery(page, files)
         else:
             generators = {
-                "image"   : self._extract_files_image,
-                "video"   : self._extract_files_video,
+                "image": self._extract_files_image,
+                "video": self._extract_files_video,
                 "download": self._extract_files_download,
-                "gallery" : self._extract_files_gallery,
+                "gallery": self._extract_files_gallery,
                 "gallerie": self._extract_files_gallery,
             }
             if isinstance(filetypes, str):
@@ -102,21 +101,21 @@ class CienArticleExtractor(CienExtractor):
         return files
 
     def _extract_files_image(self, page, files):
-        for image in text.extract_iter(
-                page, 'class="file-player-image"', "</figure>"):
+        for image in text.extract_iter(page, 'class="file-player-image"', "</figure>"):
             size = text.extr(image, ' data-size="', '"')
             w, _, h = size.partition("x")
 
-            files.append({
-                "url"   : text.extr(image, ' data-raw="', '"'),
-                "width" : text.parse_int(w),
-                "height": text.parse_int(h),
-                "type"  : "image",
-            })
+            files.append(
+                {
+                    "url": text.extr(image, ' data-raw="', '"'),
+                    "width": text.parse_int(w),
+                    "height": text.parse_int(h),
+                    "type": "image",
+                }
+            )
 
     def _extract_files_video(self, page, files):
-        for video in text.extract_iter(
-                page, "<vue-file-player", "</vue-file-player>"):
+        for video in text.extract_iter(page, "<vue-file-player", "</vue-file-player>"):
             path = text.extr(video, ' base-path="', '"')
             name = text.extr(video, ' file-name="', '"')
             auth = text.extr(video, ' auth-key="', '"')
@@ -127,8 +126,7 @@ class CienArticleExtractor(CienExtractor):
             files.append(file)
 
     def _extract_files_download(self, page, files):
-        for download in text.extract_iter(
-                page, 'class="downloadBlock', "</div>"):
+        for download in text.extract_iter(page, 'class="downloadBlock', "</div>"):
             name = text.extr(download, "<p>", "<")
 
             file = text.nameext_from_url(name.rpartition(" ")[0])
@@ -138,19 +136,19 @@ class CienArticleExtractor(CienExtractor):
 
     def _extract_files_gallery(self, page, files):
         for gallery in text.extract_iter(
-                page, "<vue-image-gallery", "</vue-image-gallery>"):
+            page, "<vue-image-gallery", "</vue-image-gallery>"
+        ):
 
             url = self.root + "/api/creator/gallery/images"
             params = {
-                "hash"      : text.extr(gallery, ' hash="', '"'),
+                "hash": text.extr(gallery, ' hash="', '"'),
                 "gallery_id": text.extr(gallery, ' gallery-id="', '"'),
-                "time"      : text.extr(gallery, ' time="', '"'),
+                "time": text.extr(gallery, ' time="', '"'),
             }
             data = self.request_json(url, params=params)
             url = self.root + "/api/creator/gallery/imagePath"
 
-            for params["page"], params["file_id"] in enumerate(
-                    data["imgList"]):
+            for params["page"], params["file_id"] in enumerate(data["imgList"]):
                 path = self.request_json(url, params=params)["path"]
 
                 file = params.copy()
@@ -192,6 +190,7 @@ class CienFollowingExtractor(CienExtractor):
         data = {"_extractor": CienCreatorExtractor}
 
         for subscription in text.extract_iter(
-                page, 'class="c-grid-subscriptionInfo', '</figure>'):
+            page, 'class="c-grid-subscriptionInfo', "</figure>"
+        ):
             url = text.extr(subscription, ' href="', '"')
             yield Message.Queue, url, data

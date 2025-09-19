@@ -38,8 +38,7 @@ class GelbooruV02Extractor(booru.BooruExtractor):
         if root.tag == "error":
             msg = root.text
             if msg.lower().startswith("missing authentication"):
-                raise exception.AuthRequired(
-                    "'api-key' & 'user-id'", "the API", msg)
+                raise exception.AuthRequired("'api-key' & 'user-id'", "the API", msg)
             raise exception.AbortExtraction(f"'{msg}'")
 
         return root
@@ -57,8 +56,9 @@ class GelbooruV02Extractor(booru.BooruExtractor):
             except SyntaxError:  # ElementTree.ParseError
                 if "tags" not in params or post is None:
                     raise
-                taglist = [tag for tag in params["tags"].split()
-                           if not tag.startswith("id:<")]
+                taglist = [
+                    tag for tag in params["tags"].split() if not tag.startswith("id:<")
+                ]
                 taglist.append("id:<" + str(post.attrib["id"]))
                 params["tags"] = " ".join(taglist)
                 params["pid"] = 0
@@ -74,7 +74,9 @@ class GelbooruV02Extractor(booru.BooruExtractor):
                     total = 0
                     self.log.debug(
                         "Failed to get total number of posts (%s: %s)",
-                        exc.__class__.__name__, exc)
+                        exc.__class__.__name__,
+                        exc,
+                    )
 
             post = None
             for post in root:
@@ -123,15 +125,17 @@ class GelbooruV02Extractor(booru.BooruExtractor):
     def _prepare(self, post):
         post["tags"] = post["tags"].strip()
         post["date"] = text.parse_datetime(
-            post["created_at"], "%a %b %d %H:%M:%S %z %Y")
+            post["created_at"], "%a %b %d %H:%M:%S %z %Y"
+        )
 
     def _html(self, post):
         url = f"{self.root}/index.php?page=post&s=view&id={post['id']}"
         return self.request(url).text
 
     def _tags(self, post, page):
-        tag_container = (text.extr(page, '<ul id="tag-', '</ul>') or
-                         text.extr(page, '<ul class="tag-', '</ul>'))
+        tag_container = text.extr(page, '<ul id="tag-', "</ul>") or text.extr(
+            page, '<ul class="tag-', "</ul>"
+        )
         if not tag_container:
             return
 
@@ -150,40 +154,44 @@ class GelbooruV02Extractor(booru.BooruExtractor):
         post["notes"] = notes = []
         for note in note_container.split('class="note-box"')[1:]:
             extr = text.extract_from(note)
-            notes.append({
-                "width" : int(extr("width:", "p")),
-                "height": int(extr("height:", "p")),
-                "y"     : int(extr("top:", "p")),
-                "x"     : int(extr("left:", "p")),
-                "id"    : int(extr('id="note-body-', '"')),
-                "body"  : text.unescape(text.remove_html(extr(">", "</div>"))),
-            })
+            notes.append(
+                {
+                    "width": int(extr("width:", "p")),
+                    "height": int(extr("height:", "p")),
+                    "y": int(extr("top:", "p")),
+                    "x": int(extr("left:", "p")),
+                    "id": int(extr('id="note-body-', '"')),
+                    "body": text.unescape(text.remove_html(extr(">", "</div>"))),
+                }
+            )
 
 
-BASE_PATTERN = GelbooruV02Extractor.update({
-    "rule34": {
-        "root": "https://rule34.xxx",
-        "root-api": "https://api.rule34.xxx",
-        "request-interval": 1.0,
-        "pattern": r"(?:www\.)?rule34\.xxx",
-    },
-    "safebooru": {
-        "root": "https://safebooru.org",
-        "pattern": r"safebooru\.org",
-    },
-    "tbib": {
-        "root": "https://tbib.org",
-        "pattern": r"tbib\.org",
-    },
-    "hypnohub": {
-        "root": "https://hypnohub.net",
-        "pattern": r"hypnohub\.net",
-    },
-    "xbooru": {
-        "root": "https://xbooru.com",
-        "pattern": r"xbooru\.com",
-    },
-})
+BASE_PATTERN = GelbooruV02Extractor.update(
+    {
+        "rule34": {
+            "root": "https://rule34.xxx",
+            "root-api": "https://api.rule34.xxx",
+            "request-interval": 1.0,
+            "pattern": r"(?:www\.)?rule34\.xxx",
+        },
+        "safebooru": {
+            "root": "https://safebooru.org",
+            "pattern": r"safebooru\.org",
+        },
+        "tbib": {
+            "root": "https://tbib.org",
+            "pattern": r"tbib\.org",
+        },
+        "hypnohub": {
+            "root": "https://hypnohub.net",
+            "pattern": r"hypnohub\.net",
+        },
+        "xbooru": {
+            "root": "https://xbooru.com",
+            "pattern": r"xbooru\.com",
+        },
+    }
+)
 
 
 class GelbooruV02TagExtractor(GelbooruV02Extractor):
@@ -195,7 +203,8 @@ class GelbooruV02TagExtractor(GelbooruV02Extractor):
 
     def posts(self):
         self.kwdict["search_tags"] = tags = text.unquote(
-            self.groups[-1].replace("+", " "))
+            self.groups[-1].replace("+", " ")
+        )
 
         if tags == "all":
             tags = ""
@@ -230,8 +239,7 @@ class GelbooruV02PoolExtractor(GelbooruV02Extractor):
         name, pos = text.extract(page, "<h4>Pool: ", "</h4>")
         if not name:
             raise exception.NotFoundError("pool")
-        self.post_ids = text.extract_iter(
-            page, 'class="thumb" id="p', '"', pos)
+        self.post_ids = text.extract_iter(page, 'class="thumb" id="p', '"', pos)
 
         return {
             "pool": text.parse_int(self.pool_id),
@@ -245,11 +253,13 @@ class GelbooruV02PoolExtractor(GelbooruV02Extractor):
                 yield post.attrib
 
     def _posts_pages(self):
-        return self._pagination_html({
-            "page": "pool",
-            "s"   : "show",
-            "id"  : self.pool_id,
-        })
+        return self._pagination_html(
+            {
+                "page": "pool",
+                "s": "show",
+                "id": self.pool_id,
+            }
+        )
 
 
 class GelbooruV02FavoriteExtractor(GelbooruV02Extractor):
@@ -265,11 +275,13 @@ class GelbooruV02FavoriteExtractor(GelbooruV02Extractor):
         return {"favorite_id": text.parse_int(fav_id)}
 
     def posts(self):
-        return self._pagination_html({
-            "page": "favorites",
-            "s"   : "view",
-            "id"  : self.favorite_id,
-        })
+        return self._pagination_html(
+            {
+                "page": "favorites",
+                "s": "view",
+                "id": self.favorite_id,
+            }
+        )
 
 
 class GelbooruV02PostExtractor(GelbooruV02Extractor):

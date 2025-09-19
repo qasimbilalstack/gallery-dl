@@ -29,8 +29,9 @@ class SzurubooruExtractor(booru.BooruExtractor):
         if username := self.config("username"):
             if token := self.config("token"):
                 value = username + ":" + token
-                self.headers["Authorization"] = "Token " + \
-                    binascii.b2a_base64(value.encode())[:-1].decode()
+                self.headers["Authorization"] = (
+                    "Token " + binascii.b2a_base64(value.encode())[:-1].decode()
+                )
 
     def _api_request(self, endpoint, params=None):
         url = self.root + "/api" + endpoint
@@ -58,7 +59,8 @@ class SzurubooruExtractor(booru.BooruExtractor):
 
     def _prepare(self, post):
         post["date"] = text.parse_datetime(
-            post["creationTime"], "%Y-%m-%dT%H:%M:%S.%fZ")
+            post["creationTime"], "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
 
         tags = []
         tags_categories = collections.defaultdict(list)
@@ -73,21 +75,23 @@ class SzurubooruExtractor(booru.BooruExtractor):
             post["tags_" + category] = tags
 
 
-BASE_PATTERN = SzurubooruExtractor.update({
-    "bcbnsfw": {
-        "root": "https://booru.bcbnsfw.space",
-        "pattern": r"booru\.bcbnsfw\.space",
-        "query-all": "*",
-    },
-    "snootbooru": {
-        "root": "https://snootbooru.com",
-        "pattern": r"snootbooru\.com",
-    },
-    "visuabusters": {
-        "root": "https://www.visuabusters.com/booru",
-        "pattern": r"(?:www\.)?visuabusters\.com/booru",
-    },
-})
+BASE_PATTERN = SzurubooruExtractor.update(
+    {
+        "bcbnsfw": {
+            "root": "https://booru.bcbnsfw.space",
+            "pattern": r"booru\.bcbnsfw\.space",
+            "query-all": "*",
+        },
+        "snootbooru": {
+            "root": "https://snootbooru.com",
+            "pattern": r"snootbooru\.com",
+        },
+        "visuabusters": {
+            "root": "https://www.visuabusters.com/booru",
+            "pattern": r"(?:www\.)?visuabusters\.com/booru",
+        },
+    }
+)
 
 
 class SzurubooruTagExtractor(SzurubooruExtractor):

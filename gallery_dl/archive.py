@@ -15,12 +15,19 @@ from . import util, formatter
 log = logging.getLogger("archive")
 
 
-def connect(path, prefix, format,
-            table=None, mode=None, pragma=None, kwdict=None, cache_key=None):
+def connect(
+    path,
+    prefix,
+    format,
+    table=None,
+    mode=None,
+    pragma=None,
+    kwdict=None,
+    cache_key=None,
+):
     keygen = formatter.parse(prefix + format).format_map
 
-    if isinstance(path, str) and path.startswith(
-            ("postgres://", "postgresql://")):
+    if isinstance(path, str) and path.startswith(("postgres://", "postgresql://")):
         if mode == "memory":
             cls = DownloadArchivePostgresqlMemory
         else:
@@ -44,7 +51,7 @@ def sanitize(name):
     return f'''"{name.replace('"', '_')}"'''
 
 
-class DownloadArchive():
+class DownloadArchive:
     _sqlite3 = None
 
     def __init__(self, path, keygen, table=None, pragma=None, cache_key=None):
@@ -52,12 +59,10 @@ class DownloadArchive():
             DownloadArchive._sqlite3 = __import__("sqlite3")
 
         try:
-            con = self._sqlite3.connect(
-                path, timeout=60, check_same_thread=False)
+            con = self._sqlite3.connect(path, timeout=60, check_same_thread=False)
         except self._sqlite3.OperationalError:
             os.makedirs(os.path.dirname(path))
-            con = self._sqlite3.connect(
-                path, timeout=60, check_same_thread=False)
+            con = self._sqlite3.connect(path, timeout=60, check_same_thread=False)
         con.isolation_level = None
 
         self.keygen = keygen
@@ -67,26 +72,23 @@ class DownloadArchive():
         self._cache_key = cache_key or "_archive_key"
 
         table = "archive" if table is None else sanitize(table)
-        self._stmt_select = (
-            f"SELECT 1 "
-            f"FROM {table} "
-            f"WHERE entry=? "
-            f"LIMIT 1")
-        self._stmt_insert = (
-            f"INSERT OR IGNORE INTO {table} "
-            f"(entry) VALUES (?)")
+        self._stmt_select = f"SELECT 1 " f"FROM {table} " f"WHERE entry=? " f"LIMIT 1"
+        self._stmt_insert = f"INSERT OR IGNORE INTO {table} " f"(entry) VALUES (?)"
 
         if pragma:
             for stmt in pragma:
                 cursor.execute(f"PRAGMA {stmt}")
 
         try:
-            cursor.execute(f"CREATE TABLE IF NOT EXISTS {table} "
-                           f"(entry TEXT PRIMARY KEY) WITHOUT ROWID")
+            cursor.execute(
+                f"CREATE TABLE IF NOT EXISTS {table} "
+                f"(entry TEXT PRIMARY KEY) WITHOUT ROWID"
+            )
         except self._sqlite3.OperationalError:
             # fallback for missing WITHOUT ROWID support (#553)
-            cursor.execute(f"CREATE TABLE IF NOT EXISTS {table} "
-                           f"(entry TEXT PRIMARY KEY)")
+            cursor.execute(
+                f"CREATE TABLE IF NOT EXISTS {table} " f"(entry TEXT PRIMARY KEY)"
+            )
 
     def add(self, kwdict):
         """Add item described by 'kwdict' to archive"""
@@ -106,14 +108,11 @@ class DownloadArchive():
 class DownloadArchiveMemory(DownloadArchive):
 
     def __init__(self, path, keygen, table=None, pragma=None, cache_key=None):
-        DownloadArchive.__init__(
-            self, path, keygen, table, pragma, cache_key)
+        DownloadArchive.__init__(self, path, keygen, table, pragma, cache_key)
         self.keys = set()
 
     def add(self, kwdict):
-        self.keys.add(
-            kwdict.get(self._cache_key) or
-            self.keygen(kwdict))
+        self.keys.add(kwdict.get(self._cache_key) or self.keygen(kwdict))
 
     def check(self, kwdict):
         key = kwdict[self._cache_key] = self.keygen(kwdict)
@@ -141,7 +140,7 @@ class DownloadArchiveMemory(DownloadArchive):
                 cursor.executemany(stmt, ((key,) for key in self.keys))
 
 
-class DownloadArchivePostgresql():
+class DownloadArchivePostgresql:
     _psycopg = None
 
     def __init__(self, uri, keygen, table=None, pragma=None, cache_key=None):
@@ -156,22 +155,25 @@ class DownloadArchivePostgresql():
 
         table = "archive" if table is None else sanitize(table)
         self._stmt_select = (
-            f"SELECT true "
-            f"FROM {table} "
-            f"WHERE entry=%s "
-            f"LIMIT 1")
+            f"SELECT true " f"FROM {table} " f"WHERE entry=%s " f"LIMIT 1"
+        )
         self._stmt_insert = (
-            f"INSERT INTO {table} (entry) "
-            f"VALUES (%s) "
-            f"ON CONFLICT DO NOTHING")
+            f"INSERT INTO {table} (entry) " f"VALUES (%s) " f"ON CONFLICT DO NOTHING"
+        )
 
         try:
-            cursor.execute(f"CREATE TABLE IF NOT EXISTS {table} "
-                           f"(entry TEXT PRIMARY KEY)")
+            cursor.execute(
+                f"CREATE TABLE IF NOT EXISTS {table} " f"(entry TEXT PRIMARY KEY)"
+            )
             con.commit()
         except Exception as exc:
-            log.error("%s: %s when creating '%s' table: %s",
-                      con, exc.__class__.__name__, table, exc)
+            log.error(
+                "%s: %s when creating '%s' table: %s",
+                con,
+                exc.__class__.__name__,
+                table,
+                exc,
+            )
             con.rollback()
             raise
 
@@ -181,8 +183,12 @@ class DownloadArchivePostgresql():
             self.cursor.execute(self._stmt_insert, (key,))
             self.connection.commit()
         except Exception as exc:
-            log.error("%s: %s when writing entry: %s",
-                      self.connection, exc.__class__.__name__, exc)
+            log.error(
+                "%s: %s when writing entry: %s",
+                self.connection,
+                exc.__class__.__name__,
+                exc,
+            )
             self.connection.rollback()
 
     def check(self, kwdict):
@@ -191,8 +197,12 @@ class DownloadArchivePostgresql():
             self.cursor.execute(self._stmt_select, (key,))
             return self.cursor.fetchone()
         except Exception as exc:
-            log.error("%s: %s when checking entry: %s",
-                      self.connection, exc.__class__.__name__, exc)
+            log.error(
+                "%s: %s when checking entry: %s",
+                self.connection,
+                exc.__class__.__name__,
+                exc,
+            )
             self.connection.rollback()
             return False
 
@@ -203,14 +213,11 @@ class DownloadArchivePostgresql():
 class DownloadArchivePostgresqlMemory(DownloadArchivePostgresql):
 
     def __init__(self, path, keygen, table=None, pragma=None, cache_key=None):
-        DownloadArchivePostgresql.__init__(
-            self, path, keygen, table, pragma, cache_key)
+        DownloadArchivePostgresql.__init__(self, path, keygen, table, pragma, cache_key)
         self.keys = set()
 
     def add(self, kwdict):
-        self.keys.add(
-            kwdict.get(self._cache_key) or
-            self.keygen(kwdict))
+        self.keys.add(kwdict.get(self._cache_key) or self.keygen(kwdict))
 
     def check(self, kwdict):
         key = kwdict[self._cache_key] = self.keygen(kwdict)
@@ -220,8 +227,12 @@ class DownloadArchivePostgresqlMemory(DownloadArchivePostgresql):
             self.cursor.execute(self._stmt_select, (key,))
             return self.cursor.fetchone()
         except Exception as exc:
-            log.error("%s: %s when checking entry: %s",
-                      self.connection, exc.__class__.__name__, exc)
+            log.error(
+                "%s: %s when checking entry: %s",
+                self.connection,
+                exc.__class__.__name__,
+                exc,
+            )
             self.connection.rollback()
             return False
 
@@ -229,11 +240,13 @@ class DownloadArchivePostgresqlMemory(DownloadArchivePostgresql):
         if not self.keys:
             return
         try:
-            self.cursor.executemany(
-                self._stmt_insert,
-                ((key,) for key in self.keys))
+            self.cursor.executemany(self._stmt_insert, ((key,) for key in self.keys))
             self.connection.commit()
         except Exception as exc:
-            log.error("%s: %s when writing entries: %s",
-                      self.connection, exc.__class__.__name__, exc)
+            log.error(
+                "%s: %s when writing entries: %s",
+                self.connection,
+                exc.__class__.__name__,
+                exc,
+            )
             self.connection.rollback()

@@ -11,12 +11,15 @@
 from .common import Extractor, Message
 from .. import text, util
 
-BASE_PATTERN = (r"(?:https?://)?((?:[\w-]+\.)?xhamster"
-                r"(?:\d?\.(?:com|one|desi)|\.porncache\.net))")
+BASE_PATTERN = (
+    r"(?:https?://)?((?:[\w-]+\.)?xhamster"
+    r"(?:\d?\.(?:com|one|desi)|\.porncache\.net))"
+)
 
 
 class XhamsterExtractor(Extractor):
     """Base class for xhamster extractors"""
+
     category = "xhamster"
 
     def __init__(self, match):
@@ -26,9 +29,9 @@ class XhamsterExtractor(Extractor):
 
 class XhamsterGalleryExtractor(XhamsterExtractor):
     """Extractor for image galleries on xhamster.com"""
+
     subcategory = "gallery"
-    directory_fmt = ("{category}", "{user[name]}",
-                     "{gallery[id]} {gallery[title]}")
+    directory_fmt = ("{category}", "{user[name]}", "{gallery[id]} {gallery[title]}")
     filename_fmt = "{num:>03}_{id}.{extension}"
     archive_fmt = "{id}"
     pattern = BASE_PATTERN + r"(/photos/gallery/[^/?#]+)"
@@ -55,25 +58,23 @@ class XhamsterGalleryExtractor(XhamsterExtractor):
         author = info["authorInfoProps"]
 
         return {
-            "user":
-            {
-                "id"         : text.parse_int(model["userId"]),
-                "url"        : author["authorLink"],
-                "name"       : author["authorName"],
-                "verified"   : True if author.get("verified") else False,
+            "user": {
+                "id": text.parse_int(model["userId"]),
+                "url": author["authorLink"],
+                "name": author["authorName"],
+                "verified": True if author.get("verified") else False,
                 "subscribers": info["subscribeButtonProps"]["subscribers"],
             },
-            "gallery":
-            {
-                "id"         : text.parse_int(gallery["id"]),
-                "tags"       : [t["label"] for t in info["categoriesTags"]],
-                "date"       : text.parse_timestamp(model["created"]),
-                "views"      : text.parse_int(model["views"]),
-                "likes"      : text.parse_int(model["rating"]["likes"]),
-                "dislikes"   : text.parse_int(model["rating"]["dislikes"]),
-                "title"      : model["title"],
+            "gallery": {
+                "id": text.parse_int(gallery["id"]),
+                "tags": [t["label"] for t in info["categoriesTags"]],
+                "date": text.parse_timestamp(model["created"]),
+                "views": text.parse_int(model["views"]),
+                "likes": text.parse_int(model["rating"]["likes"]),
+                "dislikes": text.parse_int(model["rating"]["dislikes"]),
+                "title": model["title"],
                 "description": model["description"],
-                "thumbnail"  : model["thumbURL"],
+                "thumbnail": model["thumbURL"],
             },
             "count": text.parse_int(gallery["photosCount"]),
         }
@@ -88,19 +89,22 @@ class XhamsterGalleryExtractor(XhamsterExtractor):
             pagination = data["galleryPage"]["paginationProps"]
             if pagination["currentPageNumber"] >= pagination["lastPageNumber"]:
                 return
-            url = (pagination["pageLinkTemplate"][:-3] +
-                   str(pagination["currentPageNumber"] + 1))
+            url = pagination["pageLinkTemplate"][:-3] + str(
+                pagination["currentPageNumber"] + 1
+            )
 
             data = self._extract_data(url)
 
     def _extract_data(self, url):
         page = self.request(url).text
-        return util.json_loads(text.extr(
-            page, "window.initials=", "</script>").rstrip("\n\r;"))
+        return util.json_loads(
+            text.extr(page, "window.initials=", "</script>").rstrip("\n\r;")
+        )
 
 
 class XhamsterUserExtractor(XhamsterExtractor):
     """Extractor for all galleries of an xhamster user"""
+
     subcategory = "user"
     pattern = BASE_PATTERN + r"/users/([^/?#]+)(?:/photos)?/?(?:$|[?#])"
     example = "https://xhamster.com/users/USER/photos"

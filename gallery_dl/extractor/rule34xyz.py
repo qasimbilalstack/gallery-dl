@@ -25,14 +25,14 @@ class Rule34xyzExtractor(BooruExtractor):
 
     TAG_TYPES = {
         None: "general",
-        0   : "general",
-        1   : "general",
-        2   : "copyright",
-        4   : "character",
-        8   : "artist",
+        0: "general",
+        1: "general",
+        2: "copyright",
+        4: "character",
+        8: "artist",
     }
     FORMATS = {
-        "10" : "pic.jpg",
+        "10": "pic.jpg",
         "100": "mov.mp4",
         "101": "mov720.mp4",
         "102": "mov480.mp4",
@@ -59,8 +59,9 @@ class Rule34xyzExtractor(BooruExtractor):
 
         post_id = post["id"]
         root = self.root_cdn if files[fmt][0] else self.root
-        post["file_url"] = url = \
+        post["file_url"] = url = (
             f"{root}/posts/{post_id // 1000}/{post_id}/{post_id}.{extension}"
+        )
         post["format_id"] = fmt
         post["format"] = extension.partition(".")[0]
 
@@ -68,8 +69,7 @@ class Rule34xyzExtractor(BooruExtractor):
 
     def _prepare(self, post):
         post.pop("files", None)
-        post["date"] = text.parse_datetime(
-            post["created"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        post["date"] = text.parse_datetime(post["created"], "%Y-%m-%dT%H:%M:%S.%fZ")
         post["filename"], _, post["format"] = post["filename"].rpartition(".")
         if "tags" in post:
             post["tags"] = [t["value"] for t in post["tags"]]
@@ -114,22 +114,21 @@ class Rule34xyzExtractor(BooruExtractor):
     def login(self):
         username, password = self._get_auth_info()
         if username:
-            self.session.headers["Authorization"] = \
-                self._login_impl(username, password)
+            self.session.headers["Authorization"] = self._login_impl(username, password)
 
-    @cache(maxage=3650*86400, keyarg=1)
+    @cache(maxage=3650 * 86400, keyarg=1)
     def _login_impl(self, username, password):
         self.log.info("Logging in as %s", username)
 
         url = f"{self.root}/api/v2/auth/signin"
         data = {"email": username, "password": password}
-        response = self.request_json(
-            url, method="POST", json=data, fatal=False)
+        response = self.request_json(url, method="POST", json=data, fatal=False)
 
         if jwt := response.get("jwt"):
             return f"Bearer {jwt}"
         raise exception.AuthenticationError(
-            (msg := response.get("message")) and f'"{msg}"')
+            (msg := response.get("message")) and f'"{msg}"'
+        )
 
 
 class Rule34xyzPostExtractor(Rule34xyzExtractor):
@@ -165,8 +164,9 @@ class Rule34xyzTagExtractor(Rule34xyzExtractor):
     example = "https://rule34.xyz/TAG"
 
     def metadata(self):
-        self.tags = text.unquote(text.unquote(
-            self.groups[0]).replace("_", " ")).split("|")
+        self.tags = text.unquote(text.unquote(self.groups[0]).replace("_", " ")).split(
+            "|"
+        )
         return {"search_tags": ", ".join(self.tags)}
 
     def posts(self):

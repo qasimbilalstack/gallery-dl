@@ -14,6 +14,7 @@ from .. import text
 
 class UploadirFileExtractor(Extractor):
     """Extractor for uploadir files"""
+
     category = "uploadir"
     subcategory = "file"
     root = "https://uploadir.com"
@@ -38,18 +39,22 @@ class UploadirFileExtractor(Extractor):
             url = self.root + extr('class="form" action="', '"')
             token = extr('name="authenticity_token" value="', '"')
 
-            data = text.nameext_from_url(name, {
-                "_http_method": "POST",
-                "_http_data"  : {
-                    "authenticity_token": token,
-                    "upload_id": self.file_id,
+            data = text.nameext_from_url(
+                name,
+                {
+                    "_http_method": "POST",
+                    "_http_data": {
+                        "authenticity_token": token,
+                        "upload_id": self.file_id,
+                    },
                 },
-            })
+            )
 
         else:
             hcd = response.headers.get("Content-Disposition")
-            name = (hcd.partition("filename*=UTF-8''")[2] or
-                    text.extr(hcd, 'filename="', '"'))
+            name = hcd.partition("filename*=UTF-8''")[2] or text.extr(
+                hcd, 'filename="', '"'
+            )
             data = text.nameext_from_url(name)
 
         data["id"] = self.file_id

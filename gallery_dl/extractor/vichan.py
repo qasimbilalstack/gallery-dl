@@ -14,27 +14,31 @@ from .. import text
 
 class VichanExtractor(BaseExtractor):
     """Base class for vichan extractors"""
+
     basecategory = "vichan"
 
 
-BASE_PATTERN = VichanExtractor.update({
-    "8kun": {
-        "root": "https://8kun.top",
-        "pattern": r"8kun\.top",
-    },
-    "smugloli": {
-        "root": None,
-        "pattern": r"smuglo(?:\.li|li\.net)",
-    },
-    "gurochan": {
-        "root": "https://boards.guro.cx",
-        "pattern": r"boards\.guro\.cx",
-    },
-})
+BASE_PATTERN = VichanExtractor.update(
+    {
+        "8kun": {
+            "root": "https://8kun.top",
+            "pattern": r"8kun\.top",
+        },
+        "smugloli": {
+            "root": None,
+            "pattern": r"smuglo(?:\.li|li\.net)",
+        },
+        "gurochan": {
+            "root": "https://boards.guro.cx",
+            "pattern": r"boards\.guro\.cx",
+        },
+    }
+)
 
 
 class VichanThreadExtractor(VichanExtractor):
     """Extractor for vichan threads"""
+
     subcategory = "thread"
     directory_fmt = ("{category}", "{board}", "{thread} {title}")
     filename_fmt = "{time}{num:?-//} {filename}.{extension}"
@@ -49,13 +53,12 @@ class VichanThreadExtractor(VichanExtractor):
         posts = self.request_json(url)["posts"]
 
         title = posts[0].get("sub") or text.remove_html(posts[0]["com"])
-        process = (self._process_8kun if self.category == "8kun" else
-                   self._process)
+        process = self._process_8kun if self.category == "8kun" else self._process
         data = {
-            "board" : board,
+            "board": board,
             "thread": thread,
-            "title" : text.unescape(title)[:50],
-            "num"   : 0,
+            "title": text.unescape(title)[:50],
+            "num": 0,
         }
 
         yield Message.Directory, data
@@ -63,16 +66,14 @@ class VichanThreadExtractor(VichanExtractor):
             if "filename" in post:
                 yield process(post, data)
                 if "extra_files" in post:
-                    for post["num"], filedata in enumerate(
-                            post["extra_files"], 1):
+                    for post["num"], filedata in enumerate(post["extra_files"], 1):
                         yield process(post, filedata)
 
     def _process(self, post, data):
         post.update(data)
         ext = post["ext"]
         post["extension"] = ext[1:]
-        post["url"] = url = \
-            f"{self.root}/{post['board']}/src/{post['tim']}{ext}"
+        post["url"] = url = f"{self.root}/{post['board']}/src/{post['tim']}{ext}"
         return Message.Url, url, post
 
     def _process_8kun(self, post, data):
@@ -92,6 +93,7 @@ class VichanThreadExtractor(VichanExtractor):
 
 class VichanBoardExtractor(VichanExtractor):
     """Extractor for vichan boards"""
+
     subcategory = "board"
     pattern = BASE_PATTERN + r"/([^/?#]+)(?:/index|/catalog|/\d+|/?$)"
     example = "https://8kun.top/a/"

@@ -19,6 +19,7 @@ BASE_PATTERN = r"(?:https?://)?8chan\.(moe|se|cc)"
 
 class _8chanExtractor(Extractor):
     """Base class for 8chan extractors"""
+
     category = "8chan"
     root = "https://8chan.moe"
 
@@ -58,16 +59,17 @@ class _8chanExtractor(Extractor):
                 cookie.expires = None
                 if cookie.name == "captchaexpiration":
                     cookie.value = (now + timedelta(30, 300)).strftime(
-                        "%a, %d %b %Y %H:%M:%S GMT")
+                        "%a, %d %b %Y %H:%M:%S GMT"
+                    )
 
         return self.cookies
 
 
 class _8chanThreadExtractor(_8chanExtractor):
     """Extractor for 8chan threads"""
+
     subcategory = "thread"
-    directory_fmt = ("{category}", "{boardUri}",
-                     "{threadId} {subject[:50]}")
+    directory_fmt = ("{category}", "{boardUri}", "{threadId} {subject[:50]}")
     filename_fmt = "{postId}{num:?-//} {filename[:200]}.{extension}"
     archive_fmt = "{boardUri}_{postId}_{num}"
     pattern = BASE_PATTERN + r"/([^/?#]+)/(?:res|last)/(\d+)"
@@ -87,8 +89,12 @@ class _8chanThreadExtractor(_8chanExtractor):
         try:
             self.cookies = self.cookies_prepare()
         except Exception as exc:
-            self.log.debug("Failed to fetch captcha cookies:  %s: %s",
-                           exc.__class__.__name__, exc, exc_info=exc)
+            self.log.debug(
+                "Failed to fetch captcha cookies:  %s: %s",
+                exc.__class__.__name__,
+                exc,
+                exc_info=exc,
+            )
 
         # download files
         posts = thread.pop("posts", ())
@@ -107,6 +113,7 @@ class _8chanThreadExtractor(_8chanExtractor):
 
 class _8chanBoardExtractor(_8chanExtractor):
     """Extractor for 8chan boards"""
+
     subcategory = "board"
     pattern = BASE_PATTERN + r"/([^/?#]+)/(?:(\d+)\.html)?$"
     example = "https://8chan.moe/a/"

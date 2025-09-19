@@ -14,6 +14,7 @@ from .. import text
 
 class Shimmie2Extractor(BaseExtractor):
     """Base class for shimmie2 extractors"""
+
     basecategory = "shimmie2"
     filename_fmt = "{category}_{id}{md5:?_//}.{extension}"
     archive_fmt = "{id}"
@@ -39,8 +40,9 @@ class Shimmie2Extractor(BaseExtractor):
 
             url = post["file_url"]
             if "/index.php?" in url:
-                post["filename"], _, post["extension"] = \
-                    url.rpartition("/")[2].rpartition(".")
+                post["filename"], _, post["extension"] = url.rpartition("/")[
+                    2
+                ].rpartition(".")
             else:
                 text.nameext_from_url(url, post)
 
@@ -58,38 +60,44 @@ class Shimmie2Extractor(BaseExtractor):
     def _quote_type(self, page):
         """Return quoting character used in 'page' (' or ")"""
         try:
-            return page[page.index("<link rel=")+10]
+            return page[page.index("<link rel=") + 10]
         except Exception:
             return "'"
 
 
-BASE_PATTERN = Shimmie2Extractor.update({
-    "cavemanon": {
-        "root": "https://booru.cavemanon.xyz",
-        "pattern": r"booru\.cavemanon\.xyz",
-        "file_url": "{0}/index.php?q=image/{2}.{4}",
-    },
-    "rule34hentai": {
-        "root": "https://rule34hentai.net",
-        "pattern": r"rule34hentai\.net",
-    },
-    "vidyapics": {
-        "root": "https://vidya.pics",
-        "pattern": r"vidya\.pics",
-    },
-    "nozrip": {
-        "root": "https://noz.rip/booru",
-        "pattern": r"noz\.rip/booru",
-    },
-    "thecollectionS": {
-        "root": "https://co.llection.pics",
-        "pattern": r"co\.llection\.pics",
-    },
-}) + r"/(?:index\.php\?q=/?)?"
+BASE_PATTERN = (
+    Shimmie2Extractor.update(
+        {
+            "cavemanon": {
+                "root": "https://booru.cavemanon.xyz",
+                "pattern": r"booru\.cavemanon\.xyz",
+                "file_url": "{0}/index.php?q=image/{2}.{4}",
+            },
+            "rule34hentai": {
+                "root": "https://rule34hentai.net",
+                "pattern": r"rule34hentai\.net",
+            },
+            "vidyapics": {
+                "root": "https://vidya.pics",
+                "pattern": r"vidya\.pics",
+            },
+            "nozrip": {
+                "root": "https://noz.rip/booru",
+                "pattern": r"noz\.rip/booru",
+            },
+            "thecollectionS": {
+                "root": "https://co.llection.pics",
+                "pattern": r"co\.llection\.pics",
+            },
+        }
+    )
+    + r"/(?:index\.php\?q=/?)?"
+)
 
 
 class Shimmie2TagExtractor(Shimmie2Extractor):
     """Extractor for shimmie2 posts by tag search"""
+
     subcategory = "tag"
     directory_fmt = ("{category}", "{search_tags}")
     file_url_fmt = "{}/_images/{}/{}%20-%20{}.{}"
@@ -115,21 +123,21 @@ class Shimmie2TagExtractor(Shimmie2Extractor):
             if init:
                 init = False
                 quote = self._quote_type(page)
-                has_mime = (" data-mime=" in page)
-                has_pid = (" data-post-id=" in page)
+                has_mime = " data-mime=" in page
+                has_pid = " data-post-id=" in page
 
             while True:
                 if has_mime:
-                    mime = extr(" data-mime="+quote, quote)
+                    mime = extr(" data-mime=" + quote, quote)
                 if has_pid:
-                    pid = extr(" data-post-id="+quote, quote)
+                    pid = extr(" data-post-id=" + quote, quote)
                 else:
                     pid = extr(" href='/post/view/", quote)
 
                 if not pid:
                     break
 
-                data = extr("title="+quote, quote).split(" // ")
+                data = extr("title=" + quote, quote).split(" // ")
                 tags = data[0]
                 dimensions = data[1]
                 size = data[2]
@@ -139,8 +147,12 @@ class Shimmie2TagExtractor(Shimmie2Extractor):
 
                 yield {
                     "file_url": file_url_fmt(
-                        self.root, md5, pid, text.quote(tags),
-                        mime.rpartition("/")[2] if mime else "jpg"),
+                        self.root,
+                        md5,
+                        pid,
+                        text.quote(tags),
+                        mime.rpartition("/")[2] if mime else "jpg",
+                    ),
                     "id": pid,
                     "md5": md5,
                     "tags": tags,
@@ -157,6 +169,7 @@ class Shimmie2TagExtractor(Shimmie2Extractor):
 
 class Shimmie2PostExtractor(Shimmie2Extractor):
     """Extractor for single shimmie2 posts"""
+
     subcategory = "post"
     pattern = BASE_PATTERN + r"post/view/(\d+)"
     example = "https://vidya.pics/post/view/12345"
@@ -172,16 +185,17 @@ class Shimmie2PostExtractor(Shimmie2Extractor):
         qt = self._quote_type(page)
 
         post = {
-            "id"      : post_id,
-            "tags"    : extr(": ", "<").partition(" - ")[0].rstrip(")"),
-            "md5"     : extr("/_thumbs/", "/"),
-            "file_url": base + (
-                extr(f"id={qt}main_image{qt} src={qt}", qt) or
-                extr("<source src="+qt, qt)).lstrip("."),
-            "width"   : extr("data-width=", " ").strip("\"'"),
-            "height"  : extr("data-height=", ">").partition(
-                " ")[0].strip("\"'"),
-            "size"    : 0,
+            "id": post_id,
+            "tags": extr(": ", "<").partition(" - ")[0].rstrip(")"),
+            "md5": extr("/_thumbs/", "/"),
+            "file_url": base
+            + (
+                extr(f"id={qt}main_image{qt} src={qt}", qt)
+                or extr("<source src=" + qt, qt)
+            ).lstrip("."),
+            "width": extr("data-width=", " ").strip("\"'"),
+            "height": extr("data-height=", ">").partition(" ")[0].strip("\"'"),
+            "size": 0,
         }
 
         if not post["md5"]:

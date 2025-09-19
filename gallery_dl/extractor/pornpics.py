@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?pornpics\.com(?:/\w\w)?"
 
 class PornpicsExtractor(Extractor):
     """Base class for pornpics extractors"""
+
     category = "pornpics"
     root = "https://www.pornpics.com"
     request_interval = (0.5, 1.5)
@@ -30,8 +31,7 @@ class PornpicsExtractor(Extractor):
             # fetch first 20 galleries from HTML
             # since '"offset": 0' does not return a JSON response
             page = self.request(url).text
-            for href in text.extract_iter(
-                    page, 'class="rel-link" href="', '"'):
+            for href in text.extract_iter(page, 'class="rel-link" href="', '"'):
                 if href[0] == "/":
                     href = self.root + href
                 yield {"g_url": href}
@@ -47,8 +47,7 @@ class PornpicsExtractor(Extractor):
         }
 
         while True:
-            galleries = self.request_json(
-                url, params=params, headers=headers)
+            galleries = self.request_json(url, params=params, headers=headers)
             yield from galleries
 
             if len(galleries) < limit:
@@ -58,6 +57,7 @@ class PornpicsExtractor(Extractor):
 
 class PornpicsGalleryExtractor(PornpicsExtractor, GalleryExtractor):
     """Extractor for pornpics galleries"""
+
     pattern = BASE_PATTERN + r"/galleries/((?:[^/?#]+-)?(\d+))"
     example = "https://www.pornpics.com/galleries/TITLE-12345/"
 
@@ -72,16 +72,13 @@ class PornpicsGalleryExtractor(PornpicsExtractor, GalleryExtractor):
 
         return {
             "gallery_id": text.parse_int(self.groups[1]),
-            "slug"      : extr("/galleries/", "/").rpartition("-")[0],
-            "title"     : text.unescape(extr("<h1>", "<")),
-            "channel"   : text.split_html(extr(">Channel:&nbsp;", '</div>')),
-            "models"    : text.split_html(extr(
-                ">Models:", '<span class="suggest')),
-            "categories": text.split_html(extr(
-                ">Categories:", '<span class="suggest')),
-            "tags"      : text.split_html(extr(
-                ">Tags List:", ' </div>')),
-            "views"    : text.parse_int(extr(">Views:", "<").replace(",", "")),
+            "slug": extr("/galleries/", "/").rpartition("-")[0],
+            "title": text.unescape(extr("<h1>", "<")),
+            "channel": text.split_html(extr(">Channel:&nbsp;", "</div>")),
+            "models": text.split_html(extr(">Models:", '<span class="suggest')),
+            "categories": text.split_html(extr(">Categories:", '<span class="suggest')),
+            "tags": text.split_html(extr(">Tags List:", " </div>")),
+            "views": text.parse_int(extr(">Views:", "<").replace(",", "")),
         }
 
     def images(self, page):
@@ -93,6 +90,7 @@ class PornpicsGalleryExtractor(PornpicsExtractor, GalleryExtractor):
 
 class PornpicsTagExtractor(PornpicsExtractor):
     """Extractor for galleries from pornpics tag searches"""
+
     subcategory = "tag"
     pattern = BASE_PATTERN + r"/tags/([^/?#]+)"
     example = "https://www.pornpics.com/tags/TAGS/"
@@ -104,6 +102,7 @@ class PornpicsTagExtractor(PornpicsExtractor):
 
 class PornpicsSearchExtractor(PornpicsExtractor):
     """Extractor for galleries from pornpics search results"""
+
     subcategory = "search"
     pattern = BASE_PATTERN + r"/(?:\?q=|pornstars/|channels/)([^/&#]+)"
     example = "https://www.pornpics.com/?q=QUERY"
@@ -111,8 +110,8 @@ class PornpicsSearchExtractor(PornpicsExtractor):
     def galleries(self):
         url = self.root + "/search/srch.php"
         params = {
-            "q"     : self.groups[0].replace("-", " "),
-            "lang"  : "en",
+            "q": self.groups[0].replace("-", " "),
+            "lang": "en",
             "offset": 0,
         }
         return self._pagination(url, params)

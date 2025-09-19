@@ -17,8 +17,9 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?sex\.com(?:/[a-z]{2})?"
 
 class SexcomExtractor(Extractor):
     """Base class for sexcom extractors"""
+
     category = "sexcom"
-    directory_fmt = ("{category}")
+    directory_fmt = "{category}"
     filename_fmt = "{pin_id}{title:? //}.{extension}"
     archive_fmt = "{pin_id}"
     root = "https://www.sex.com"
@@ -35,7 +36,8 @@ class SexcomExtractor(Extractor):
             parts = url.rsplit("/", 4)
             try:
                 pin["date_url"] = dt = datetime(
-                    int(parts[1]), int(parts[2]), int(parts[3]))
+                    int(parts[1]), int(parts[2]), int(parts[3])
+                )
                 if "date" not in pin:
                     pin["date"] = dt
             except Exception:
@@ -79,13 +81,13 @@ class SexcomExtractor(Extractor):
             if location[0] == "/":
                 location = self.root + location
             if len(location) <= 25:
-                return self.log.warning(
-                    'Unable to fetch %s: Redirect to homepage', url)
+                return self.log.warning("Unable to fetch %s: Redirect to homepage", url)
             response = self.request(location, fatal=False)
 
         if response.status_code >= 400:
-            return self.log.warning('Unable to fetch %s: %s %s',
-                                    url, response.status_code, response.reason)
+            return self.log.warning(
+                "Unable to fetch %s: %s %s", url, response.status_code, response.reason
+            )
 
         if "/pin/" in response.url:
             return self._parse_pin_legacy(response)
@@ -99,12 +101,14 @@ class SexcomExtractor(Extractor):
 
         data["_http_headers"] = {"Referer": response.url}
         data["thumbnail"] = extr('itemprop="thumbnail" content="', '"')
-        data["type"] = extr('<h1>' , '<').rstrip(" -").strip().lower()
-        data["title"] = text.unescape(extr('itemprop="name">' , '<'))
-        data["repins"] = text.parse_int(text.extract(
-            extr('"btn-group"', '</div>'), '"btn btn-primary">' , '<')[0])
-        data["likes"] = text.parse_int(text.extract(
-            extr('"btn-group"', '</div>'), '"btn btn-default">' , '<')[0])
+        data["type"] = extr("<h1>", "<").rstrip(" -").strip().lower()
+        data["title"] = text.unescape(extr('itemprop="name">', "<"))
+        data["repins"] = text.parse_int(
+            text.extract(extr('"btn-group"', "</div>"), '"btn btn-primary">', "<")[0]
+        )
+        data["likes"] = text.parse_int(
+            text.extract(extr('"btn-group"', "</div>"), '"btn btn-default">', "<")[0]
+        )
         data["pin_id"] = text.parse_int(extr('data-id="', '"'))
 
         if data["type"] == "video":
@@ -112,19 +116,18 @@ class SexcomExtractor(Extractor):
 
             if info:
                 try:
-                    path = text.rextr(
-                        info, "src: '", "'", info.index("label: 'HD'"))
+                    path = text.rextr(info, "src: '", "'", info.index("label: 'HD'"))
                 except ValueError:
                     path = text.extr(info, "src: '", "'")
                 text.nameext_from_url(path, data)
                 data["url"] = path
             else:
-                iframe = extr('<iframe', '>')
-                src = (text.extr(iframe, ' src="', '"') or
-                       text.extr(iframe, " src='", "'"))
+                iframe = extr("<iframe", ">")
+                src = text.extr(iframe, ' src="', '"') or text.extr(
+                    iframe, " src='", "'"
+                )
                 if not src:
-                    self.log.warning(
-                        "Unable to fetch media from %s", response.url)
+                    self.log.warning("Unable to fetch media from %s", response.url)
                     return None
                 data["extension"] = None
                 data["url"] = "ytdl:" + src
@@ -135,10 +138,10 @@ class SexcomExtractor(Extractor):
             data["_fallback"] = (url,)
             text.nameext_from_url(data["url"], data)
 
-        data["uploader"] = extr('itemprop="author">', '<')
+        data["uploader"] = extr('itemprop="author">', "<")
         data["date"] = text.parse_datetime(extr('datetime="', '"'))
-        data["tags"] = text.split_html(extr('class="tags"> Tags', '</div>'))
-        data["comments"] = text.parse_int(extr('Comments (', ')'))
+        data["tags"] = text.split_html(extr('class="tags"> Tags', "</div>"))
+        data["comments"] = text.parse_int(extr("Comments (", ")"))
 
         return data
 
@@ -151,8 +154,9 @@ class SexcomExtractor(Extractor):
             "_http_headers": {"Referer": response.url},
             "url": href,
             "title": text.unescape(title),
-            "pin_id": text.parse_int(extr(
-                'rel="canonical" href="', '"').rpartition("/")[2]),
+            "pin_id": text.parse_int(
+                extr('rel="canonical" href="', '"').rpartition("/")[2]
+            ),
             "tags": text.split_html(extr("</h1>", "</section>")),
         }
 
@@ -180,11 +184,14 @@ class SexcomExtractor(Extractor):
             "extension": "mp4",
             "type": "video",
             "title": text.unescape(extr("<title>", " | Sex.com<")),
-            "pin_id": text.parse_int(extr(
-                'rel="canonical" href="', '"').rpartition("/")[2]),
-            "tags": text.split_html(extr(
-                'event_name="video_tags_click"', "<div data-testid=")
-                .partition(">")[2]),
+            "pin_id": text.parse_int(
+                extr('rel="canonical" href="', '"').rpartition("/")[2]
+            ),
+            "tags": text.split_html(
+                extr('event_name="video_tags_click"', "<div data-testid=").partition(
+                    ">"
+                )[2]
+            ),
             "url": "ytdl:" + extr('<source src="', '"'),
         }
 
@@ -193,10 +200,10 @@ class SexcomExtractor(Extractor):
 
 class SexcomPinExtractor(SexcomExtractor):
     """Extractor for a pinned image or video on www.sex.com"""
+
     subcategory = "pin"
     directory_fmt = ("{category}",)
-    pattern = (BASE_PATTERN +
-               r"(/(?:\w\w/(?:pic|gif|video)s|pin)/\d+/?)(?!.*#related$)")
+    pattern = BASE_PATTERN + r"(/(?:\w\w/(?:pic|gif|video)s|pin)/\d+/?)(?!.*#related$)"
     example = "https://www.sex.com/pin/12345-TITLE/"
 
     def pins(self):
@@ -205,6 +212,7 @@ class SexcomPinExtractor(SexcomExtractor):
 
 class SexcomRelatedPinExtractor(SexcomPinExtractor):
     """Extractor for related pins on www.sex.com"""
+
     subcategory = "related-pin"
     directory_fmt = ("{category}", "related {original_pin[pin_id]}")
     pattern = BASE_PATTERN + r"(/pin/(\d+)/?).*#related$"
@@ -215,13 +223,13 @@ class SexcomRelatedPinExtractor(SexcomPinExtractor):
         return {"original_pin": pin}
 
     def pins(self):
-        url = (f"{self.root}/pin/related?pinId={self.groups[1]}"
-               f"&limit=24&offset=0")
+        url = f"{self.root}/pin/related?pinId={self.groups[1]}" f"&limit=24&offset=0"
         return self._pagination(url)
 
 
 class SexcomPinsExtractor(SexcomExtractor):
     """Extractor for a user's pins on www.sex.com"""
+
     subcategory = "pins"
     directory_fmt = ("{category}", "{user}")
     pattern = BASE_PATTERN + r"/user/([^/?#]+)/pins/"
@@ -237,6 +245,7 @@ class SexcomPinsExtractor(SexcomExtractor):
 
 class SexcomLikesExtractor(SexcomExtractor):
     """Extractor for a user's liked pins on www.sex.com"""
+
     subcategory = "likes"
     directory_fmt = ("{category}", "{user}", "Likes")
     pattern = BASE_PATTERN + r"/user/([^/?#]+)/likes/"
@@ -252,16 +261,19 @@ class SexcomLikesExtractor(SexcomExtractor):
 
 class SexcomBoardExtractor(SexcomExtractor):
     """Extractor for pins from a board on www.sex.com"""
+
     subcategory = "board"
     directory_fmt = ("{category}", "{user}", "{board}")
-    pattern = (BASE_PATTERN + r"/user"
-               r"/([^/?#]+)/(?!(?:following|pins|repins|likes)/)([^/?#]+)")
+    pattern = (
+        BASE_PATTERN + r"/user"
+        r"/([^/?#]+)/(?!(?:following|pins|repins|likes)/)([^/?#]+)"
+    )
     example = "https://www.sex.com/user/USER/BOARD/"
 
     def metadata(self):
         self.user, self.board = self.groups
         return {
-            "user" : text.unquote(self.user),
+            "user": text.unquote(self.user),
             "board": text.unquote(self.board),
         }
 
@@ -272,12 +284,15 @@ class SexcomBoardExtractor(SexcomExtractor):
 
 class SexcomSearchExtractor(SexcomExtractor):
     """Extractor for search results on www.sex.com"""
+
     subcategory = "search"
     directory_fmt = ("{category}", "search", "{search[search]}")
-    pattern = (BASE_PATTERN + r"/(?:"
-               r"(pic|gif|video)s(?:\?(search=[^#]+)$|/([^/?#]*))"
-               r"|search/(pic|gif|video)s"
-               r")/?(?:\?([^#]+))?")
+    pattern = (
+        BASE_PATTERN + r"/(?:"
+        r"(pic|gif|video)s(?:\?(search=[^#]+)$|/([^/?#]*))"
+        r"|search/(pic|gif|video)s"
+        r")/?(?:\?([^#]+))?"
+    )
     example = "https://www.sex.com/search/pics?query=QUERY"
 
     def _init(self):
@@ -298,8 +313,9 @@ class SexcomSearchExtractor(SexcomExtractor):
         type = self.type
         gifs = self.config("gifs", True)
 
-        url = (f"{self.root}/portal/api/"
-               f"{'picture' if type == 'pic' else type}s/search")
+        url = (
+            f"{self.root}/portal/api/" f"{'picture' if type == 'pic' else type}s/search"
+        )
         params = self.params
         params["page"] = text.parse_int(params.get("page"), 1)
         params["limit"] = 40
@@ -315,7 +331,8 @@ class SexcomSearchExtractor(SexcomExtractor):
                 parts = path.rsplit("/", 4)
                 try:
                     pin["date_url"] = pin["date"] = datetime(
-                        int(parts[1]), int(parts[2]), int(parts[3]))
+                        int(parts[1]), int(parts[2]), int(parts[3])
+                    )
                 except Exception:
                     pass
 

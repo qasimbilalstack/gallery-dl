@@ -35,7 +35,7 @@ class WeiboExtractor(Extractor):
         self.videos = self.config("videos", True)
         self.movies = self.config("movies", False)
         self.gifs = self.config("gifs", True)
-        self.gifs_video = (self.gifs == "video")
+        self.gifs_video = self.gifs == "video"
 
         cookies = _cookie_cache()
         if cookies is not None:
@@ -48,7 +48,8 @@ class WeiboExtractor(Extractor):
             if "login.sina.com" in response.url:
                 raise exception.AbortExtraction(
                     f"HTTP redirect to login page "
-                    f"({response.url.partition('?')[0]})")
+                    f"({response.url.partition('?')[0]})"
+                )
             if "passport.weibo.com" in response.url:
                 self._sina_visitor_system(response)
                 response = Extractor.request(self, url, **kwargs)
@@ -56,7 +57,7 @@ class WeiboExtractor(Extractor):
         return response
 
     def items(self):
-        original_retweets = (self.retweets == "original")
+        original_retweets = self.retweets == "original"
 
         for status in self.statuses():
 
@@ -82,7 +83,8 @@ class WeiboExtractor(Extractor):
                 self._extract_status(status, files)
 
             status["date"] = text.parse_datetime(
-                status["created_at"], "%a %b %d %H:%M:%S %z %Y")
+                status["created_at"], "%a %b %d %H:%M:%S %z %Y"
+            )
             status["count"] = len(files)
             yield Message.Directory, status
 
@@ -103,8 +105,7 @@ class WeiboExtractor(Extractor):
                 type = item.get("type")
                 if type == "video":
                     if self.videos:
-                        files.append(self._extract_video(
-                            item["data"]["media_info"]))
+                        files.append(self._extract_video(item["data"]["media_info"]))
                 elif type == "pic":
                     files.append(item["data"]["largest"].copy())
                 else:
@@ -140,11 +141,9 @@ class WeiboExtractor(Extractor):
 
     def _extract_video(self, info):
         try:
-            media = max(info["playback_list"],
-                        key=lambda m: m["meta"]["quality_index"])
+            media = max(info["playback_list"], key=lambda m: m["meta"]["quality_index"])
         except Exception:
-            return {"url": (info.get("stream_url_hd") or
-                            info.get("stream_url") or "")}
+            return {"url": (info.get("stream_url_hd") or info.get("stream_url") or "")}
         else:
             return media["play_info"].copy()
 
@@ -156,9 +155,11 @@ class WeiboExtractor(Extractor):
         if len(self.user) >= 10 and self.user.isdecimal():
             return self.user[-10:]
         else:
-            url = (f"{self.root}/ajax/profile/info?"
-                   f"{'screen_name' if self._prefix == 'n' else 'custom'}="
-                   f"{self.user}")
+            url = (
+                f"{self.root}/ajax/profile/info?"
+                f"{'screen_name' if self._prefix == 'n' else 'custom'}="
+                f"{self.user}"
+            )
             return self.request_json(url)["data"]["user"]["idstr"]
 
     def _pagination(self, endpoint, params):
@@ -179,7 +180,8 @@ class WeiboExtractor(Extractor):
                 self.log.debug(response.content)
                 if "since_id" not in params:  # first iteration
                     raise exception.AbortExtraction(
-                        f'"{data.get("msg") or "unknown error"}"')
+                        f'"{data.get("msg") or "unknown error"}"'
+                    )
 
             data = data["data"]
             statuses = data["list"]
@@ -218,22 +220,23 @@ class WeiboExtractor(Extractor):
         data = {
             "cb": "gen_callback",
             "fp": '{"os":"1","browser":"Gecko109,0,0,0","fonts":"undefined",'
-                  '"screenInfo":"1920*1080*24","plugins":""}',
+            '"screenInfo":"1920*1080*24","plugins":""}',
         }
 
         page = Extractor.request(
-            self, passport_url, method="POST", headers=headers, data=data).text
+            self, passport_url, method="POST", headers=headers, data=data
+        ).text
         data = util.json_loads(text.extr(page, "(", ");"))["data"]
 
         passport_url = "https://passport.weibo.com/visitor/visitor"
         params = {
-            "a"    : "incarnate",
-            "t"    : data["tid"],
-            "w"    : "3" if data.get("new_tid") else "2",
-            "c"    : f"{data.get('confidence') or 100:>03}",
-            "gc"   : "",
-            "cb"   : "cross_domain",
-            "from" : "weibo",
+            "a": "incarnate",
+            "t": data["tid"],
+            "w": "3" if data.get("new_tid") else "2",
+            "c": f"{data.get('confidence') or 100:>03}",
+            "gc": "",
+            "cb": "cross_domain",
+            "from": "weibo",
             "_rand": random.random(),
         }
         response = Extractor.request(self, passport_url, params=params)
@@ -242,6 +245,7 @@ class WeiboExtractor(Extractor):
 
 class WeiboUserExtractor(WeiboExtractor):
     """Extractor for weibo user profiles"""
+
     subcategory = "user"
     pattern = USER_PATTERN + r"(?:$|#)"
     example = "https://weibo.com/USER"
@@ -253,17 +257,22 @@ class WeiboUserExtractor(WeiboExtractor):
 
     def items(self):
         base = f"{self.root}/u/{self._user_id()}?tabtype="
-        return Dispatch._dispatch_extractors(self, (
-            (WeiboHomeExtractor    , base + "home"),
-            (WeiboFeedExtractor    , base + "feed"),
-            (WeiboVideosExtractor  , base + "video"),
-            (WeiboNewvideoExtractor, base + "newVideo"),
-            (WeiboAlbumExtractor   , base + "album"),
-        ), ("feed",))
+        return Dispatch._dispatch_extractors(
+            self,
+            (
+                (WeiboHomeExtractor, base + "home"),
+                (WeiboFeedExtractor, base + "feed"),
+                (WeiboVideosExtractor, base + "video"),
+                (WeiboNewvideoExtractor, base + "newVideo"),
+                (WeiboAlbumExtractor, base + "album"),
+            ),
+            ("feed",),
+        )
 
 
 class WeiboHomeExtractor(WeiboExtractor):
     """Extractor for weibo 'home' listings"""
+
     subcategory = "home"
     pattern = USER_PATTERN + r"\?tabtype=home"
     example = "https://weibo.com/USER?tabtype=home"
@@ -276,6 +285,7 @@ class WeiboHomeExtractor(WeiboExtractor):
 
 class WeiboFeedExtractor(WeiboExtractor):
     """Extractor for weibo user feeds"""
+
     subcategory = "feed"
     pattern = USER_PATTERN + r"\?tabtype=feed"
     example = "https://weibo.com/USER?tabtype=feed"
@@ -288,6 +298,7 @@ class WeiboFeedExtractor(WeiboExtractor):
 
 class WeiboVideosExtractor(WeiboExtractor):
     """Extractor for weibo 'video' listings"""
+
     subcategory = "videos"
     pattern = USER_PATTERN + r"\?tabtype=video"
     example = "https://weibo.com/USER?tabtype=video"
@@ -302,6 +313,7 @@ class WeiboVideosExtractor(WeiboExtractor):
 
 class WeiboNewvideoExtractor(WeiboExtractor):
     """Extractor for weibo 'newVideo' listings"""
+
     subcategory = "newvideo"
     pattern = USER_PATTERN + r"\?tabtype=newVideo"
     example = "https://weibo.com/USER?tabtype=newVideo"
@@ -314,6 +326,7 @@ class WeiboNewvideoExtractor(WeiboExtractor):
 
 class WeiboArticleExtractor(WeiboExtractor):
     """Extractor for weibo 'article' listings"""
+
     subcategory = "article"
     pattern = USER_PATTERN + r"\?tabtype=article"
     example = "https://weibo.com/USER?tabtype=article"
@@ -326,6 +339,7 @@ class WeiboArticleExtractor(WeiboExtractor):
 
 class WeiboAlbumExtractor(WeiboExtractor):
     """Extractor for weibo 'album' listings"""
+
     subcategory = "album"
     pattern = USER_PATTERN + r"\?tabtype=album"
     example = "https://weibo.com/USER?tabtype=album"
@@ -348,6 +362,7 @@ class WeiboAlbumExtractor(WeiboExtractor):
 
 class WeiboStatusExtractor(WeiboExtractor):
     """Extractor for images from a status on weibo.cn"""
+
     subcategory = "status"
     pattern = BASE_PATTERN + r"/(detail|status|\d+)/(\w+)"
     example = "https://weibo.com/detail/12345"
@@ -360,6 +375,6 @@ class WeiboStatusExtractor(WeiboExtractor):
         return (status,)
 
 
-@cache(maxage=365*86400)
+@cache(maxage=365 * 86400)
 def _cookie_cache():
     return None

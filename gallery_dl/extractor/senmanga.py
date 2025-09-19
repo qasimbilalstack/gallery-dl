@@ -14,6 +14,7 @@ from .. import text
 
 class SenmangaChapterExtractor(ChapterExtractor):
     """Extractor for manga chapters from raw.senmanga.com"""
+
     category = "senmanga"
     root = "https://raw.senmanga.com"
     pattern = r"(?:https?://)?raw\.senmanga\.com(/[^/?#]+/[^/?#]+)"
@@ -30,16 +31,15 @@ class SenmangaChapterExtractor(ChapterExtractor):
         manga, _, chapter = title.partition(" - Chapter ")
 
         return {
-            "manga"        : text.unescape(manga).replace("-", " "),
-            "chapter"      : chapter.partition(" - Page ")[0],
+            "manga": text.unescape(manga).replace("-", " "),
+            "chapter": chapter.partition(" - Page ")[0],
             "chapter_minor": "",
-            "lang"         : "ja",
-            "language"     : "Japanese",
+            "lang": "ja",
+            "language": "Japanese",
         }
 
     def images(self, page):
         return [
             (text.ensure_http_scheme(url), None)
-            for url in text.extract_iter(
-                page, '<img class="picture" src="', '"')
+            for url in text.extract_iter(page, '<img class="picture" src="', '"')
         ]

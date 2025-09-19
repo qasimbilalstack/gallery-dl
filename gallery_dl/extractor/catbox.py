@@ -14,6 +14,7 @@ from .. import text
 
 class CatboxAlbumExtractor(GalleryExtractor):
     """Extractor for catbox albums"""
+
     category = "catbox"
     subcategory = "album"
     root = "https://catbox.moe"
@@ -26,23 +27,22 @@ class CatboxAlbumExtractor(GalleryExtractor):
     def metadata(self, page):
         extr = text.extract_from(page)
         return {
-            "album_id"   : self.page_url.rpartition("/")[2],
-            "album_name" : text.unescape(extr("<h1>", "<")),
-            "date"       : text.parse_datetime(extr(
-                "<p>Created ", "<"), "%B %d %Y"),
+            "album_id": self.page_url.rpartition("/")[2],
+            "album_name": text.unescape(extr("<h1>", "<")),
+            "date": text.parse_datetime(extr("<p>Created ", "<"), "%B %d %Y"),
             "description": text.unescape(extr("<p>", "<")),
         }
 
     def images(self, page):
         return [
             ("https://files.catbox.moe/" + path, None)
-            for path in text.extract_iter(
-                page, ">https://files.catbox.moe/", "<")
+            for path in text.extract_iter(page, ">https://files.catbox.moe/", "<")
         ]
 
 
 class CatboxFileExtractor(Extractor):
     """Extractor for catbox files"""
+
     category = "catbox"
     subcategory = "file"
     archive_fmt = "{filename}"

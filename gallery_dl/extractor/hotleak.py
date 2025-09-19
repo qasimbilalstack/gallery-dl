@@ -15,8 +15,12 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?hotleak\.vip"
 
 class HotleakExtractor(Extractor):
     """Base class for hotleak extractors"""
+
     category = "hotleak"
-    directory_fmt = ("{category}", "{creator}",)
+    directory_fmt = (
+        "{category}",
+        "{creator}",
+    )
     filename_fmt = "{creator}_{id}.{extension}"
     archive_fmt = "{type}_{creator}_{id}"
     root = "https://hotleak.vip"
@@ -47,7 +51,8 @@ class HotleakExtractor(Extractor):
                 return
 
             for item in text.extract_iter(
-                    page, '<article class="movie-item', '</article>'):
+                page, '<article class="movie-item', "</article>"
+            ):
                 yield text.extr(item, '<a href="', '"')
 
             params["page"] += 1
@@ -60,9 +65,12 @@ def decode_video_url(url):
 
 class HotleakPostExtractor(HotleakExtractor):
     """Extractor for individual posts on hotleak"""
+
     subcategory = "post"
-    pattern = (BASE_PATTERN + r"/(?!(?:hot|creators|videos|photos)(?:$|/))"
-               r"([^/]+)/(photo|video)/(\d+)")
+    pattern = (
+        BASE_PATTERN + r"/(?!(?:hot|creators|videos|photos)(?:$|/))"
+        r"([^/]+)/(photo|video)/(\d+)"
+    )
     example = "https://hotleak.vip/MODEL/photo/12345"
 
     def __init__(self, match):
@@ -72,12 +80,11 @@ class HotleakPostExtractor(HotleakExtractor):
     def posts(self):
         url = f"{self.root}/{self.creator}/{self.type}/{self.id}"
         page = self.request(url).text
-        page = text.extr(
-            page, '<div class="movie-image thumb">', '</article>')
+        page = text.extr(page, '<div class="movie-image thumb">', "</article>")
         data = {
-            "id"     : text.parse_int(self.id),
+            "id": text.parse_int(self.id),
             "creator": self.creator,
-            "type"   : self.type,
+            "type": self.type,
         }
 
         if self.type == "photo":
@@ -85,8 +92,9 @@ class HotleakPostExtractor(HotleakExtractor):
             text.nameext_from_url(data["url"], data)
 
         elif self.type == "video":
-            data["url"] = "ytdl:" + decode_video_url(text.extr(
-                text.unescape(page), '"src":"', '"'))
+            data["url"] = "ytdl:" + decode_video_url(
+                text.extr(text.unescape(page), '"src":"', '"')
+            )
             text.nameext_from_url(data["url"], data)
             data["extension"] = "mp4"
 
@@ -95,9 +103,11 @@ class HotleakPostExtractor(HotleakExtractor):
 
 class HotleakCreatorExtractor(HotleakExtractor):
     """Extractor for all posts from a hotleak creator"""
+
     subcategory = "creator"
-    pattern = (BASE_PATTERN + r"/(?!(?:hot|creators|videos|photos)(?:$|/))"
-               r"([^/?#]+)/?$")
+    pattern = (
+        BASE_PATTERN + r"/(?!(?:hot|creators|videos|photos)(?:$|/))" r"([^/?#]+)/?$"
+    )
     example = "https://hotleak.vip/MODEL"
 
     def __init__(self, match):
@@ -115,11 +125,11 @@ class HotleakCreatorExtractor(HotleakExtractor):
         while True:
             try:
                 response = self.request(
-                    url, headers=headers, params=params, notfound="creator")
+                    url, headers=headers, params=params, notfound="creator"
+                )
             except exception.HttpError as exc:
                 if exc.response.status_code == 429:
-                    self.wait(
-                        until=exc.response.headers.get("X-RateLimit-Reset"))
+                    self.wait(until=exc.response.headers.get("X-RateLimit-Reset"))
                     continue
                 raise
 
@@ -138,8 +148,7 @@ class HotleakCreatorExtractor(HotleakExtractor):
 
                 elif post["type"] == 1:
                     data["type"] = "video"
-                    data["url"] = "ytdl:" + decode_video_url(
-                        post["stream_url_play"])
+                    data["url"] = "ytdl:" + decode_video_url(post["stream_url_play"])
                     text.nameext_from_url(data["url"], data)
                     data["extension"] = "mp4"
 
@@ -149,6 +158,7 @@ class HotleakCreatorExtractor(HotleakExtractor):
 
 class HotleakCategoryExtractor(HotleakExtractor):
     """Extractor for hotleak categories"""
+
     subcategory = "category"
     pattern = BASE_PATTERN + r"/(hot|creators|videos|photos)(?:/?\?([^#]+))?"
     example = "https://hotleak.vip/photos"
@@ -171,6 +181,7 @@ class HotleakCategoryExtractor(HotleakExtractor):
 
 class HotleakSearchExtractor(HotleakExtractor):
     """Extractor for hotleak search results"""
+
     subcategory = "search"
     pattern = BASE_PATTERN + r"/search(?:/?\?([^#]+))"
     example = "https://hotleak.vip/search?search=QUERY"

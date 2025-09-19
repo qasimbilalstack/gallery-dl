@@ -15,10 +15,10 @@ import binascii
 
 class HentainexusGalleryExtractor(GalleryExtractor):
     """Extractor for hentainexus galleries"""
+
     category = "hentainexus"
     root = "https://hentainexus.com"
-    pattern = (r"(?i)(?:https?://)?(?:www\.)?hentainexus\.com"
-               r"/(?:view|read)/(\d+)")
+    pattern = r"(?i)(?:https?://)?(?:www\.)?hentainexus\.com" r"/(?:view|read)/(\d+)"
     example = "https://hentainexus.com/view/12345"
 
     def __init__(self, match):
@@ -31,13 +31,22 @@ class HentainexusGalleryExtractor(GalleryExtractor):
         extr = text.extract_from(page)
         data = {
             "gallery_id": text.parse_int(self.gallery_id),
-            "cover"     : extr('"og:image" content="', '"'),
-            "title"     : extr('<h1 class="title">', '</h1>'),
+            "cover": extr('"og:image" content="', '"'),
+            "title": extr('<h1 class="title">', "</h1>"),
         }
 
-        for key in ("Artist", "Book", "Circle", "Event", "Language",
-                    "Magazine", "Parody", "Publisher", "Description"):
-            value = rmve(extr('viewcolumn">' + key + '</td>', '</td>'))
+        for key in (
+            "Artist",
+            "Book",
+            "Circle",
+            "Event",
+            "Language",
+            "Magazine",
+            "Parody",
+            "Publisher",
+            "Description",
+        ):
+            value = rmve(extr('viewcolumn">' + key + "</td>", "</td>"))
             value, sep, rest = value.rpartition(" (")
             data[key.lower()] = value if sep else rest
 
@@ -61,8 +70,7 @@ class HentainexusGalleryExtractor(GalleryExtractor):
     def images(self, _):
         url = f"{self.root}/read/{self.gallery_id}"
         page = self.request(url).text
-        imgs = util.json_loads(self._decode(text.extr(
-            page, 'initReader("', '"')))
+        imgs = util.json_loads(self._decode(text.extr(page, 'initReader("', '"')))
 
         headers = None
         if not self.config("original", True):
@@ -93,7 +101,7 @@ class HentainexusGalleryExtractor(GalleryExtractor):
             C = C ^ k
             for _ in range(8):
                 if C & 1:
-                    C = C >> 1 ^ 0xc
+                    C = C >> 1 ^ 0xC
                 else:
                     C = C >> 1
         k = primes[C & 0x7]
@@ -118,45 +126,48 @@ class HentainexusGalleryExtractor(GalleryExtractor):
         return result
 
     def _join_title(self, data):
-        event = data['event']
-        artist = data['artist']
-        circle = data['circle']
-        title = data['title']
-        parody = data['parody']
-        book = data['book']
-        magazine = data['magazine']
+        event = data["event"]
+        artist = data["artist"]
+        circle = data["circle"]
+        title = data["title"]
+        parody = data["parody"]
+        book = data["book"]
+        magazine = data["magazine"]
 
         # a few galleries have a large number of artists or parodies,
         # which get replaced with "Various" in the title string
-        if artist.count(',') >= 3:
-            artist = 'Various'
-        if parody.count(',') >= 3:
-            parody = 'Various'
+        if artist.count(",") >= 3:
+            artist = "Various"
+        if parody.count(",") >= 3:
+            parody = "Various"
 
-        jt = ''
+        jt = ""
         if event:
-            jt += f'({event}) '
+            jt += f"({event}) "
         if circle:
-            jt += f'[{circle} ({artist})] '
+            jt += f"[{circle} ({artist})] "
         else:
-            jt += f'[{artist}] '
+            jt += f"[{artist}] "
         jt += title
-        if parody.lower() != 'original work':
-            jt += f' ({parody})'
+        if parody.lower() != "original work":
+            jt += f" ({parody})"
         if book:
-            jt += f' ({book})'
+            jt += f" ({book})"
         if magazine:
-            jt += f' ({magazine})'
+            jt += f" ({magazine})"
         return jt
 
 
 class HentainexusSearchExtractor(Extractor):
     """Extractor for hentainexus search results"""
+
     category = "hentainexus"
     subcategory = "search"
     root = "https://hentainexus.com"
-    pattern = (r"(?i)(?:https?://)?(?:www\.)?hentainexus\.com"
-               r"(?:/page/\d+)?/?(?:\?(q=[^/?#]+))?$")
+    pattern = (
+        r"(?i)(?:https?://)?(?:www\.)?hentainexus\.com"
+        r"(?:/page/\d+)?/?(?:\?(q=[^/?#]+))?$"
+    )
     example = "https://hentainexus.com/?q=QUERY"
 
     def items(self):

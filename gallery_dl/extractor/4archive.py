@@ -12,6 +12,7 @@ from .. import text, util
 
 class _4archiveThreadExtractor(Extractor):
     """Extractor for 4archive threads"""
+
     category = "4archive"
     subcategory = "thread"
     directory_fmt = ("{category}", "{board}", "{thread} {title}")
@@ -41,49 +42,51 @@ class _4archiveThreadExtractor(Extractor):
             yield Message.Directory, post
             if "url" in post:
                 yield Message.Url, post["url"], text.nameext_from_url(
-                    post["filename"], post)
+                    post["filename"], post
+                )
 
     def metadata(self, page):
         return {
-            "board" : self.board,
+            "board": self.board,
             "thread": text.parse_int(self.thread),
-            "title" : text.unescape(text.extr(
-                page, 'class="subject">', "</span>"))
+            "title": text.unescape(text.extr(page, 'class="subject">', "</span>")),
         }
 
     def posts(self, page):
-        return [
-            self.parse(post)
-            for post in page.split('class="postContainer')[1:]
-        ]
+        return [self.parse(post) for post in page.split('class="postContainer')[1:]]
 
     def parse(self, post):
         extr = text.extract_from(post)
         data = {
             "name": extr('class="name">', "</span>"),
             "date": text.parse_datetime(
-                (extr('class="dateTime">', "<") or
-                 extr('class="dateTime postNum" >', "<")).strip(),
-                "%Y-%m-%d %H:%M:%S"),
-            "no"  : text.parse_int(extr(">Post No.", "<")),
+                (
+                    extr('class="dateTime">', "<")
+                    or extr('class="dateTime postNum" >', "<")
+                ).strip(),
+                "%Y-%m-%d %H:%M:%S",
+            ),
+            "no": text.parse_int(extr(">Post No.", "<")),
         }
         if 'class="file"' in post:
             extr('class="fileText"', ">File: <a")
-            data.update({
-                "url"     : extr('href="', '"'),
-                "filename": extr('alt="Image: ', '"'),
-                "size"    : text.parse_bytes(extr(" (", ", ")[:-1]),
-                "width"   : text.parse_int(extr("", "x")),
-                "height"  : text.parse_int(extr("", "px")),
-            })
+            data.update(
+                {
+                    "url": extr('href="', '"'),
+                    "filename": extr('alt="Image: ', '"'),
+                    "size": text.parse_bytes(extr(" (", ", ")[:-1]),
+                    "width": text.parse_int(extr("", "x")),
+                    "height": text.parse_int(extr("", "px")),
+                }
+            )
         extr("<blockquote ", "")
-        data["com"] = text.unescape(text.remove_html(
-            extr(">", "</blockquote>")))
+        data["com"] = text.unescape(text.remove_html(extr(">", "</blockquote>")))
         return data
 
 
 class _4archiveBoardExtractor(Extractor):
     """Extractor for 4archive boards"""
+
     category = "4archive"
     subcategory = "board"
     root = "https://4archive.org"

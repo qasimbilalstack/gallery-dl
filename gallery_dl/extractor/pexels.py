@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?pexels\.com"
 
 class PexelsExtractor(Extractor):
     """Base class for pexels extractors"""
+
     category = "pexels"
     root = "https://www.pexels.com"
     archive_fmt = "{id}"
@@ -36,7 +37,8 @@ class PexelsExtractor(Extractor):
 
             post.update(metadata)
             post["date"] = text.parse_datetime(
-                post["created_at"][:-5], "%Y-%m-%dT%H:%M:%S")
+                post["created_at"][:-5], "%Y-%m-%dT%H:%M:%S"
+            )
 
             if "image" in post:
                 url, _, query = post["image"]["download_link"].partition("?")
@@ -61,6 +63,7 @@ class PexelsExtractor(Extractor):
 
 class PexelsCollectionExtractor(PexelsExtractor):
     """Extractor for a pexels.com collection"""
+
     subcategory = "collection"
     directory_fmt = ("{category}", "Collections", "{collection}")
     pattern = BASE_PATTERN + r"/collections/((?:[^/?#]*-)?(\w+))"
@@ -76,6 +79,7 @@ class PexelsCollectionExtractor(PexelsExtractor):
 
 class PexelsSearchExtractor(PexelsExtractor):
     """Extractor for pexels.com search results"""
+
     subcategory = "search"
     directory_fmt = ("{category}", "Searches", "{search_tags}")
     pattern = BASE_PATTERN + r"/search/([^/?#]+)"
@@ -90,6 +94,7 @@ class PexelsSearchExtractor(PexelsExtractor):
 
 class PexelsUserExtractor(PexelsExtractor):
     """Extractor for pexels.com user galleries"""
+
     subcategory = "user"
     directory_fmt = ("{category}", "@{user[slug]}")
     pattern = BASE_PATTERN + r"/(@(?:(?:[^/?#]*-)?(\d+)|[^/?#]+))"
@@ -110,31 +115,31 @@ class PexelsImageExtractor(PexelsExtractor):
         return (self._extract_nextdata(page)["props"]["pageProps"]["medium"],)
 
 
-class PexelsAPI():
+class PexelsAPI:
     """Interface for the Pexels Web API"""
 
     def __init__(self, extractor):
         self.extractor = extractor
         self.root = "https://www.pexels.com/en-us/api"
         self.headers = {
-            "Accept"        : "*/*",
-            "Content-Type"  : "application/json",
-            "secret-key"    : "H2jk9uKnhRmL6WPwh89zBezWvr",
-            "Authorization" : "",
-            "X-Forwarded-CF-Connecting-IP" : "",
+            "Accept": "*/*",
+            "Content-Type": "application/json",
+            "secret-key": "H2jk9uKnhRmL6WPwh89zBezWvr",
+            "Authorization": "",
+            "X-Forwarded-CF-Connecting-IP": "",
             "X-Forwarded-HTTP_CF_IPCOUNTRY": "",
-            "X-Forwarded-CF-IPRegionCode"  : "",
-            "X-Client-Type" : "react",
+            "X-Forwarded-CF-IPRegionCode": "",
+            "X-Client-Type": "react",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
-            "Priority"      : "u=4",
+            "Priority": "u=4",
         }
 
     def collections_media(self, collection_id):
         endpoint = f"/v3/collections/{collection_id}/media"
         params = {
-            "page"    : "1",
+            "page": "1",
             "per_page": "24",
         }
         return self._pagination(endpoint, params)
@@ -142,20 +147,20 @@ class PexelsAPI():
     def search_photos(self, query):
         endpoint = "/v3/search/photos"
         params = {
-            "query"      : query,
-            "page"       : "1",
-            "per_page"   : "24",
+            "query": query,
+            "page": "1",
+            "per_page": "24",
             "orientation": "all",
-            "size"       : "all",
-            "color"      : "all",
-            "sort"       : "popular",
+            "size": "all",
+            "color": "all",
+            "sort": "popular",
         }
         return self._pagination(endpoint, params)
 
     def users_media_recent(self, user_id):
         endpoint = f"/v3/users/{user_id}/media/recent"
         params = {
-            "page"    : "1",
+            "page": "1",
             "per_page": "24",
         }
         return self._pagination(endpoint, params)
@@ -165,7 +170,8 @@ class PexelsAPI():
 
         while True:
             response = self.extractor.request(
-                url, params=params, headers=self.headers, fatal=None)
+                url, params=params, headers=self.headers, fatal=None
+            )
 
             if response.status_code < 300:
                 return response.json()

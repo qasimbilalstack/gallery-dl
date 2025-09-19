@@ -14,6 +14,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?tungsten\.run"
 
 class TungstenExtractor(Extractor):
     """Base class for tungsten extractors"""
+
     category = "tungsten"
     root = "https://tungsten.run"
     directory_fmt = ("{category}", "{user[username]}")
@@ -24,7 +25,7 @@ class TungstenExtractor(Extractor):
         for post in self.posts():
             url = post["original_url"]
             post["date"] = text.parse_datetime(post["created_at"])
-            post["filename"] = url[url.rfind("/")+1:]
+            post["filename"] = url[url.rfind("/") + 1 :]
             post["extension"] = "webp"
             yield Message.Directory, post
             yield Message.Url, url, post
@@ -77,9 +78,9 @@ class TungstenModelExtractor(TungstenExtractor):
 
         url = "https://api.tungsten.run/v1/posts"
         params = {
-            "sort"          : "top_all_time",
+            "sort": "top_all_time",
             "tweakable_only": "false",
-            "following"     : "false",
+            "following": "false",
             "model_version_uuid": uuid_version,
         }
         return self._pagination(url, params)

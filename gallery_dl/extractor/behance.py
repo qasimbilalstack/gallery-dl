@@ -14,6 +14,7 @@ from .. import text, util, exception
 
 class BehanceExtractor(Extractor):
     """Base class for behance extractors"""
+
     category = "behance"
     root = "https://www.behance.net"
     request_interval = (2.0, 4.0)
@@ -38,23 +39,21 @@ class BehanceExtractor(Extractor):
         url = self.root + "/v3/graphql"
         headers = {
             "Origin": self.root,
-            "X-BCP" : self._bcp,
+            "X-BCP": self._bcp,
             "X-Requested-With": "XMLHttpRequest",
         }
         data = {
-            "query"    : GRAPHQL_QUERIES[endpoint],
+            "query": GRAPHQL_QUERIES[endpoint],
             "variables": variables,
         }
 
-        return self.request_json(
-            url, method="POST", headers=headers, json=data)["data"]
+        return self.request_json(url, method="POST", headers=headers, json=data)["data"]
 
     def _update(self, data):
         # compress data to simple lists
         if (fields := data.get("fields")) and isinstance(fields[0], dict):
             data["fields"] = [
-                field.get("name") or field.get("label")
-                for field in fields
+                field.get("name") or field.get("label") for field in fields
             ]
 
         data["owners"] = [
@@ -68,7 +67,8 @@ class BehanceExtractor(Extractor):
         data["tags"] = tags
 
         data["date"] = text.parse_timestamp(
-            data.get("publishedOn") or data.get("conceived_on") or 0)
+            data.get("publishedOn") or data.get("conceived_on") or 0
+        )
 
         if creator := data.get("creator"):
             creator["name"] = creator["url"].rpartition("/")[2]
@@ -83,6 +83,7 @@ class BehanceExtractor(Extractor):
 
 class BehanceGalleryExtractor(BehanceExtractor):
     """Extractor for image galleries from www.behance.net"""
+
     subcategory = "gallery"
     directory_fmt = ("{category}", "{owners:J, }", "{id} {name}")
     filename_fmt = "{category}_{id}_{num:>02}.{extension}"
@@ -112,8 +113,7 @@ class BehanceGalleryExtractor(BehanceExtractor):
         yield Message.Directory, data
         for data["num"], (url, module) in enumerate(imgs, 1):
             data["module"] = module
-            data["extension"] = (module.get("extension") or
-                                 text.ext_from_url(url))
+            data["extension"] = module.get("extension") or text.ext_from_url(url)
             yield Message.Url, url, data
 
     def get_gallery_data(self):
@@ -122,16 +122,17 @@ class BehanceGalleryExtractor(BehanceExtractor):
         cookies = {
             "gk_suid": "14118261",
             "gki": "feature_3_in_1_checkout_test:false,hire_browse_get_quote_c"
-                   "ta_ab_test:false,feature_hire_dashboard_services_ab_test:f"
-                   "alse,feature_show_details_jobs_row_ab_test:false,feature_a"
-                   "i_freelance_project_create_flow:false,",
+            "ta_ab_test:false,feature_hire_dashboard_services_ab_test:f"
+            "alse,feature_show_details_jobs_row_ab_test:false,feature_a"
+            "i_freelance_project_create_flow:false,",
             "ilo0": "true",
             "originalReferrer": "",
         }
         page = self.request(url, cookies=cookies).text
 
-        data = util.json_loads(text.extr(
-            page, 'id="beconfig-store_state">', '</script>'))
+        data = util.json_loads(
+            text.extr(page, 'id="beconfig-store_state">', "</script>")
+        )
         return self._update(data["project"]["project"])
 
     def get_images(self, data):
@@ -140,10 +141,12 @@ class BehanceGalleryExtractor(BehanceExtractor):
             access = data.get("matureAccess")
             if access == "logged-out":
                 raise exception.AuthorizationError(
-                    "Mature content galleries require logged-in cookies")
+                    "Mature content galleries require logged-in cookies"
+                )
             if access == "restricted-safe":
                 raise exception.AuthorizationError(
-                    "Mature content blocked in account settings")
+                    "Mature content blocked in account settings"
+                )
             if access and access != "allowed":
                 raise exception.AuthorizationError()
             return ()
@@ -161,11 +164,13 @@ class BehanceGalleryExtractor(BehanceExtractor):
                     size["url"].rsplit("/", 2)[1]: size
                     for size in module["imageSizes"]["allAvailable"]
                 }
-                size = (sizes.get("source") or
-                        sizes.get("max_3840") or
-                        sizes.get("fs") or
-                        sizes.get("hd") or
-                        sizes.get("disp"))
+                size = (
+                    sizes.get("source")
+                    or sizes.get("max_3840")
+                    or sizes.get("fs")
+                    or sizes.get("hd")
+                    or sizes.get("disp")
+                )
                 results.append((size["url"], module))
 
             elif mtype == "video":
@@ -186,13 +191,15 @@ class BehanceGalleryExtractor(BehanceExtractor):
                 try:
                     renditions = module["videoData"]["renditions"]
                 except Exception:
-                    self.log.warning("No download URLs for video %s",
-                                     module.get("id") or "???")
+                    self.log.warning(
+                        "No download URLs for video %s", module.get("id") or "???"
+                    )
                     continue
 
                 try:
                     url = [
-                        r["url"] for r in renditions
+                        r["url"]
+                        for r in renditions
                         if text.ext_from_url(r["url"]) != "m3u8"
                     ][-1]
                 except Exception as exc:
@@ -211,8 +218,7 @@ class BehanceGalleryExtractor(BehanceExtractor):
                             break
 
             elif mtype == "embed":
-                if embed := (module.get("originalEmbed") or
-                             module.get("fluidEmbed")):
+                if embed := (module.get("originalEmbed") or module.get("fluidEmbed")):
                     embed = text.unescape(text.extr(embed, 'src="', '"'))
                     module["extension"] = "mp4"
                     results.append(("ytdl:" + embed, module))
@@ -226,6 +232,7 @@ class BehanceGalleryExtractor(BehanceExtractor):
 
 class BehanceUserExtractor(BehanceExtractor):
     """Extractor for a user's galleries from www.behance.net"""
+
     subcategory = "user"
     categorytransfer = True
     pattern = r"(?:https?://)?(?:www\.)?behance\.net/([^/?#]+)/?$"
@@ -239,7 +246,7 @@ class BehanceUserExtractor(BehanceExtractor):
         endpoint = "GetProfileProjects"
         variables = {
             "username": self.user,
-            "after"   : "MAo=",  # "0" in base64
+            "after": "MAo=",  # "0" in base64
         }
 
         while True:
@@ -254,6 +261,7 @@ class BehanceUserExtractor(BehanceExtractor):
 
 class BehanceCollectionExtractor(BehanceExtractor):
     """Extractor for a collection's galleries from www.behance.net"""
+
     subcategory = "collection"
     categorytransfer = True
     pattern = r"(?:https?://)?(?:www\.)?behance\.net/collection/(\d+)"
@@ -268,8 +276,8 @@ class BehanceCollectionExtractor(BehanceExtractor):
         variables = {
             "afterItem": "MAo=",  # "0" in base64
             "firstItem": 40,
-            "id"       : int(self.collection_id),
-            "shouldGetItems"          : True,
+            "id": int(self.collection_id),
+            "shouldGetItems": True,
             "shouldGetMoodboardFields": False,
             "shouldGetRecommendations": False,
         }
@@ -442,7 +450,6 @@ fragment OwnerFields on User {
   }
 }
 """,
-
     "GetMoodboardItemsAndRecommendations": """\
 query GetMoodboardItemsAndRecommendations(
   $id: Int!
@@ -694,5 +701,4 @@ fragment OwnerFields on User {
   }
 }
 """,
-
 }

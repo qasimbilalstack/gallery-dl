@@ -12,6 +12,7 @@ from .. import text, util
 
 class LightroomGalleryExtractor(Extractor):
     """Extractor for an image gallery on lightroom.adobe.com"""
+
     category = "lightroom"
     subcategory = "gallery"
     directory_fmt = ("{category}", "{user}", "{title}")
@@ -28,9 +29,7 @@ class LightroomGalleryExtractor(Extractor):
         # Get config
         url = "https://lightroom.adobe.com/shares/" + self.href
         response = self.request(url)
-        album = util.json_loads(
-            text.extr(response.text, "albumAttributes: ", "\n")
-        )
+        album = util.json_loads(text.extr(response.text, "albumAttributes: ", "\n"))
 
         images = self.images(album)
         for img in images:
@@ -57,7 +56,7 @@ class LightroomGalleryExtractor(Extractor):
             url = base_url + next_url
             page = self.request(url).text
             # skip 1st line as it's a JS loop
-            data = util.json_loads(page[page.index("\n") + 1:])
+            data = util.json_loads(page[page.index("\n") + 1 :])
 
             base_url = data["base"]
             for res in data["resources"]:

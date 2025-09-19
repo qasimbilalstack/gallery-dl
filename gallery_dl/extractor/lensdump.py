@@ -12,8 +12,9 @@ from .. import text, util
 BASE_PATTERN = r"(?:https?://)?lensdump\.com"
 
 
-class LensdumpBase():
+class LensdumpBase:
     """Base class for lensdump extractors"""
+
     category = "lensdump"
     root = "https://lensdump.com"
 
@@ -21,7 +22,7 @@ class LensdumpBase():
         while True:
             yield from text.extract_iter(page, begin, end)
 
-            next = text.extr(page, ' data-pagination="next"', '>')
+            next = text.extr(page, ' data-pagination="next"', ">")
             if not next:
                 return
 
@@ -45,36 +46,44 @@ class LensdumpAlbumExtractor(LensdumpBase, GalleryExtractor):
     def metadata(self, page):
         return {
             "gallery_id": self.gallery_id,
-            "title": text.unescape(text.extr(
-                page, 'property="og:title" content="', '"').strip())
+            "title": text.unescape(
+                text.extr(page, 'property="og:title" content="', '"').strip()
+            ),
         }
 
     def images(self, page):
-        for image in self._pagination(page, ' class="list-item ', '>'):
+        for image in self._pagination(page, ' class="list-item ', ">"):
 
-            data = util.json_loads(text.unquote(
-                text.extr(image, "data-object='", "'") or
-                text.extr(image, 'data-object="', '"')))
+            data = util.json_loads(
+                text.unquote(
+                    text.extr(image, "data-object='", "'")
+                    or text.extr(image, 'data-object="', '"')
+                )
+            )
             image_id = data.get("name")
             image_url = data.get("url")
             image_title = data.get("title")
             if image_title is not None:
                 image_title = text.unescape(image_title)
 
-            yield (image_url, {
-                "id"       : image_id,
-                "url"      : image_url,
-                "title"    : image_title,
-                "name"     : data.get("filename"),
-                "filename" : image_id,
-                "extension": data.get("extension"),
-                "width"    : text.parse_int(data.get("width")),
-                "height"   : text.parse_int(data.get("height")),
-            })
+            yield (
+                image_url,
+                {
+                    "id": image_id,
+                    "url": image_url,
+                    "title": image_title,
+                    "name": data.get("filename"),
+                    "filename": image_id,
+                    "extension": data.get("extension"),
+                    "width": text.parse_int(data.get("width")),
+                    "height": text.parse_int(data.get("height")),
+                },
+            )
 
 
 class LensdumpAlbumsExtractor(LensdumpBase, Extractor):
     """Extractor for album list from lensdump.com"""
+
     subcategory = "albums"
     pattern = BASE_PATTERN + r"/(?![ai]/)([^/?#]+)(?:/?\?([^#]+))?"
     example = "https://lensdump.com/USER"
@@ -96,6 +105,7 @@ class LensdumpAlbumsExtractor(LensdumpBase, Extractor):
 
 class LensdumpImageExtractor(LensdumpBase, Extractor):
     """Extractor for individual images on lensdump.com"""
+
     subcategory = "image"
     filename_fmt = "{category}_{id}{title:?_//}.{extension}"
     directory_fmt = ("{category}",)
@@ -109,17 +119,14 @@ class LensdumpImageExtractor(LensdumpBase, Extractor):
         extr = text.extract_from(self.request(url).text)
 
         data = {
-            "id"    : key,
-            "title" : text.unescape(extr(
-                'property="og:title" content="', '"')),
-            "url"   : extr(
-                'property="og:image" content="', '"'),
-            "width" : text.parse_int(extr(
-                'property="image:width" content="', '"')),
-            "height": text.parse_int(extr(
-                'property="image:height" content="', '"')),
-            "date"  : text.parse_datetime(extr(
-                '<span title="', '"'), "%Y-%m-%d %H:%M:%S"),
+            "id": key,
+            "title": text.unescape(extr('property="og:title" content="', '"')),
+            "url": extr('property="og:image" content="', '"'),
+            "width": text.parse_int(extr('property="image:width" content="', '"')),
+            "height": text.parse_int(extr('property="image:height" content="', '"')),
+            "date": text.parse_datetime(
+                extr('<span title="', '"'), "%Y-%m-%d %H:%M:%S"
+            ),
         }
 
         text.nameext_from_url(data["url"], data)

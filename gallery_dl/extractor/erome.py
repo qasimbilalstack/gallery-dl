@@ -42,16 +42,19 @@ class EromeExtractor(Extractor):
             response = Extractor.request(self, url, **kwargs)
             if response.cookies:
                 _cookie_cache.update("", response.cookies)
-            if response.content.find(
-                    b"<title>Please wait a few moments</title>", 0, 600) < 0:
+            if (
+                response.content.find(
+                    b"<title>Please wait a few moments</title>", 0, 600
+                )
+                < 0
+            ):
                 return response
             self.sleep(5.0, "check")
 
     def _pagination(self, url, params):
         find_albums = EromeAlbumExtractor.pattern.findall
 
-        for params["page"] in itertools.count(
-                text.parse_int(params.get("page"), 1)):
+        for params["page"] in itertools.count(text.parse_int(params.get("page"), 1)):
             page = self.request(url, params=params).text
 
             album_ids = find_albums(page)[::2]
@@ -63,6 +66,7 @@ class EromeExtractor(Extractor):
 
 class EromeAlbumExtractor(EromeExtractor):
     """Extractor for albums on erome.com"""
+
     subcategory = "album"
     pattern = BASE_PATTERN + r"/a/(\w+)"
     example = "https://www.erome.com/a/ID"
@@ -75,38 +79,39 @@ class EromeAlbumExtractor(EromeExtractor):
             page = self.request(url).text
         except exception.HttpError as exc:
             raise exception.AbortExtraction(
-                f"{album_id}: Unable to fetch album page ({exc})")
+                f"{album_id}: Unable to fetch album page ({exc})"
+            )
 
-        title, pos = text.extract(
-            page, 'property="og:title" content="', '"')
+        title, pos = text.extract(page, 'property="og:title" content="', '"')
         pos = page.index('<div class="user-profile', pos)
-        user, pos = text.extract(
-            page, 'href="https://www.erome.com/', '"', pos)
-        tags, pos = text.extract(
-            page, '<p class="mt-10"', '</p>', pos)
+        user, pos = text.extract(page, 'href="https://www.erome.com/', '"', pos)
+        tags, pos = text.extract(page, '<p class="mt-10"', "</p>", pos)
 
         urls = []
         date = None
         groups = page.split('<div class="media-group"')
         for group in util.advance(groups, 1):
-            url = (text.extr(group, '<source src="', '"') or
-                   text.extr(group, 'data-src="', '"'))
+            url = text.extr(group, '<source src="', '"') or text.extr(
+                group, 'data-src="', '"'
+            )
             if url:
                 urls.append(url)
             if not date:
-                ts = text.extr(group, '?v=', '"')
+                ts = text.extr(group, "?v=", '"')
                 if len(ts) > 1:
                     date = text.parse_timestamp(ts)
 
         data = {
             "album_id": album_id,
-            "title"   : text.unescape(title),
-            "user"    : text.unquote(user),
-            "count"   : len(urls),
-            "date"    : date,
-            "tags"    : ([t.replace("+", " ")
-                          for t in text.extract_iter(tags, "?q=", '"')]
-                         if tags else ()),
+            "title": text.unescape(title),
+            "user": text.unquote(user),
+            "count": len(urls),
+            "date": date,
+            "tags": (
+                [t.replace("+", " ") for t in text.extract_iter(tags, "?q=", '"')]
+                if tags
+                else ()
+            ),
             "_http_headers": {"Referer": url},
         }
 

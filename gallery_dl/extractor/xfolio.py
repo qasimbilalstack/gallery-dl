@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?xfolio\.jp(?:/[^/?#]+)?"
 
 class XfolioExtractor(Extractor):
     """Base class for xfolio extractors"""
+
     category = "xfolio"
     root = "https://xfolio.jp"
     cookies_domain = ".xfolio.jp"
@@ -66,41 +67,47 @@ class XfolioWorkExtractor(XfolioExtractor):
         creator, work_id = self.groups
         extr = text.extract_from(html)
         return {
-            "title"          : text.unescape(extr(
-                'property="og:title" content="', '"').rpartition(" - ")[0]),
-            "description"    : text.unescape(extr(
-                'property="og:description" content="', '"')),
-            "creator_id"     : extr(' data-creator-id="', '"'),
-            "creator_userid" : extr(' data-creator-user-id="', '"'),
-            "creator_name"   : extr(' data-creator-name="', '"'),
-            "creator_profile": text.unescape(extr(
-                ' data-creator-profile="', '"')),
-            "series_id"      : extr("/series/", '"'),
-            "creator_slug"   : creator,
-            "work_id"        : work_id,
+            "title": text.unescape(
+                extr('property="og:title" content="', '"').rpartition(" - ")[0]
+            ),
+            "description": text.unescape(
+                extr('property="og:description" content="', '"')
+            ),
+            "creator_id": extr(' data-creator-id="', '"'),
+            "creator_userid": extr(' data-creator-user-id="', '"'),
+            "creator_name": extr(' data-creator-name="', '"'),
+            "creator_profile": text.unescape(extr(' data-creator-profile="', '"')),
+            "series_id": extr("/series/", '"'),
+            "creator_slug": creator,
+            "work_id": work_id,
         }
 
     def _extract_files(self, html, work):
         files = []
 
         work_id = work["work_id"]
-        for img in text.extract_iter(
-                html, 'class="article__wrap_img', "</div>"):
+        for img in text.extract_iter(html, 'class="article__wrap_img', "</div>"):
             image_id = text.extr(img, "/fullscale_image?image_id=", "&")
             if not image_id:
-                self.log.warning(
-                    "%s: 'fullscale_image' not available", work_id)
+                self.log.warning("%s: 'fullscale_image' not available", work_id)
                 continue
 
-            files.append({
-                "image_id" : image_id,
-                "extension": "jpg",
-                "url": (f"{self.root}/user_asset.php?id={image_id}&work_id="
-                        f"{work_id}&work_image_id={image_id}&type=work_image"),
-                "_http_headers": {"Referer": (
-                    f"{self.root}/fullscale_image"
-                    f"?image_id={image_id}&work_id={work_id}")},
-            })
+            files.append(
+                {
+                    "image_id": image_id,
+                    "extension": "jpg",
+                    "url": (
+                        f"{self.root}/user_asset.php?id={image_id}&work_id="
+                        f"{work_id}&work_image_id={image_id}&type=work_image"
+                    ),
+                    "_http_headers": {
+                        "Referer": (
+                            f"{self.root}/fullscale_image"
+                            f"?image_id={image_id}&work_id={work_id}"
+                        )
+                    },
+                }
+            )
 
         return files
 
@@ -116,8 +123,7 @@ class XfolioUserExtractor(XfolioExtractor):
         while True:
             html = self.request(url).text
 
-            for item in text.extract_iter(
-                    html, '<div class="postItem', "</div>"):
+            for item in text.extract_iter(html, '<div class="postItem', "</div>"):
                 yield text.extr(item, ' href="', '"')
 
             pager = text.extr(html, ' class="pager__list_next', "</li>")
@@ -139,6 +145,5 @@ class XfolioSeriesExtractor(XfolioExtractor):
 
         return [
             text.extr(item, ' href="', '"')
-            for item in text.extract_iter(
-                html, 'class="listWrap--title">', "</a>")
+            for item in text.extract_iter(html, 'class="listWrap--title">', "</a>")
         ]

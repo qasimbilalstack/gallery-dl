@@ -15,6 +15,7 @@ import time
 
 class FuskatorGalleryExtractor(GalleryExtractor):
     """Extractor for image galleries on fuskator.com"""
+
     category = "fuskator"
     root = "https://fuskator.com"
     pattern = r"(?:https?://)?fuskator\.com/(?:thumbs|expanded)/([^/?#]+)"
@@ -27,42 +28,43 @@ class FuskatorGalleryExtractor(GalleryExtractor):
 
     def metadata(self, page):
         headers = {
-            "Referer"         : self.page_url,
+            "Referer": self.page_url,
             "X-Requested-With": "XMLHttpRequest",
         }
         auth = self.request(
-            self.root + "/ajax/auth.aspx", method="POST", headers=headers,
+            self.root + "/ajax/auth.aspx",
+            method="POST",
+            headers=headers,
         ).text
 
         params = {
             "X-Auth": auth,
-            "hash"  : self.gallery_hash,
-            "_"     : int(time.time()),
+            "hash": self.gallery_hash,
+            "_": int(time.time()),
         }
         self.data = data = self.request_json(
-            self.root + "/ajax/gal.aspx", params=params, headers=headers)
+            self.root + "/ajax/gal.aspx", params=params, headers=headers
+        )
 
         title = text.extr(page, "<title>", "</title>").strip()
         title, _, gallery_id = title.rpartition("#")
 
         return {
-            "gallery_id"  : text.parse_int(gallery_id),
+            "gallery_id": text.parse_int(gallery_id),
             "gallery_hash": self.gallery_hash,
-            "title"       : text.unescape(title[:-15]),
-            "views"       : data.get("hits"),
-            "score"       : data.get("rating"),
-            "tags"        : (data.get("tags") or "").split(","),
+            "title": text.unescape(title[:-15]),
+            "views": data.get("hits"),
+            "score": data.get("rating"),
+            "tags": (data.get("tags") or "").split(","),
         }
 
     def images(self, page):
-        return [
-            ("https:" + image["imageUrl"], image)
-            for image in self.data["images"]
-        ]
+        return [("https:" + image["imageUrl"], image) for image in self.data["images"]]
 
 
 class FuskatorSearchExtractor(Extractor):
     """Extractor for search results on fuskator.com"""
+
     category = "fuskator"
     subcategory = "search"
     root = "https://fuskator.com"
@@ -79,11 +81,10 @@ class FuskatorSearchExtractor(Extractor):
 
         while True:
             page = self.request(url).text
-            for path in text.extract_iter(
-                    page, 'class="pic_pad"><a href="', '"'):
+            for path in text.extract_iter(page, 'class="pic_pad"><a href="', '"'):
                 yield Message.Queue, self.root + path, data
 
-            pages = text.extr(page, 'class="pages"><span>', '>&gt;&gt;<')
+            pages = text.extr(page, 'class="pages"><span>', ">&gt;&gt;<")
             if not pages:
                 return
             url = self.root + text.rextr(pages, 'href="', '"')

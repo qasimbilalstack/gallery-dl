@@ -19,6 +19,7 @@ import os
 try:
     from math import gcd
 except ImportError:
+
     def gcd(a, b):
         while b:
             a, b = b, a % b
@@ -48,8 +49,7 @@ class UgoiraPP(PostProcessor):
         ext = options.get("extension")
         mode = options.get("mode") or options.get("ffmpeg-demuxer")
         if mode is None or mode == "auto":
-            if ext in (None, "webm", "mkv") and (
-                    mkvmerge or shutil.which("mkvmerge")):
+            if ext in (None, "webm", "mkv") and (mkvmerge or shutil.which("mkvmerge")):
                 mode = "mkvmerge"
             else:
                 mode = "concat"
@@ -82,13 +82,18 @@ class UgoiraPP(PostProcessor):
             vcodec = None
             for index, arg in enumerate(self.args):
                 arg, _, stream = arg.partition(":")
-                if arg == "-vcodec" or arg in ("-c", "-codec") and (
-                        not stream or stream.partition(":")[0] in ("v", "V")):
+                if (
+                    arg == "-vcodec"
+                    or arg in ("-c", "-codec")
+                    and (not stream or stream.partition(":")[0] in ("v", "V"))
+                ):
                     vcodec = self.args[index + 1]
             # use filter when using libx264/5
             self.prevent_odd = (
-                vcodec in ("libx264", "libx265") or
-                not vcodec and self.extension.lower() in ("mp4", "mkv"))
+                vcodec in ("libx264", "libx265")
+                or not vcodec
+                and self.extension.lower() in ("mp4", "mkv")
+            )
         else:
             self.prevent_odd = False
 
@@ -98,11 +103,14 @@ class UgoiraPP(PostProcessor):
         if self.prevent_odd:
             args += ("-vf", "crop=iw-mod(iw\\,2):ih-mod(ih\\,2)")
 
-        job.register_hooks({
-            "prepare": self.prepare,
-            "file"   : self.convert_from_zip,
-            "after"  : self.convert_from_files,
-        }, options)
+        job.register_hooks(
+            {
+                "prepare": self.prepare,
+                "file": self.convert_from_zip,
+                "after": self.convert_from_files,
+            },
+            options,
+        )
 
     def prepare(self, pathfmt):
         self._convert_zip = self._convert_files = False
@@ -149,8 +157,11 @@ class UgoiraPP(PostProcessor):
                     pathfmt.realpath = pathfmt.temppath
                     self.log.error(
                         "%s: Unable to extract frames from %s (%s: %s)",
-                        pathfmt.kwdict.get("id"), pathfmt.filename,
-                        exc.__class__.__name__, exc)
+                        pathfmt.kwdict.get("id"),
+                        pathfmt.filename,
+                        exc.__class__.__name__,
+                        exc,
+                    )
                     return self.log.debug("", exc_info=exc)
 
             if self.convert(pathfmt, tempdir):
@@ -170,16 +181,21 @@ class UgoiraPP(PostProcessor):
             for frame in self._files:
 
                 # update frame filename extension
-                frame["file"] = name = \
+                frame["file"] = name = (
                     f"{frame['file'].partition('.')[0]}.{frame['ext']}"
+                )
 
                 if tempdir:
                     # move frame into tempdir
                     try:
                         self._copy_file(frame["path"], tempdir + "/" + name)
                     except OSError as exc:
-                        self.log.debug("Unable to copy frame %s (%s: %s)",
-                                       name, exc.__class__.__name__, exc)
+                        self.log.debug(
+                            "Unable to copy frame %s (%s: %s)",
+                            name,
+                            exc.__class__.__name__,
+                            exc,
+                        )
                         return
 
             pathfmt.kwdict["num"] = 0
@@ -225,8 +241,9 @@ class UgoiraPP(PostProcessor):
                 self._finalize(pathfmt, tempdir)
         except OSError as exc:
             output.stderr_write("\n")
-            self.log.error("Unable to invoke FFmpeg (%s: %s)",
-                           exc.__class__.__name__, exc)
+            self.log.error(
+                "Unable to invoke FFmpeg (%s: %s)", exc.__class__.__name__, exc
+            )
             self.log.debug("", exc_info=exc)
             pathfmt.realpath = pathfmt.temppath
         except Exception as exc:
@@ -247,10 +264,9 @@ class UgoiraPP(PostProcessor):
                 metaname = self.metadata
             else:
                 metaname = "animation.json"
-            framedata = util.json_dumps([
-                {"file": frame["file"], "delay": frame["delay"]}
-                for frame in frames
-            ]).encode()
+            framedata = util.json_dumps(
+                [{"file": frame["file"], "delay": frame["delay"]} for frame in frames]
+            ).encode()
 
         if self._zip_source:
             zpath = pathfmt.temppath
@@ -270,17 +286,16 @@ class UgoiraPP(PostProcessor):
         else:
             if self.mtime:
                 dt = pathfmt.kwdict["date_url"] or pathfmt.kwdict["date"]
-                mtime = (dt.year, dt.month, dt.day,
-                         dt.hour, dt.minute, dt.second)
+                mtime = (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
             with zipfile.ZipFile(pathfmt.realpath, "w") as zfile:
                 for frame in frames:
-                    zinfo = zipfile.ZipInfo.from_file(
-                        frame["path"], frame["file"])
+                    zinfo = zipfile.ZipInfo.from_file(frame["path"], frame["file"])
                     if self.mtime:
                         zinfo.date_time = mtime
-                    with open(frame["path"], "rb") as src, \
-                            zfile.open(zinfo, "w") as dst:
-                        shutil.copyfileobj(src, dst, 1024*8)
+                    with open(frame["path"], "rb") as src, zfile.open(
+                        zinfo, "w"
+                    ) as dst:
+                        shutil.copyfileobj(src, dst, 1024 * 8)
                 if self.metadata:
                     zinfo = zipfile.ZipInfo(metaname)
                     if self.mtime:
@@ -298,8 +313,7 @@ class UgoiraPP(PostProcessor):
         out = None if self.output else subprocess.DEVNULL
         if retcode := util.Popen(args, stdout=out, stderr=out).wait():
             output.stderr_write("\n")
-            self.log.error("Non-zero exit status when running %s (%s)",
-                           args, retcode)
+            self.log.error("Non-zero exit status when running %s (%s)", args, retcode)
             raise ValueError()
         return retcode
 
@@ -332,8 +346,7 @@ class UgoiraPP(PostProcessor):
                 frames.append(last_copy)
                 name, _, ext = last_copy["file"].rpartition(".")
                 last_copy["file"] = f"{int(name) + 1:>06}.{ext}"
-                shutil.copyfile(tempdir + last["file"],
-                                tempdir + last_copy["file"])
+                shutil.copyfile(tempdir + last["file"], tempdir + last_copy["file"])
 
         # adjust frame mtime values
         ts = 0
@@ -343,11 +356,17 @@ class UgoiraPP(PostProcessor):
 
         return [
             self.ffmpeg,
-            "-f", "image2",
-            "-ts_from_file", "2",
-            "-pattern_type", "sequence",
-            "-i", (f"{tempdir.replace('%', '%%')}%06d."
-                   f"{frame['file'].rpartition('.')[2]}"),
+            "-f",
+            "image2",
+            "-ts_from_file",
+            "2",
+            "-pattern_type",
+            "sequence",
+            "-i",
+            (
+                f"{tempdir.replace('%', '%%')}%06d."
+                f"{frame['file'].rpartition('.')[2]}"
+            ),
         ]
 
     def _process_mkvmerge(self, pathfmt, tempdir):
@@ -356,17 +375,24 @@ class UgoiraPP(PostProcessor):
 
         return [
             self.ffmpeg,
-            "-f", "image2",
-            "-pattern_type", "sequence",
-            "-i", (f"{tempdir.replace('%', '%%')}/%06d."
-                   f"{self._frames[0]['file'].rpartition('.')[2]}"),
+            "-f",
+            "image2",
+            "-pattern_type",
+            "sequence",
+            "-i",
+            (
+                f"{tempdir.replace('%', '%%')}/%06d."
+                f"{self._frames[0]['file'].rpartition('.')[2]}"
+            ),
         ]
 
     def _finalize_mkvmerge(self, pathfmt, tempdir):
         args = [
             self.mkvmerge,
-            "-o", pathfmt.path,  # mkvmerge does not support "raw" paths
-            "--timecodes", "0:" + self._write_mkvmerge_timecodes(tempdir),
+            "-o",
+            pathfmt.path,  # mkvmerge does not support "raw" paths
+            "--timecodes",
+            "0:" + self._write_mkvmerge_timecodes(tempdir),
         ]
         if self.extension == "webm":
             args.append("--webm")
@@ -379,8 +405,9 @@ class UgoiraPP(PostProcessor):
         content = ["ffconcat version 1.0"]
 
         for frame in self._frames:
-            content.append(f"file '{frame['file']}'\n"
-                           f"duration {frame['delay'] / 1000}")
+            content.append(
+                f"file '{frame['file']}'\n" f"duration {frame['delay'] / 1000}"
+            )
         if self.repeat:
             content.append(f"file '{frame['file']}'")
         content.append("")

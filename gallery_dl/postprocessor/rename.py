@@ -24,19 +24,24 @@ class RenamePP(PostProcessor):
 
         if old:
             self._old = self._apply_format(old)
-            self._new = (self._apply_format(new) if new else
-                         self._apply_pathfmt)
-            job.register_hooks({
-                "prepare": self.rename_from,
-            }, options)
+            self._new = self._apply_format(new) if new else self._apply_pathfmt
+            job.register_hooks(
+                {
+                    "prepare": self.rename_from,
+                },
+                options,
+            )
 
         elif new:
             self._old = self._apply_pathfmt
             self._new = self._apply_format(new)
-            job.register_hooks({
-                "skip"         : self.rename_to_skip,
-                "prepare-after": self.rename_to_pafter,
-            }, options)
+            job.register_hooks(
+                {
+                    "skip": self.rename_to_skip,
+                    "prepare-after": self.rename_to_pafter,
+                },
+                options,
+            )
 
         else:
             raise ValueError("Option 'from' or 'to' is required")
@@ -70,7 +75,10 @@ class RenamePP(PostProcessor):
         if self.skip and os.path.exists(path_new):
             return self.log.warning(
                 "Not renaming '%s' to '%s' since another file with the "
-                "same name exists", name_old, name_new)
+                "same name exists",
+                name_old,
+                name_new,
+            )
 
         self.log.info("'%s' -> '%s'", name_old, name_new)
         os.replace(path_old, path_new)
@@ -82,8 +90,7 @@ class RenamePP(PostProcessor):
         fmt = formatter.parse(format_string).format_map
 
         def apply(pathfmt):
-            return pathfmt.clean_path(pathfmt.clean_segment(fmt(
-                pathfmt.kwdict)))
+            return pathfmt.clean_path(pathfmt.clean_segment(fmt(pathfmt.kwdict)))
 
         return apply
 

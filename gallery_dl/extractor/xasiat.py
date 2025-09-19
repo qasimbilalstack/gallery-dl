@@ -38,7 +38,7 @@ class XasiatExtractor(Extractor):
                 "block_id": "list_albums_common_albums_list",
                 "sort_by": "post_date",
                 "from": pnum,
-                "_": int(time.time() * 1000)
+                "_": int(time.time() * 1000),
             }
 
             page = self.request(url, params=params).text
@@ -69,12 +69,11 @@ class XasiatAlbumExtractor(XasiatExtractor):
 
         data = {
             "title": text.unescape(title),
-            "model": util.re(
-                r'top_models1"></i>\s*(.+)\s*</span').findall(info),
-            "tags": util.re(
-                r'tags/[^"]+\">\s*(.+)\s*</a').findall(info),
-            "album_category": util.re(
-                r'categories/[^"]+\">\s*(.+)\s*</a').findall(info)[0],
+            "model": util.re(r'top_models1"></i>\s*(.+)\s*</span').findall(info),
+            "tags": util.re(r'tags/[^"]+\">\s*(.+)\s*</a').findall(info),
+            "album_category": util.re(r'categories/[^"]+\">\s*(.+)\s*</a').findall(
+                info
+            )[0],
             "album_url": response.url,
             "album_id": text.parse_int(album_id),
             "count": len(urls),

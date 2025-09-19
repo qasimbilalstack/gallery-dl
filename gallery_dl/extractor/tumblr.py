@@ -20,12 +20,14 @@ BASE_PATTERN = (
     r"([\w-]+\.tumblr\.com)))"
 )
 
-POST_TYPES = frozenset(("text", "quote", "link", "answer", "video",
-                        "audio", "photo", "chat", "search"))
+POST_TYPES = frozenset(
+    ("text", "quote", "link", "answer", "video", "audio", "photo", "chat", "search")
+)
 
 
 class TumblrExtractor(Extractor):
     """Base class for tumblr extractors"""
+
     category = "tumblr"
     directory_fmt = ("{category}", "{blog_name}")
     filename_fmt = "{category}_{blog_name}_{id}_{num:>02}.{extension}"
@@ -63,11 +65,13 @@ class TumblrExtractor(Extractor):
         # pre-compile regular expressions
         self._sub_video = util.re(
             r"https?://((?:vt|vtt|ve)(?:\.media)?\.tumblr\.com"
-            r"/tumblr_[^_]+)_\d+\.([0-9a-z]+)").sub
+            r"/tumblr_[^_]+)_\d+\.([0-9a-z]+)"
+        ).sub
         if self.inline:
             self._sub_image = util.re(
                 r"https?://(\d+\.media\.tumblr\.com(?:/[0-9a-f]+)?"
-                r"/tumblr(?:_inline)?_[^_]+)_\d+\.([0-9a-z]+)").sub
+                r"/tumblr(?:_inline)?_[^_]+)_\d+\.([0-9a-z]+)"
+            ).sub
             self._subn_orig_image = util.re(r"/s\d+x\d+/").subn
             _findall_image = util.re('<img src="([^"]+)"').findall
             _findall_video = util.re('<source src="([^"]+)"').findall
@@ -112,22 +116,27 @@ class TumblrExtractor(Extractor):
 
                     best_photo = photo["original_size"]
                     for alt_photo in photo["alt_sizes"]:
-                        if (alt_photo["height"] > best_photo["height"] or
-                                alt_photo["width"] > best_photo["width"]):
+                        if (
+                            alt_photo["height"] > best_photo["height"]
+                            or alt_photo["width"] > best_photo["width"]
+                        ):
                             best_photo = alt_photo
                     photo.update(best_photo)
 
-                    if self.original and "/s2048x3072/" in photo["url"] and (
-                            photo["width"] == 2048 or photo["height"] == 3072):
+                    if (
+                        self.original
+                        and "/s2048x3072/" in photo["url"]
+                        and (photo["width"] == 2048 or photo["height"] == 3072)
+                    ):
                         photo["url"], fb = self._original_photo(photo["url"])
                         if fb:
                             post["_fallback"] = self._original_image_fallback(
-                                photo["url"], post["id"])
+                                photo["url"], post["id"]
+                            )
 
                     del photo["original_size"]
                     del photo["alt_sizes"]
-                    posts.append(
-                        self._prepare_image(photo["url"], post.copy()))
+                    posts.append(self._prepare_image(photo["url"], post.copy()))
                     del post["photo"]
                     post.pop("_fallback", None)
 
@@ -136,8 +145,7 @@ class TumblrExtractor(Extractor):
                 posts.append(self._prepare(url, post.copy()))
 
             if url := post.get("video_url"):  # type "video"
-                posts.append(self._prepare(
-                    self._original_video(url), post.copy()))
+                posts.append(self._prepare(self._original_video(url), post.copy()))
 
             if self.inline and "reblog" in post:  # inline media
                 # only "chat" posts are missing a "reblog" key in their
@@ -147,7 +155,8 @@ class TumblrExtractor(Extractor):
                     url, fb = self._original_inline_image(url)
                     if fb:
                         post["_fallback"] = self._original_image_fallback(
-                            url, post["id"])
+                            url, post["id"]
+                        )
                     posts.append(self._prepare_image(url, post.copy()))
                     post.pop("_fallback", None)
                 for url in _findall_video(body):
@@ -192,8 +201,9 @@ class TumblrExtractor(Extractor):
 
             if invalid := types - POST_TYPES:
                 types = types & POST_TYPES
-                self.log.warning("Invalid post types: '%s'",
-                                 "', '".join(sorted(invalid)))
+                self.log.warning(
+                    "Invalid post types: '%s'", "', '".join(sorted(invalid))
+                )
             return types
 
     def _prepare(self, url, post):
@@ -209,9 +219,10 @@ class TumblrExtractor(Extractor):
         # incorrect extensions will be corrected by 'adjust-extensions'
         if post["extension"] == "gif":
             post["_fallback"] = (url + "v",)
-            post["_http_headers"] = {"Accept":  # copied from chrome 106
-                                     "image/avif,image/webp,image/apng,"
-                                     "image/svg+xml,image/*,*/*;q=0.8"}
+            post["_http_headers"] = {
+                "Accept": "image/avif,image/webp,image/apng,"  # copied from chrome 106
+                "image/svg+xml,image/*,*/*;q=0.8"
+            }
 
         parts = post["filename"].split("_")
         try:
@@ -264,12 +275,14 @@ class TumblrExtractor(Extractor):
         for _ in util.repeat(self.fallback_retries):
             self.sleep(self.fallback_delay, "image token")
             yield self._update_image_token(url)[0]
-        self.log.warning("Unable to fetch higher-resolution "
-                         "version of %s (%s)", url, post_id)
+        self.log.warning(
+            "Unable to fetch higher-resolution " "version of %s (%s)", url, post_id
+        )
 
 
 class TumblrUserExtractor(TumblrExtractor):
     """Extractor for a Tumblr user's posts"""
+
     subcategory = "user"
     pattern = BASE_PATTERN + r"(?:/page/\d+|/archive)?/?$"
     example = "https://www.tumblr.com/BLOG"
@@ -280,6 +293,7 @@ class TumblrUserExtractor(TumblrExtractor):
 
 class TumblrPostExtractor(TumblrExtractor):
     """Extractor for a single Tumblr post"""
+
     subcategory = "post"
     pattern = BASE_PATTERN + r"/(?:post/|image/)?(\d+)"
     example = "https://www.tumblr.com/BLOG/12345"
@@ -295,18 +309,21 @@ class TumblrPostExtractor(TumblrExtractor):
 
 class TumblrTagExtractor(TumblrExtractor):
     """Extractor for Tumblr user's posts by tag"""
+
     subcategory = "tag"
     pattern = BASE_PATTERN + r"(?:/archive)?/tagged/([^/?#]+)"
     example = "https://www.tumblr.com/BLOG/tagged/TAG"
 
     def posts(self):
         self.kwdict["search_tags"] = tag = text.unquote(
-            self.groups[3].replace("-", " "))
+            self.groups[3].replace("-", " ")
+        )
         return self.api.posts(self.blog, {"tag": tag})
 
 
 class TumblrDayExtractor(TumblrExtractor):
     """Extractor for Tumblr user's posts by day"""
+
     subcategory = "day"
     pattern = BASE_PATTERN + r"/day/(\d\d\d\d/\d\d/\d\d)"
     example = "https://www.tumblr.com/BLOG/day/1970/01/01"
@@ -323,6 +340,7 @@ class TumblrDayExtractor(TumblrExtractor):
 
 class TumblrLikesExtractor(TumblrExtractor):
     """Extractor for a Tumblr user's liked posts"""
+
     subcategory = "likes"
     directory_fmt = ("{category}", "{blog_name}", "likes")
     archive_fmt = "f_{blog[name]}_{id}_{num}"
@@ -335,6 +353,7 @@ class TumblrLikesExtractor(TumblrExtractor):
 
 class TumblrFollowingExtractor(TumblrExtractor):
     """Extractor for a Tumblr user's followed blogs"""
+
     subcategory = "following"
     pattern = BASE_PATTERN + r"/following"
     example = "https://www.tumblr.com/BLOG/following"
@@ -347,6 +366,7 @@ class TumblrFollowingExtractor(TumblrExtractor):
 
 class TumblrFollowersExtractor(TumblrExtractor):
     """Extractor for a Tumblr user's followers"""
+
     subcategory = "followers"
     pattern = BASE_PATTERN + r"/followers"
     example = "https://www.tumblr.com/BLOG/followers"
@@ -359,9 +379,12 @@ class TumblrFollowersExtractor(TumblrExtractor):
 
 class TumblrSearchExtractor(TumblrExtractor):
     """Extractor for a Tumblr search"""
+
     subcategory = "search"
-    pattern = (r"(?:https?://)?(?:www\.)?tumblr\.com/search/([^/?#]+)"
-               r"(?:/([^/?#]+)(?:/([^/?#]+))?)?(?:/?\?([^#]+))?")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?tumblr\.com/search/([^/?#]+)"
+        r"(?:/([^/?#]+)(?:/([^/?#]+))?)?(?:/?\?([^#]+))?"
+    )
     example = "https://www.tumblr.com/search/QUERY"
 
     def posts(self):
@@ -375,6 +398,7 @@ class TumblrAPI(oauth.OAuth1API):
 
     https://github.com/tumblr/docs/blob/master/api.md
     """
+
     ROOT = "https://api.tumblr.com"
     API_KEY = "O3hU2tMi5e4Qs5t3vezEi6L0qRORJ5y9oUpSGsrWu8iA3UCc3B"
     API_SECRET = "sFdsK3PDdP2QpYMRAoq0oDnw0sFS24XigXmdfnaeNZpJpqAn03"
@@ -397,12 +421,12 @@ class TumblrAPI(oauth.OAuth1API):
     def avatar(self, blog, size="512"):
         """Retrieve a blog avatar"""
         if self.api_key:
-            return (f"{self.ROOT}/v2/blog/{blog}/avatar/{size}"
-                    f"?api_key={self.api_key}")
+            return (
+                f"{self.ROOT}/v2/blog/{blog}/avatar/{size}" f"?api_key={self.api_key}"
+            )
         endpoint = f"/v2/blog/{blog}/avatar"
         params = {"size": size}
-        return self._call(
-            endpoint, params, allow_redirects=False)["avatar_url"]
+        return self._call(endpoint, params, allow_redirects=False)["avatar_url"]
 
     def posts(self, blog, params):
         """Retrieve published posts"""
@@ -479,8 +503,7 @@ class TumblrAPI(oauth.OAuth1API):
             elif status == 404:
                 try:
                     error = data["errors"][0]["detail"]
-                    board = ("only viewable within the Tumblr dashboard"
-                             in error)
+                    board = "only viewable within the Tumblr dashboard" in error
                 except Exception:
                     board = False
 
@@ -489,10 +512,13 @@ class TumblrAPI(oauth.OAuth1API):
                         self.log.info(
                             "Ensure your 'access-token' and "
                             "'access-token-secret' belong to the same "
-                            "application as 'api-key' and 'api-secret'")
+                            "application as 'api-key' and 'api-secret'"
+                        )
                     else:
-                        self.log.info("Run 'gallery-dl oauth:tumblr' "
-                                      "to access dashboard-only blogs")
+                        self.log.info(
+                            "Run 'gallery-dl oauth:tumblr' "
+                            "to access dashboard-only blogs"
+                        )
                     raise exception.AuthorizationError(error)
                 raise exception.NotFoundError("user or post")
 
@@ -508,7 +534,8 @@ class TumblrAPI(oauth.OAuth1API):
                             "Register your own OAuth application and use its "
                             "credentials to prevent this error: "
                             "https://gdl-org.github.io/docs/configuration.html"
-                            "#extractor-tumblr-api-key-api-secret")
+                            "#extractor-tumblr-api-key-api-secret"
+                        )
 
                     if self.extractor.config("ratelimit") == "wait":
                         self.extractor.wait(seconds=reset)
@@ -517,7 +544,8 @@ class TumblrAPI(oauth.OAuth1API):
                     t = (datetime.now() + timedelta(0, float(reset))).time()
                     raise exception.AbortExtraction(
                         f"Aborting - Rate limit will reset at "
-                        f"{t.hour:02}:{t.minute:02}:{t.second:02}")
+                        f"{t.hour:02}:{t.minute:02}:{t.second:02}"
+                    )
 
                 # hourly rate limit
                 if reset := response.headers.get("x-ratelimit-perhour-reset"):
@@ -527,8 +555,7 @@ class TumblrAPI(oauth.OAuth1API):
 
             raise exception.AbortExtraction(data)
 
-    def _pagination(self, endpoint, params,
-                    blog=None, key="posts", cache=False):
+    def _pagination(self, endpoint, params, blog=None, key="posts", cache=False):
         if self.api_key:
             params["api_key"] = self.api_key
 
@@ -573,8 +600,7 @@ class TumblrAPI(oauth.OAuth1API):
                 params["offset"] = None
 
             else:  # offset
-                params["offset"] = \
-                    text.parse_int(params["offset"]) + params["limit"]
+                params["offset"] = text.parse_int(params["offset"]) + params["limit"]
                 params["before"] = None
                 if params["offset"] >= data["total_posts"]:
                     return

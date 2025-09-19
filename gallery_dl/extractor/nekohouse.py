@@ -17,14 +17,19 @@ USER_PATTERN = BASE_PATTERN + r"/([^/?#]+)/user/([^/?#]+)"
 
 class NekohouseExtractor(Extractor):
     """Base class for nekohouse extractors"""
+
     category = "nekohouse"
     root = "https://nekohouse.su"
 
 
 class NekohousePostExtractor(NekohouseExtractor):
     subcategory = "post"
-    directory_fmt = ("{category}", "{service}", "{username} ({user_id})",
-                     "{post_id} {date} {title[b:230]}")
+    directory_fmt = (
+        "{category}",
+        "{service}",
+        "{username} ({user_id})",
+        "{post_id} {date} {title[b:230]}",
+    )
     filename_fmt = "{num:>02} {id|filename}.{extension}"
     archive_fmt = "{service}_{user_id}_{post_id}_{hash}"
     pattern = USER_PATTERN + r"/post/([^/?#]+)"
@@ -55,43 +60,51 @@ class NekohousePostExtractor(NekohouseExtractor):
     def _extract_post(self, html):
         extr = text.extract_from(html)
         return {
-            "username": text.unescape(extr(
-                'class="scrape__user-name', '</').rpartition(">")[2].strip()),
-            "title"   : text.unescape(extr(
-                'class="scrape__title', '</').rpartition(">")[2]),
-            "date"   : text.parse_datetime(extr(
-                'datetime="', '"')[:19], "%Y-%m-%d %H:%M:%S"),
-            "content": text.unescape(extr(
-                'class="scrape__content">', "</div>").strip()),
+            "username": text.unescape(
+                extr('class="scrape__user-name', "</").rpartition(">")[2].strip()
+            ),
+            "title": text.unescape(
+                extr('class="scrape__title', "</").rpartition(">")[2]
+            ),
+            "date": text.parse_datetime(
+                extr('datetime="', '"')[:19], "%Y-%m-%d %H:%M:%S"
+            ),
+            "content": text.unescape(
+                extr('class="scrape__content">', "</div>").strip()
+            ),
         }
 
     def _extract_files(self, html):
         files = []
 
-        extr = text.extract_from(text.extr(
-            html, 'class="scrape__files"', "<footer"))
+        extr = text.extract_from(text.extr(html, 'class="scrape__files"', "<footer"))
         while True:
             file_id = extr('<a href="/post/', '"')
             if not file_id:
                 break
-            files.append({
-                "id"  : file_id,
-                "url" : self.root + extr('href="', '"'),
-                "type": "file",
-            })
+            files.append(
+                {
+                    "id": file_id,
+                    "url": self.root + extr('href="', '"'),
+                    "type": "file",
+                }
+            )
 
-        extr = text.extract_from(text.extr(
-            html, 'class="scrape__attachments"', "</ul>"))
+        extr = text.extract_from(
+            text.extr(html, 'class="scrape__attachments"', "</ul>")
+        )
         while True:
             url = extr('href="', '"')
             if not url:
                 break
-            files.append({
-                "id"  : "",
-                "url" : self.root + url,
-                "name": text.unescape(extr('download="', '"')),
-                "type": "attachment",
-            })
+            files.append(
+                {
+                    "id": "",
+                    "url": self.root + url,
+                    "name": text.unescape(extr('download="', '"')),
+                    "type": "attachment",
+                }
+            )
 
         return files
 

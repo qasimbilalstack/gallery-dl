@@ -15,6 +15,7 @@ from ..cache import cache
 
 class SeigaExtractor(Extractor):
     """Base class for seiga extractors"""
+
     category = "seiga"
     archive_fmt = "{image_id}"
     cookies_domain = ".nicovideo.jp"
@@ -46,7 +47,8 @@ class SeigaExtractor(Extractor):
         location = self.request_location(url, notfound="image")
         if "nicovideo.jp/login" in location:
             raise exception.AbortExtraction(
-                f"HTTP redirect to login page ({location.partition('?')[0]})")
+                f"HTTP redirect to login page ({location.partition('?')[0]})"
+            )
         return location.replace("/o/", "/priv/", 1)
 
     def login(self):
@@ -58,9 +60,10 @@ class SeigaExtractor(Extractor):
             return self.cookies_update(self._login_impl(username, password))
 
         raise exception.AuthorizationError(
-            "username & password or 'user_session' cookie required")
+            "username & password or 'user_session' cookie required"
+        )
 
-    @cache(maxage=365*86400, keyarg=1)
+    @cache(maxage=365 * 86400, keyarg=1)
     def _login_impl(self, username, password):
         self.log.info("Logging in as %s", username)
 
@@ -91,10 +94,11 @@ class SeigaExtractor(Extractor):
             url = root + text.unescape(text.extr(page, '<form action="', '"'))
             response = self.request(url, method="POST", data=data)
 
-            if not response.history and \
-                    b"Confirmation code is incorrect" in response.content:
-                raise exception.AuthenticationError(
-                    "Incorrect Confirmation Code")
+            if (
+                not response.history
+                and b"Confirmation code is incorrect" in response.content
+            ):
+                raise exception.AuthenticationError("Incorrect Confirmation Code")
 
         return {
             cookie.name: cookie.value
@@ -105,11 +109,14 @@ class SeigaExtractor(Extractor):
 
 class SeigaUserExtractor(SeigaExtractor):
     """Extractor for images of a user from seiga.nicovideo.jp"""
+
     subcategory = "user"
     directory_fmt = ("{category}", "{user[id]}")
     filename_fmt = "{category}_{user[id]}_{image_id}.{extension}"
-    pattern = (r"(?:https?://)?(?:www\.|(?:sp\.)?seiga\.)?nicovideo\.jp/"
-               r"user/illust/(\d+)(?:\?(?:[^&]+&)*sort=([^&#]+))?")
+    pattern = (
+        r"(?:https?://)?(?:www\.|(?:sp\.)?seiga\.)?nicovideo\.jp/"
+        r"user/illust/(\d+)(?:\?(?:[^&]+&)*sort=([^&#]+))?"
+    )
     example = "https://seiga.nicovideo.jp/user/illust/12345"
 
     def __init__(self, match):
@@ -125,12 +132,15 @@ class SeigaUserExtractor(SeigaExtractor):
 
     def get_metadata(self, page):
         """Collect metadata from 'page'"""
-        data = text.extract_all(page, (
-            ("name" , '<img alt="', '"'),
-            ("msg"  , '<li class="user_message">', '</li>'),
-            (None   , '<span class="target_name">すべて</span>', ''),
-            ("count", '<span class="count ">', '</span>'),
-        ))[0]
+        data = text.extract_all(
+            page,
+            (
+                ("name", '<img alt="', '"'),
+                ("msg", '<li class="user_message">', "</li>"),
+                (None, '<span class="target_name">すべて</span>', ""),
+                ("count", '<span class="count ">', "</span>"),
+            ),
+        )[0]
 
         if not data["name"] and "ユーザー情報が取得出来ませんでした" in page:
             raise exception.NotFoundError("user")
@@ -146,8 +156,7 @@ class SeigaUserExtractor(SeigaExtractor):
 
     def get_images(self):
         url = f"{self.root}/user/illust/{self.user_id}"
-        params = {"sort": self.order, "page": self.start_page,
-                  "target": "illust_all"}
+        params = {"sort": self.order, "page": self.start_page, "target": "illust_all"}
 
         while True:
             cnt = 0
@@ -156,15 +165,17 @@ class SeigaUserExtractor(SeigaExtractor):
             if params["page"] == self.start_page:
                 yield self.get_metadata(page)
 
-            for info in text.extract_iter(
-                    page, '<li class="list_item', '</a></li> '):
-                data = text.extract_all(info, (
-                    ("image_id", '/seiga/im', '"'),
-                    ("title"   , '<li class="title">', '</li>'),
-                    ("views"   , '</span>', '</li>'),
-                    ("comments", '</span>', '</li>'),
-                    ("clips"   , '</span>', '</li>'),
-                ))[0]
+            for info in text.extract_iter(page, '<li class="list_item', "</a></li> "):
+                data = text.extract_all(
+                    info,
+                    (
+                        ("image_id", "/seiga/im", '"'),
+                        ("title", '<li class="title">', "</li>"),
+                        ("views", "</span>", "</li>"),
+                        ("comments", "</span>", "</li>"),
+                        ("clips", "</span>", "</li>"),
+                    ),
+                )[0]
                 for key in ("image_id", "views", "comments", "clips"):
                     data[key] = text.parse_int(data[key])
                 yield data
@@ -177,12 +188,15 @@ class SeigaUserExtractor(SeigaExtractor):
 
 class SeigaImageExtractor(SeigaExtractor):
     """Extractor for single images from seiga.nicovideo.jp"""
+
     subcategory = "image"
     filename_fmt = "{category}_{image_id}.{extension}"
-    pattern = (r"(?:https?://)?(?:"
-               r"(?:seiga\.|www\.)?nicovideo\.jp/(?:seiga/im|image/source/)"
-               r"|sp\.seiga\.nicovideo\.jp/seiga/#!/im"
-               r"|lohas\.nicoseiga\.jp/(?:thumb|(?:priv|o)/[^/]+/\d+)/)(\d+)")
+    pattern = (
+        r"(?:https?://)?(?:"
+        r"(?:seiga\.|www\.)?nicovideo\.jp/(?:seiga/im|image/source/)"
+        r"|sp\.seiga\.nicovideo\.jp/seiga/#!/im"
+        r"|lohas\.nicoseiga\.jp/(?:thumb|(?:priv|o)/[^/]+/\d+)/)(\d+)"
+    )
     example = "https://seiga.nicovideo.jp/seiga/im12345"
 
     def __init__(self, match):
@@ -194,26 +208,32 @@ class SeigaImageExtractor(SeigaExtractor):
         return num
 
     def get_images(self):
-        self.cookies.set(
-            "skip_fetish_warning", "1", domain="seiga.nicovideo.jp")
+        self.cookies.set("skip_fetish_warning", "1", domain="seiga.nicovideo.jp")
 
         url = f"{self.root}/seiga/im{self.image_id}"
         page = self.request(url, notfound="image").text
 
-        data = text.extract_all(page, (
-            ("date"        , '<li class="date"><span class="created">', '<'),
-            ("title"       , '<h1 class="title">', '</h1>'),
-            ("description" , '<p class="discription">', '</p>'),
-        ))[0]
+        data = text.extract_all(
+            page,
+            (
+                ("date", '<li class="date"><span class="created">', "<"),
+                ("title", '<h1 class="title">', "</h1>"),
+                ("description", '<p class="discription">', "</p>"),
+            ),
+        )[0]
 
-        data["user"] = text.extract_all(page, (
-            ("id"  , '<a href="/user/illust/' , '"'),
-            ("name", '<span itemprop="title">', '<'),
-        ))[0]
+        data["user"] = text.extract_all(
+            page,
+            (
+                ("id", '<a href="/user/illust/', '"'),
+                ("name", '<span itemprop="title">', "<"),
+            ),
+        )[0]
 
         data["description"] = text.remove_html(data["description"])
         data["image_id"] = text.parse_int(self.image_id)
         data["date"] = text.parse_datetime(
-            data["date"] + ":00+0900", "%Y年%m月%d日 %H:%M:%S%z")
+            data["date"] + ":00+0900", "%Y年%m月%d日 %H:%M:%S%z"
+        )
 
         return (data, data)

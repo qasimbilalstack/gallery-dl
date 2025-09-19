@@ -34,8 +34,10 @@ def parse(format_string, default=NONE, fmt=format):
             cls = _FORMATTERS[kind[1:]]
         except KeyError:
             import logging
+
             logging.getLogger("formatter").error(
-                "Invalid formatter type '%s'", kind[1:])
+                "Invalid formatter type '%s'", kind[1:]
+            )
             cls = StringFormatter
     else:
         cls = StringFormatter
@@ -44,7 +46,7 @@ def parse(format_string, default=NONE, fmt=format):
     return formatter
 
 
-class StringFormatter():
+class StringFormatter:
     """Custom, extended version of string.Formatter
 
     This string formatter implementation is a mostly performance-optimized
@@ -100,15 +102,18 @@ class StringFormatter():
         self.result = []
         self.fields = []
 
-        for literal_text, field_name, format_spec, conv in \
-                _string.formatter_parser(format_string):
+        for literal_text, field_name, format_spec, conv in _string.formatter_parser(
+            format_string
+        ):
             if literal_text:
                 self.result.append(literal_text)
             if field_name:
-                self.fields.append((
-                    len(self.result),
-                    self._field_access(field_name, format_spec, conv),
-                ))
+                self.fields.append(
+                    (
+                        len(self.result),
+                        self._field_access(field_name, format_spec, conv),
+                    )
+                )
                 self.result.append("")
 
         if len(self.result) == 1:
@@ -129,10 +134,9 @@ class StringFormatter():
         fmt = self._parse_format_spec(format_spec, conversion)
 
         if "|" in field_name:
-            return self._apply_list([
-                parse_field_name(fn)
-                for fn in field_name.split("|")
-            ], fmt)
+            return self._apply_list(
+                [parse_field_name(fn) for fn in field_name.split("|")], fmt
+            )
         else:
             key, funcs = parse_field_name(field_name)
             if key in _GLOBALS:
@@ -150,6 +154,7 @@ class StringFormatter():
             except Exception:
                 obj = self.default
             return fmt(obj)
+
         return wrap
 
     def _apply_globals(self, gobj, funcs, fmt):
@@ -161,11 +166,13 @@ class StringFormatter():
             except Exception:
                 obj = self.default
             return fmt(obj)
+
         return wrap
 
     def _apply_simple(self, key, fmt):
         def wrap(kwdict):
             return fmt(kwdict[key] if key in kwdict else self.default)
+
         return wrap
 
     def _apply_list(self, lst, fmt):
@@ -183,6 +190,7 @@ class StringFormatter():
                 if obj is None:
                     obj = self.default
             return fmt(obj)
+
         return wrap
 
     def _parse_format_spec(self, format_spec, conversion):
@@ -197,14 +205,14 @@ class StringFormatter():
             return lambda obj: fmt(conversion(obj))
 
 
-class ExpressionFormatter():
+class ExpressionFormatter:
     """Generate text by evaluating a Python expression"""
 
     def __init__(self, expression, default=NONE, fmt=None):
         self.format_map = util.compile_expression(expression)
 
 
-class FStringFormatter():
+class FStringFormatter:
     """Generate text by evaluating an f-string literal"""
 
     def __init__(self, fstring, default=NONE, fmt=None):
@@ -216,8 +224,7 @@ def _init_jinja():
     from . import config
 
     if opts := config.get((), "jinja"):
-        JinjaFormatter.env = env = jinja2.Environment(
-            **opts.get("environment") or {})
+        JinjaFormatter.env = env = jinja2.Environment(**opts.get("environment") or {})
     else:
         JinjaFormatter.env = jinja2.Environment()
         return
@@ -227,17 +234,16 @@ def _init_jinja():
 
     if path := opts.get("filters"):
         module = util.import_file(path).__dict__
-        env.filters.update(
-            module["__filters__"] if "__filters__" in module else module)
+        env.filters.update(module["__filters__"] if "__filters__" in module else module)
 
     if path := opts.get("tests"):
         module = util.import_file(path).__dict__
-        env.tests.update(
-            module["__tests__"] if "__tests__" in module else module)
+        env.tests.update(module["__tests__"] if "__tests__" in module else module)
 
 
-class JinjaFormatter():
+class JinjaFormatter:
     """Generate text by evaluating a Jinja template string"""
+
     env = None
 
     def __init__(self, source, default=NONE, fmt=None):
@@ -246,7 +252,7 @@ class JinjaFormatter():
         self.format_map = self.env.from_string(source).render
 
 
-class ModuleFormatter():
+class ModuleFormatter:
     """Generate text by calling an external function"""
 
     def __init__(self, function_spec, default=NONE, fmt=None):
@@ -333,8 +339,9 @@ def _bytesgetter(slice, encoding=sys.getfilesystemencoding()):
 
 def _build_format_func(format_spec, default):
     if format_spec:
-        return _FORMAT_SPECIFIERS.get(
-            format_spec[0], _default_format)(format_spec, default)
+        return _FORMAT_SPECIFIERS.get(format_spec[0], _default_format)(
+            format_spec, default
+        )
     return default
 
 
@@ -345,6 +352,7 @@ def _parse_optional(format_spec, default):
 
     def optional(obj):
         return f"{before}{fmt(obj)}{after}" if obj else ""
+
     return optional
 
 
@@ -393,6 +401,7 @@ def _parse_conversion(format_spec, default):
 
         def convert_one(obj):
             return fmt(conv(obj))
+
         conv = _CONVERSIONS[conversions[1]]
         return convert_one
 
@@ -400,6 +409,7 @@ def _parse_conversion(format_spec, default):
         for conv in convs:
             obj = conv(obj)
         return fmt(obj)
+
     convs = [_CONVERSIONS[c] for c in conversions[1:]]
     return convert_many
 
@@ -412,6 +422,7 @@ def _parse_maxlen(format_spec, default):
     def mlen(obj):
         obj = fmt(obj)
         return obj if len(obj) <= maxlen else replacement
+
     return mlen
 
 
@@ -424,6 +435,7 @@ def _parse_join(format_spec, default):
         if isinstance(obj, str):
             return fmt(obj)
         return fmt(join(obj))
+
     return apply_join
 
 
@@ -455,6 +467,7 @@ def _parse_replace(format_spec, default):
 
     def replace(obj):
         return fmt(obj.replace(old, new))
+
     return replace
 
 
@@ -465,6 +478,7 @@ def _parse_datetime(format_spec, default):
 
     def dt(obj):
         return fmt(text.parse_datetime(obj, dt_format))
+
     return dt
 
 
@@ -474,9 +488,11 @@ def _parse_offset(format_spec, default):
     fmt = _build_format_func(format_spec, default)
 
     if not offset or offset == "local":
+
         def off(dt):
             local = time.localtime(util.datetime_to_timestamp(dt))
             return fmt(dt + datetime.timedelta(0, local.tm_gmtoff))
+
     else:
         hours, _, minutes = offset.partition(":")
         offset = 3600 * int(hours)
@@ -486,6 +502,7 @@ def _parse_offset(format_spec, default):
 
         def off(obj):
             return fmt(obj + offset)
+
     return off
 
 
@@ -494,12 +511,16 @@ def _parse_sort(format_spec, default):
     fmt = _build_format_func(format_spec, default)
 
     if "d" in args or "r" in args:
+
         def sort_desc(obj):
             return fmt(sorted(obj, reverse=True))
+
         return sort_desc
     else:
+
         def sort_asc(obj):
             return fmt(sorted(obj))
+
         return sort_asc
 
 
@@ -513,16 +534,18 @@ def _parse_limit(format_spec, default):
         if len(obj) > limit:
             obj = obj[:limit_hint] + hint
         return fmt(obj)
+
     return apply_limit
 
 
 def _default_format(format_spec, default):
     def wrap(obj):
         return format(obj, format_spec)
+
     return wrap
 
 
-class Literal():
+class Literal:
     # __getattr__, __getattribute__, and __class_getitem__
     # are all slower than regular __getitem__
 
@@ -535,12 +558,12 @@ _literal = Literal()
 _CACHE = {}
 _SEPARATOR = "/"
 _FORMATTERS = {
-    "E" : ExpressionFormatter,
-    "F" : FStringFormatter,
-    "J" : JinjaFormatter,
-    "M" : ModuleFormatter,
-    "S" : StringFormatter,
-    "T" : TemplateFormatter,
+    "E": ExpressionFormatter,
+    "F": FStringFormatter,
+    "J": JinjaFormatter,
+    "M": ModuleFormatter,
+    "S": StringFormatter,
+    "T": TemplateFormatter,
     "TF": TemplateFStringFormatter,
     "FT": TemplateFStringFormatter,
     "TJ": TemplateJinjaFormatter,

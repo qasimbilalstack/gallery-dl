@@ -31,11 +31,16 @@ class ComparePP(PostProcessor):
             elif equal == "exit":
                 self._equal_exc = SystemExit
 
-        job.register_hooks({"file": (
-            self.enumerate
-            if options.get("action") == "enumerate" else
-            self.replace
-        )}, options)
+        job.register_hooks(
+            {
+                "file": (
+                    self.enumerate
+                    if options.get("action") == "enumerate"
+                    else self.replace
+                )
+            },
+            options,
+        )
 
     def replace(self, pathfmt):
         try:

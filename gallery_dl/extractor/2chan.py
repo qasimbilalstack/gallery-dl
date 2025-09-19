@@ -14,6 +14,7 @@ from .. import text
 
 class _2chanThreadExtractor(Extractor):
     """Extractor for 2chan threads"""
+
     category = "2chan"
     subcategory = "thread"
     directory_fmt = ("{category}", "{board_name}", "{thread}")
@@ -27,8 +28,7 @@ class _2chanThreadExtractor(Extractor):
         self.server, self.board, self.thread = match.groups()
 
     def items(self):
-        url = (f"https://{self.server}.2chan.net"
-               f"/{self.board}/res/{self.thread}.htm")
+        url = f"https://{self.server}.2chan.net" f"/{self.board}/res/{self.thread}.htm"
         page = self.request(url).text
         data = self.metadata(page)
         yield Message.Directory, data
@@ -36,14 +36,15 @@ class _2chanThreadExtractor(Extractor):
             if "filename" not in post:
                 continue
             post.update(data)
-            url = (f"https://{post['server']}.2chan.net"
-                   f"/{post['board']}/src/{post['filename']}")
+            url = (
+                f"https://{post['server']}.2chan.net"
+                f"/{post['board']}/src/{post['filename']}"
+            )
             yield Message.Url, url, post
 
     def metadata(self, page):
         """Collect metadata for extractor-job"""
-        title, _, boardname = text.extr(
-            page, "<title>", "</title>").rpartition(" - ")
+        title, _, boardname = text.extr(page, "<title>", "</title>").rpartition(" - ")
         return {
             "server": self.server,
             "title": title,
@@ -54,12 +55,8 @@ class _2chanThreadExtractor(Extractor):
 
     def posts(self, page):
         """Build a list of all post-objects"""
-        page = text.extr(
-            page, '<div class="thre"', '<div style="clear:left"></div>')
-        return [
-            self.parse(post)
-            for post in page.split('<table border=0>')
-        ]
+        page = text.extr(page, '<div class="thre"', '<div style="clear:left"></div>')
+        return [self.parse(post) for post in page.split("<table border=0>")]
 
     def parse(self, post):
         """Build post-object by extracting data from an HTML post"""
@@ -75,18 +72,26 @@ class _2chanThreadExtractor(Extractor):
         return data
 
     def _extract_post(self, post):
-        return text.extract_all(post, (
-            ("post", 'class="csb">'   , '<'),
-            ("name", 'class="cnm">'   , '<'),
-            ("now" , 'class="cnw">'   , '<'),
-            ("no"  , 'class="cno">No.', '<'),
-            (None  , '<blockquote', ''),
-            ("com" , '>', '</blockquote>'),
-        ))[0]
+        return text.extract_all(
+            post,
+            (
+                ("post", 'class="csb">', "<"),
+                ("name", 'class="cnm">', "<"),
+                ("now", 'class="cnw">', "<"),
+                ("no", 'class="cno">No.', "<"),
+                (None, "<blockquote", ""),
+                ("com", ">", "</blockquote>"),
+            ),
+        )[0]
 
     def _extract_image(self, post, data):
-        text.extract_all(post, (
-            (None      , '_blank', ''),
-            ("filename", '>', '<'),
-            ("fsize"   , '(', ' '),
-        ), 0, data)
+        text.extract_all(
+            post,
+            (
+                (None, "_blank", ""),
+                ("filename", ">", "<"),
+                ("fsize", "(", " "),
+            ),
+            0,
+            data,
+        )

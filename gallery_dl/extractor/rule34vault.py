@@ -30,14 +30,15 @@ class Rule34vaultExtractor(BooruExtractor):
     def _file_url(self, post):
         post_id = post["id"]
         extension = "jpg" if post["type"] == 0 else "mp4"
-        post["file_url"] = url = (f"{self.root_cdn}/posts/{post_id // 1000}/"
-                                  f"{post_id}/{post_id}.{extension}")
+        post["file_url"] = url = (
+            f"{self.root_cdn}/posts/{post_id // 1000}/"
+            f"{post_id}/{post_id}.{extension}"
+        )
         return url
 
     def _prepare(self, post):
         post.pop("files", None)
-        post["date"] = text.parse_datetime(
-            post["created"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        post["date"] = text.parse_datetime(post["created"], "%Y-%m-%dT%H:%M:%S.%fZ")
         if "tags" in post:
             post["tags"] = [t["value"] for t in post["tags"]]
 

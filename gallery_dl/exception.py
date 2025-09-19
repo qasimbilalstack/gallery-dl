@@ -36,6 +36,7 @@ Exception
 
 class GalleryDLException(Exception):
     """Base class for GalleryDL exceptions"""
+
     default = None
     msgfmt = None
     code = 1
@@ -54,13 +55,16 @@ class GalleryDLException(Exception):
 ###############################################################################
 # Extractor Errors ############################################################
 
+
 class ExtractionError(GalleryDLException):
     """Base class for exceptions during information extraction"""
+
     code = 4
 
 
 class HttpError(ExtractionError):
     """HTTP request during data extraction failed"""
+
     default = "HTTP request failed"
 
     def __init__(self, message="", response=None):
@@ -70,8 +74,10 @@ class HttpError(ExtractionError):
         else:
             self.status = response.status_code
             if not message:
-                message = (f"'{response.status_code} {response.reason}' "
-                           f"for '{response.url}'")
+                message = (
+                    f"'{response.status_code} {response.reason}' "
+                    f"for '{response.url}'"
+                )
         ExtractionError.__init__(self, message)
 
 
@@ -81,18 +87,21 @@ class ChallengeError(HttpError):
     def __init__(self, challenge, response):
         message = (
             f"{challenge} ({response.status_code} {response.reason}) "
-            f"for '{response.url}'")
+            f"for '{response.url}'"
+        )
         HttpError.__init__(self, message, response)
 
 
 class AuthenticationError(ExtractionError):
     """Invalid or missing login credentials"""
+
     default = "Invalid login credentials"
     code = 16
 
 
 class AuthorizationError(ExtractionError):
     """Insufficient privileges to access a resource"""
+
     default = "Insufficient privileges to access this resource"
     code = 16
 
@@ -119,6 +128,7 @@ class AuthRequired(AuthorizationError):
 
 class NotFoundError(ExtractionError):
     """Requested resource (gallery/image) could not be found"""
+
     msgfmt = "Requested {} could not be found"
     default = "resource (gallery/image)"
 
@@ -126,8 +136,10 @@ class NotFoundError(ExtractionError):
 ###############################################################################
 # User Input ##################################################################
 
+
 class InputError(GalleryDLException):
     """Error caused by user input and config options"""
+
     code = 32
 
 
@@ -137,16 +149,19 @@ class FormatError(InputError):
 
 class FilenameFormatError(FormatError):
     """Error while building output filenames"""
+
     msgfmt = "Applying filename format string failed ({})"
 
 
 class DirectoryFormatError(FormatError):
     """Error while building output directory paths"""
+
     msgfmt = "Applying directory format string failed ({})"
 
 
 class FilterError(InputError):
     """Error while evaluating a filter expression"""
+
     msgfmt = "Evaluating filter expression failed ({})"
 
 
@@ -160,6 +175,7 @@ class NoExtractorError(InputError):
 
 ###############################################################################
 # Control Flow ################################################################
+
 
 class ControlException(GalleryDLException):
     code = 0

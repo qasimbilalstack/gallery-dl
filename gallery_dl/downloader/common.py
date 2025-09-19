@@ -10,11 +10,13 @@
 
 import os
 from .. import config, util
+
 _config = config._config
 
 
-class DownloaderBase():
+class DownloaderBase:
     """Base class for downloaders"""
+
     scheme = ""
 
     def __init__(self, job):
@@ -88,8 +90,11 @@ class DownloaderBase():
         return None
 
     def _report_config_error(self, subcategory, value):
-        config.log.warning("Subcategory '%s' set to '%s' instead of object",
-                           subcategory, util.json_dumps(value).strip('"'))
+        config.log.warning(
+            "Subcategory '%s' set to '%s' instead of object",
+            subcategory,
+            util.json_dumps(value).strip('"'),
+        )
 
     def download(self, url, pathfmt):
         """Write data from 'url' into the file specified by 'pathfmt'"""

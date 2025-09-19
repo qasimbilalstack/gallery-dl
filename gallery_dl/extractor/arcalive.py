@@ -14,6 +14,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?arca\.live"
 
 class ArcaliveExtractor(Extractor):
     """Base class for Arca.live extractors"""
+
     category = "arcalive"
     root = "https://arca.live"
     useragent = "net.umanle.arca.android.playstore/0.9.75"
@@ -32,6 +33,7 @@ class ArcaliveExtractor(Extractor):
 
 class ArcalivePostExtractor(ArcaliveExtractor):
     """Extractor for an arca.live post"""
+
     subcategory = "post"
     directory_fmt = ("{category}", "{boardSlug}")
     filename_fmt = "{id}_{num}{title:? //[b:230]}.{extension}"
@@ -43,16 +45,14 @@ class ArcalivePostExtractor(ArcaliveExtractor):
         self.emoticons = self.config("emoticons", False)
         self.gifs = gifs = self.config("gifs", True)
         if gifs:
-            self.gifs_fallback = (gifs != "check")
+            self.gifs_fallback = gifs != "check"
 
         post = self.api.post(self.groups[0])
         files = self._extract_files(post)
 
         post["count"] = len(files)
-        post["date"] = text.parse_datetime(
-            post["createdAt"][:19], "%Y-%m-%dT%H:%M:%S")
-        post["post_url"] = post_url = \
-            f"{self.root}/b/{post['boardSlug']}/{post['id']}"
+        post["date"] = text.parse_datetime(post["createdAt"][:19], "%Y-%m-%dT%H:%M:%S")
+        post["post_url"] = post_url = f"{self.root}/b/{post['boardSlug']}/{post['id']}"
         post["_http_headers"] = {"Referer": post_url + "?p=1"}
 
         yield Message.Directory, post
@@ -65,20 +65,21 @@ class ArcalivePostExtractor(ArcaliveExtractor):
         files = []
 
         for video, media in util.re(r"<(?:img|vide(o)) ([^>]+)").findall(
-                post["content"]):
+            post["content"]
+        ):
             if not self.emoticons and 'class="arca-emoticon"' in media:
                 continue
 
-            src = (text.extr(media, 'data-originalurl="', '"') or
-                   text.extr(media, 'src="', '"'))
+            src = text.extr(media, 'data-originalurl="', '"') or text.extr(
+                media, 'src="', '"'
+            )
             if not src:
                 continue
 
             src, _, query = text.unescape(src).partition("?")
             if src[0] == "/":
                 if src[1] == "/":
-                    url = "https:" + src.replace(
-                        "//ac-p.namu", "//ac-o.namu", 1)
+                    url = "https:" + src.replace("//ac-p.namu", "//ac-o.namu", 1)
                 else:
                     url = self.root + src
             else:
@@ -97,24 +98,26 @@ class ArcalivePostExtractor(ArcaliveExtractor):
                     fallback = (url + query,)
                     url = url_gif
                 else:
-                    response = self.request(
-                        url_gif + query, method="HEAD", fatal=False)
+                    response = self.request(url_gif + query, method="HEAD", fatal=False)
                     if response.status_code < 400:
                         fallback = (url + query,)
                         url = url_gif
 
-            files.append({
-                "url"   : url + query,
-                "width" : text.parse_int(text.extr(media, 'width="', '"')),
-                "height": text.parse_int(text.extr(media, 'height="', '"')),
-                "_fallback": fallback,
-            })
+            files.append(
+                {
+                    "url": url + query,
+                    "width": text.parse_int(text.extr(media, 'width="', '"')),
+                    "height": text.parse_int(text.extr(media, 'height="', '"')),
+                    "_fallback": fallback,
+                }
+            )
 
         return files
 
 
 class ArcaliveBoardExtractor(ArcaliveExtractor):
     """Extractor for an arca.live board's posts"""
+
     subcategory = "board"
     pattern = BASE_PATTERN + r"/b/([^/?#]+)/?(?:\?([^#]+))?$"
     example = "https://arca.live/b/breaking"
@@ -127,6 +130,7 @@ class ArcaliveBoardExtractor(ArcaliveExtractor):
 
 class ArcaliveUserExtractor(ArcaliveExtractor):
     """Extractor for an arca.live users's posts"""
+
     subcategory = "user"
     pattern = BASE_PATTERN + r"/u/@([^/?#]+)/?(?:\?([^#]+))?$"
     example = "https://arca.live/u/@USER"
@@ -138,7 +142,7 @@ class ArcaliveUserExtractor(ArcaliveExtractor):
         return self.api.user_posts(text.unquote(user), params)
 
 
-class ArcaliveAPI():
+class ArcaliveAPI:
 
     def __init__(self, extractor):
         self.extractor = extractor

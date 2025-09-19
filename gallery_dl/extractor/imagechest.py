@@ -17,6 +17,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?imgchest\.com"
 
 class ImagechestGalleryExtractor(GalleryExtractor):
     """Extractor for image galleries from imgchest.com"""
+
     category = "imagechest"
     root = "https://imgchest.com"
     pattern = BASE_PATTERN + r"/p/([A-Za-z0-9]{11})"
@@ -35,8 +36,7 @@ class ImagechestGalleryExtractor(GalleryExtractor):
 
     def metadata(self, page):
         try:
-            data = util.json_loads(text.unescape(text.extr(
-                page, 'data-page="', '"')))
+            data = util.json_loads(text.unescape(text.extr(page, 'data-page="', '"')))
             post = data["props"]["post"]
         except Exception:
             if "<title>Not Found</title>" in page:
@@ -53,11 +53,9 @@ class ImagechestGalleryExtractor(GalleryExtractor):
     def _metadata_api(self, page):
         post = self.api.post(self.gallery_id)
 
-        post["date"] = text.parse_datetime(
-            post["created"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        post["date"] = text.parse_datetime(post["created"], "%Y-%m-%dT%H:%M:%S.%fZ")
         for img in post["images"]:
-            img["date"] = text.parse_datetime(
-                img["created"], "%Y-%m-%dT%H:%M:%S.%fZ")
+            img["date"] = text.parse_datetime(img["created"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
         post["gallery_id"] = self.gallery_id
         post.pop("image_count", None)
@@ -67,16 +65,14 @@ class ImagechestGalleryExtractor(GalleryExtractor):
 
     def images(self, page):
         try:
-            return [
-                (file["link"], file)
-                for file in self.files
-            ]
+            return [(file["link"], file) for file in self.files]
         except Exception:
             return ()
 
 
 class ImagechestUserExtractor(Extractor):
     """Extractor for imgchest.com user profiles"""
+
     category = "imagechest"
     subcategory = "user"
     root = "https://imgchest.com"
@@ -86,12 +82,12 @@ class ImagechestUserExtractor(Extractor):
     def items(self):
         url = self.root + "/api/posts"
         params = {
-            "page"    : 1,
-            "sort"    : "new",
-            "tag"     : "",
-            "q"       : "",
+            "page": 1,
+            "sort": "new",
+            "tag": "",
+            "q": "",
             "username": text.unquote(self.groups[0]),
-            "nsfw"    : "true",
+            "nsfw": "true",
         }
 
         while True:
@@ -110,11 +106,12 @@ class ImagechestUserExtractor(Extractor):
             params["page"] += 1
 
 
-class ImagechestAPI():
+class ImagechestAPI:
     """Interface for the Image Chest API
 
     https://imgchest.com/docs/api/1.0/general/overview
     """
+
     root = "https://api.imgchest.com"
 
     def __init__(self, extractor, access_token):
@@ -138,7 +135,8 @@ class ImagechestAPI():
 
         while True:
             response = self.extractor.request(
-                url, headers=self.headers, fatal=None, allow_redirects=False)
+                url, headers=self.headers, fatal=None, allow_redirects=False
+            )
 
             if response.status_code < 300:
                 return response.json()["data"]

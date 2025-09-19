@@ -15,6 +15,7 @@ import itertools
 
 class FoolfuukaExtractor(BaseExtractor):
     """Base extractor for FoolFuuka based boards/archives"""
+
     basecategory = "foolfuuka"
     filename_fmt = "{timestamp_ms} {filename_media}.{extension}"
     archive_fmt = "{board[shortname]}_{num}_{timestamp}"
@@ -43,11 +44,11 @@ class FoolfuukaExtractor(BaseExtractor):
             if url and url[0] == "/":
                 url = self.root + url
 
-            post["filename"], _, post["extension"] = \
-                media["media"].rpartition(".")
+            post["filename"], _, post["extension"] = media["media"].rpartition(".")
             post["filename_media"] = media["media_filename"].rpartition(".")[0]
             post["timestamp_ms"] = text.parse_int(
-                media["media_orig"].rpartition(".")[0])
+                media["media_orig"].rpartition(".")[0]
+            )
             yield Message.Url, url, post
 
     def metadata(self):
@@ -73,16 +74,16 @@ class FoolfuukaExtractor(BaseExtractor):
             # these boards link directly to i.4cdn.org
             # -> redirect to warosu or 4plebs instead
             board_domains = {
-                "3"  : "warosu.org",
+                "3": "warosu.org",
                 "biz": "warosu.org",
-                "ck" : "warosu.org",
+                "ck": "warosu.org",
                 "diy": "warosu.org",
-                "fa" : "warosu.org",
-                "ic" : "warosu.org",
-                "jp" : "warosu.org",
+                "fa": "warosu.org",
+                "ic": "warosu.org",
+                "jp": "warosu.org",
                 "lit": "warosu.org",
                 "sci": "warosu.org",
-                "tg" : "archive.4plebs.org",
+                "tg": "archive.4plebs.org",
             }
             board = url.split("/", 4)[3]
             if board in board_domains:
@@ -90,8 +91,9 @@ class FoolfuukaExtractor(BaseExtractor):
                 url = f"https://{domain}/{board}/full_image/{filename}"
 
             # if it's one of these archives, slice the name
-            elif any(archive in path for archive in (
-                     "b4k.", "desuarchive.", "palanq.")):
+            elif any(
+                archive in path for archive in ("b4k.", "desuarchive.", "palanq.")
+            ):
                 name, _, ext = filename.rpartition(".")
                 if len(name) > 13:
                     url = f"{path}/{name[:13]}.{ext}"
@@ -102,51 +104,57 @@ class FoolfuukaExtractor(BaseExtractor):
         return media["remote_media_link"]
 
 
-BASE_PATTERN = FoolfuukaExtractor.update({
-    "4plebs": {
-        "root": "https://archive.4plebs.org",
-        "pattern": r"(?:archive\.)?4plebs\.org",
-    },
-    "archivedmoe": {
-        "root": "https://archived.moe",
-        "pattern": r"archived\.moe",
-    },
-    "archiveofsins": {
-        "root": "https://archiveofsins.com",
-        "pattern": r"(?:www\.)?archiveofsins\.com",
-    },
-    "b4k": {
-        "root": "https://arch.b4k.dev",
-        "pattern": r"arch\.b4k\.(?:dev|co)",
-    },
-    "desuarchive": {
-        "root": "https://desuarchive.org",
-        "pattern": r"desuarchive\.org",
-    },
-    "fireden": {
-        "root": "https://boards.fireden.net",
-        "pattern": r"boards\.fireden\.net",
-    },
-    "palanq": {
-        "root": "https://archive.palanq.win",
-        "pattern": r"archive\.palanq\.win",
-    },
-    "rbt": {
-        "root": "https://rbt.asia",
-        "pattern": r"(?:rbt\.asia|(?:archive\.)?rebeccablacktech\.com)",
-    },
-    "thebarchive": {
-        "root": "https://thebarchive.com",
-        "pattern": r"thebarchive\.com",
-    },
-})
+BASE_PATTERN = FoolfuukaExtractor.update(
+    {
+        "4plebs": {
+            "root": "https://archive.4plebs.org",
+            "pattern": r"(?:archive\.)?4plebs\.org",
+        },
+        "archivedmoe": {
+            "root": "https://archived.moe",
+            "pattern": r"archived\.moe",
+        },
+        "archiveofsins": {
+            "root": "https://archiveofsins.com",
+            "pattern": r"(?:www\.)?archiveofsins\.com",
+        },
+        "b4k": {
+            "root": "https://arch.b4k.dev",
+            "pattern": r"arch\.b4k\.(?:dev|co)",
+        },
+        "desuarchive": {
+            "root": "https://desuarchive.org",
+            "pattern": r"desuarchive\.org",
+        },
+        "fireden": {
+            "root": "https://boards.fireden.net",
+            "pattern": r"boards\.fireden\.net",
+        },
+        "palanq": {
+            "root": "https://archive.palanq.win",
+            "pattern": r"archive\.palanq\.win",
+        },
+        "rbt": {
+            "root": "https://rbt.asia",
+            "pattern": r"(?:rbt\.asia|(?:archive\.)?rebeccablacktech\.com)",
+        },
+        "thebarchive": {
+            "root": "https://thebarchive.com",
+            "pattern": r"thebarchive\.com",
+        },
+    }
+)
 
 
 class FoolfuukaThreadExtractor(FoolfuukaExtractor):
     """Base extractor for threads on FoolFuuka based boards/archives"""
+
     subcategory = "thread"
-    directory_fmt = ("{category}", "{board[shortname]}",
-                     "{thread_num} {title|comment[:50]}")
+    directory_fmt = (
+        "{category}",
+        "{board[shortname]}",
+        "{thread_num} {title|comment[:50]}",
+    )
     pattern = BASE_PATTERN + r"/([^/?#]+)/thread/(\d+)"
     example = "https://archived.moe/a/thread/12345/"
 
@@ -173,6 +181,7 @@ class FoolfuukaThreadExtractor(FoolfuukaExtractor):
 
 class FoolfuukaBoardExtractor(FoolfuukaExtractor):
     """Base extractor for FoolFuuka based boards/archives"""
+
     subcategory = "board"
     pattern = BASE_PATTERN + r"/([^/?#]+)(?:/(?:page/)?(\d*))?$"
     example = "https://archived.moe/a/"
@@ -208,6 +217,7 @@ class FoolfuukaBoardExtractor(FoolfuukaExtractor):
 
 class FoolfuukaSearchExtractor(FoolfuukaExtractor):
     """Base extractor for search results on FoolFuuka based boards/archives"""
+
     subcategory = "search"
     directory_fmt = ("{category}", "search", "{search}")
     pattern = BASE_PATTERN + r"/([^/?#]+)/search((?:/[^/?#]+/[^/?#]+)+)"
@@ -263,6 +273,7 @@ class FoolfuukaSearchExtractor(FoolfuukaExtractor):
 
 class FoolfuukaGalleryExtractor(FoolfuukaExtractor):
     """Base extractor for FoolFuuka galleries"""
+
     subcategory = "gallery"
     directory_fmt = ("{category}", "{board}", "gallery")
     pattern = BASE_PATTERN + r"/([^/?#]+)/gallery(?:/(\d+))?"

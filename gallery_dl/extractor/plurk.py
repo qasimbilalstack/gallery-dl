@@ -15,6 +15,7 @@ import datetime
 
 class PlurkExtractor(Extractor):
     """Base class for plurk extractors"""
+
     category = "plurk"
     root = "https://www.plurk.com"
     request_interval = (0.5, 1.5)
@@ -49,8 +50,7 @@ class PlurkExtractor(Extractor):
         }
 
         while True:
-            info = self.request_json(
-                url, method="POST", headers=headers, data=data)
+            info = self.request_json(url, method="POST", headers=headers, data=data)
             yield from info["responses"]
             if not info["has_newer"]:
                 return
@@ -61,12 +61,12 @@ class PlurkExtractor(Extractor):
     def _load(self, data):
         if not data:
             raise exception.NotFoundError("user")
-        return util.json_loads(
-            util.re(r"new Date\(([^)]+)\)").sub(r"\1", data))
+        return util.json_loads(util.re(r"new Date\(([^)]+)\)").sub(r"\1", data))
 
 
 class PlurkTimelineExtractor(PlurkExtractor):
     """Extractor for URLs from all posts in a Plurk timeline"""
+
     subcategory = "timeline"
     pattern = r"(?:https?://)?(?:www\.)?plurk\.com/(?!p/)(\w+)/?(?:$|[?#])"
     example = "https://www.plurk.com/USER"
@@ -78,7 +78,7 @@ class PlurkTimelineExtractor(PlurkExtractor):
     def plurks(self):
         url = f"{self.root}/{self.user}"
         page = self.request(url).text
-        user_id, pos = text.extract(page, '"page_user": {"id":', ',')
+        user_id, pos = text.extract(page, '"page_user": {"id":', ",")
         plurks = self._load(text.extract(page, "_PLURKS = ", ";\n", pos)[0])
 
         headers = {"Referer": url, "X-Requested-With": "XMLHttpRequest"}
@@ -89,15 +89,16 @@ class PlurkTimelineExtractor(PlurkExtractor):
             yield from plurks
 
             offset = datetime.datetime.strptime(
-                plurks[-1]["posted"], "%a, %d %b %Y %H:%M:%S %Z")
+                plurks[-1]["posted"], "%a, %d %b %Y %H:%M:%S %Z"
+            )
             data["offset"] = offset.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-            response = self.request(
-                url, method="POST", headers=headers, data=data)
+            response = self.request(url, method="POST", headers=headers, data=data)
             plurks = response.json()["plurks"]
 
 
 class PlurkPostExtractor(PlurkExtractor):
     """Extractor for URLs from a Plurk post"""
+
     subcategory = "post"
     pattern = r"(?:https?://)?(?:www\.)?plurk\.com/p/(\w+)"
     example = "https://www.plurk.com/p/12345"
@@ -112,6 +113,5 @@ class PlurkPostExtractor(PlurkExtractor):
         try:
             data["user"] = self._load(user)["page_user"]
         except Exception:
-            self.log.warning("%s: Failed to extract 'user' data",
-                             self.groups[0])
+            self.log.warning("%s: Failed to extract 'user' data", self.groups[0])
         return (data,)

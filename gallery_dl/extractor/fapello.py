@@ -15,6 +15,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?fapello\.(?:com|su)"
 
 class FapelloPostExtractor(Extractor):
     """Extractor for individual posts on fapello.com"""
+
     category = "fapello"
     subcategory = "post"
     directory_fmt = ("{category}", "{model}")
@@ -32,29 +33,34 @@ class FapelloPostExtractor(Extractor):
         url = f"{self.root}/{self.model}/{self.id}/"
         page = text.extr(
             self.request(url, allow_redirects=False).text,
-            'class="uk-align-center"', "</div>", None)
+            'class="uk-align-center"',
+            "</div>",
+            None,
+        )
         if page is None:
             raise exception.NotFoundError("post")
 
         data = {
             "model": self.model,
-            "id"   : text.parse_int(self.id),
-            "type" : "video" if 'type="video' in page else "photo",
+            "id": text.parse_int(self.id),
+            "type": "video" if 'type="video' in page else "photo",
             "thumbnail": text.extr(page, 'poster="', '"'),
         }
-        url = text.extr(page, 'src="', '"').replace(
-            ".md", "").replace(".th", "")
+        url = text.extr(page, 'src="', '"').replace(".md", "").replace(".th", "")
         yield Message.Directory, data
         yield Message.Url, url, text.nameext_from_url(url, data)
 
 
 class FapelloModelExtractor(Extractor):
     """Extractor for all posts from a fapello model"""
+
     category = "fapello"
     subcategory = "model"
-    pattern = (BASE_PATTERN + r"/(?!top-(?:likes|followers)|popular_videos"
-               r"|videos|trending|search/?$)"
-               r"([^/?#]+)/?$")
+    pattern = (
+        BASE_PATTERN + r"/(?!top-(?:likes|followers)|popular_videos"
+        r"|videos|trending|search/?$)"
+        r"([^/?#]+)/?$"
+    )
     example = "https://fapello.com/model/"
 
     def __init__(self, match):
@@ -83,11 +89,13 @@ class FapelloModelExtractor(Extractor):
 
 class FapelloPathExtractor(Extractor):
     """Extractor for models and posts from fapello.com paths"""
+
     category = "fapello"
     subcategory = "path"
-    pattern = (BASE_PATTERN +
-               r"/(?!search/?$)(top-(?:likes|followers)|videos|trending"
-               r"|popular_videos/[^/?#]+)/?$")
+    pattern = (
+        BASE_PATTERN + r"/(?!search/?$)(top-(?:likes|followers)|videos|trending"
+        r"|popular_videos/[^/?#]+)/?$"
+    )
     example = "https://fapello.com/trending/"
 
     def __init__(self, match):
@@ -113,7 +121,6 @@ class FapelloPathExtractor(Extractor):
             if not page:
                 return
 
-            for item in text.extract_iter(
-                    page, 'uk-transition-toggle">', "</a>"):
+            for item in text.extract_iter(page, 'uk-transition-toggle">', "</a>"):
                 yield Message.Queue, text.extr(item, '<a href="', '"'), data
             num += 1

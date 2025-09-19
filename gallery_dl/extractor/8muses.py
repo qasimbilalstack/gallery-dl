@@ -14,14 +14,17 @@ from .. import text, util
 
 class _8musesAlbumExtractor(Extractor):
     """Extractor for image albums on comics.8muses.com"""
+
     category = "8muses"
     subcategory = "album"
     directory_fmt = ("{category}", "{album[path]}")
     filename_fmt = "{page:>03}.{extension}"
     archive_fmt = "{hash}"
     root = "https://comics.8muses.com"
-    pattern = (r"(?:https?://)?(?:comics\.|www\.)?8muses\.com"
-               r"(/comics/album/[^?#]+)(\?[^#]+)?")
+    pattern = (
+        r"(?:https?://)?(?:comics\.|www\.)?8muses\.com"
+        r"(/comics/album/[^?#]+)(\?[^#]+)?"
+    )
     example = "https://comics.8muses.com/comics/album/PATH/TITLE"
 
     def __init__(self, match):
@@ -33,9 +36,13 @@ class _8musesAlbumExtractor(Extractor):
         url = self.root + self.path + self.params
 
         while True:
-            data = self._unobfuscate(text.extr(
-                self.request(url).text,
-                'id="ractive-public" type="text/plain">', '</script>'))
+            data = self._unobfuscate(
+                text.extr(
+                    self.request(url).text,
+                    'id="ractive-public" type="text/plain">',
+                    "</script>",
+                )
+            )
 
             if images := data.get("pictures"):
                 count = len(images)
@@ -44,11 +51,11 @@ class _8musesAlbumExtractor(Extractor):
                 for num, image in enumerate(images, 1):
                     url = self.root + "/image/fl/" + image["publicUri"]
                     img = {
-                        "url"      : url,
-                        "page"     : num,
-                        "hash"     : image["publicUri"],
-                        "count"    : count,
-                        "album"    : album,
+                        "url": url,
+                        "page": num,
+                        "hash": image["publicUri"],
+                        "count": count,
+                        "album": album,
                         "extension": "jpg",
                     }
                     yield Message.Url, url, img
@@ -62,9 +69,9 @@ class _8musesAlbumExtractor(Extractor):
 
                     url = self.root + "/comics/album/" + permalink
                     yield Message.Queue, url, {
-                        "url"       : url,
-                        "name"      : album["name"],
-                        "private"   : album["isPrivate"],
+                        "url": url,
+                        "name": album["name"],
+                        "private": album["isPrivate"],
                         "_extractor": _8musesAlbumExtractor,
                     }
 
@@ -76,21 +83,24 @@ class _8musesAlbumExtractor(Extractor):
 
     def _make_album(self, album):
         return {
-            "id"     : album["id"],
-            "path"   : album["path"],
-            "parts"  : album["path"].split("/"),
-            "title"  : album["name"],
+            "id": album["id"],
+            "path": album["path"],
+            "parts": album["path"].split("/"),
+            "title": album["name"],
             "private": album["isPrivate"],
-            "url"    : self.root + "/comics/album/" + album["permalink"],
-            "parent" : text.parse_int(album["parentId"]),
-            "views"  : text.parse_int(album["numberViews"]),
-            "likes"  : text.parse_int(album["numberLikes"]),
-            "date"   : text.parse_datetime(
-                album["updatedAt"], "%Y-%m-%dT%H:%M:%S.%fZ"),
+            "url": self.root + "/comics/album/" + album["permalink"],
+            "parent": text.parse_int(album["parentId"]),
+            "views": text.parse_int(album["numberViews"]),
+            "likes": text.parse_int(album["numberLikes"]),
+            "date": text.parse_datetime(album["updatedAt"], "%Y-%m-%dT%H:%M:%S.%fZ"),
         }
 
     def _unobfuscate(self, data):
-        return util.json_loads("".join([
-            chr(33 + (ord(c) + 14) % 94) if "!" <= c <= "~" else c
-            for c in text.unescape(data.strip("\t\n\r !"))
-        ]))
+        return util.json_loads(
+            "".join(
+                [
+                    chr(33 + (ord(c) + 14) % 94) if "!" <= c <= "~" else c
+                    for c in text.unescape(data.strip("\t\n\r !"))
+                ]
+            )
+        )

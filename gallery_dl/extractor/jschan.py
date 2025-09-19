@@ -15,19 +15,16 @@ class JschanExtractor(BaseExtractor):
     basecategory = "jschan"
 
 
-BASE_PATTERN = JschanExtractor.update({
-    "94chan": {
-        "root": "https://94chan.org",
-        "pattern": r"94chan\.org"
-    }
-})
+BASE_PATTERN = JschanExtractor.update(
+    {"94chan": {"root": "https://94chan.org", "pattern": r"94chan\.org"}}
+)
 
 
 class JschanThreadExtractor(JschanExtractor):
     """Extractor for jschan threads"""
+
     subcategory = "thread"
-    directory_fmt = ("{category}", "{board}",
-                     "{threadId} {subject|nomarkup[:50]}")
+    directory_fmt = ("{category}", "{board}", "{threadId} {subject|nomarkup[:50]}")
     filename_fmt = "{postId}{num:?-//} {filename}.{extension}"
     archive_fmt = "{board}_{postId}_{num}"
     pattern = BASE_PATTERN + r"/([^/?#]+)/thread/(\d+)\.html"
@@ -55,9 +52,11 @@ class JschanThreadExtractor(JschanExtractor):
 
 class JschanBoardExtractor(JschanExtractor):
     """Extractor for jschan boards"""
+
     subcategory = "board"
-    pattern = (BASE_PATTERN + r"/([^/?#]+)"
-               r"(?:/index\.html|/catalog\.html|/\d+\.html|/?$)")
+    pattern = (
+        BASE_PATTERN + r"/([^/?#]+)" r"(?:/index\.html|/catalog\.html|/\d+\.html|/?$)"
+    )
     example = "https://94chan.org/a/"
 
     def items(self):

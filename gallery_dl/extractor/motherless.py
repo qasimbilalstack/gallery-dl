@@ -18,6 +18,7 @@ BASE_PATTERN = r"(?:https?://)?motherless\.com"
 
 class MotherlessExtractor(Extractor):
     """Base class for motherless extractors"""
+
     category = "motherless"
     root = "https://motherless.com"
     filename_fmt = "{id} {title}.{extension}"
@@ -27,8 +28,10 @@ class MotherlessExtractor(Extractor):
         response = Extractor.request(self, url, **kwargs)
 
         content = response.content
-        if (b'<div class="error-page' in content or
-                b">The page you're looking for cannot be found.<" in content):
+        if (
+            b'<div class="error-page' in content
+            or b">The page you're looking for cannot be found.<" in content
+        ):
             raise exception.NotFoundError("page")
 
         self.request = Extractor.request.__get__(self)
@@ -41,21 +44,20 @@ class MotherlessExtractor(Extractor):
 
         path, _, media_id = path.rpartition("/")
         data = {
-            "id"   : media_id,
-            "type" : extr("__mediatype = '", "'"),
+            "id": media_id,
+            "type": extr("__mediatype = '", "'"),
             "group": extr("__group = '", "'"),
-            "url"  : extr("__fileurl = '", "'"),
-            "tags" : [
+            "url": extr("__fileurl = '", "'"),
+            "tags": [
                 text.unescape(tag)
                 for tag in text.extract_iter(
-                    extr('class="media-meta-tags">', "</div>"), ">#", "<")
+                    extr('class="media-meta-tags">', "</div>"), ">#", "<"
+                )
             ],
             "title": text.unescape(extr("<h1>", "<")),
-            "views": text.parse_int(extr(
-                'class="count">', " ").replace(",", "")),
-            "favorites": text.parse_int(extr(
-                'class="count">', " ").replace(",", "")),
-            "date" : self._parse_datetime(extr('class="count">', "<")),
+            "views": text.parse_int(extr('class="count">', " ").replace(",", "")),
+            "favorites": text.parse_int(extr('class="count">', " ").replace(",", "")),
+            "date": self._parse_datetime(extr('class="count">', "<")),
             "uploader": text.unescape(extr('class="username">', "<").strip()),
         }
 
@@ -64,18 +66,17 @@ class MotherlessExtractor(Extractor):
         elif path[0] == "G":
             data["gallery_id"] = path[1:]
             data["gallery_title"] = self._extract_gallery_title(
-                page, data["gallery_id"])
+                page, data["gallery_id"]
+            )
         elif path[0] == "g":
             data["group_id"] = path[2:]
-            data["group_title"] = self._extract_group_title(
-                page, data["group_id"])
+            data["group_title"] = self._extract_group_title(page, data["group_id"])
 
         return data
 
     def _pagination(self, page):
         while True:
-            for thumb in text.extract_iter(
-                    page, 'class="thumb-container', "</div>"):
+            for thumb in text.extract_iter(page, 'class="thumb-container', "</div>"):
                 yield thumb
 
             url = text.extr(page, '<link rel="next" href="', '"')
@@ -95,21 +96,22 @@ class MotherlessExtractor(Extractor):
         return {
             f"{category}_id": gid,
             f"{category}_title": title,
-            "uploader": text.remove_html(extr(
-                f'class="{category}-member-username">', "</")),
+            "uploader": text.remove_html(
+                extr(f'class="{category}-member-username">', "</")
+            ),
             "count": text.parse_int(
-                extr('<span class="active">', ")")
-                .rpartition("(")[2].replace(",", "")),
+                extr('<span class="active">', ")").rpartition("(")[2].replace(",", "")
+            ),
         }
 
     def _parse_thumb_data(self, thumb):
         extr = text.extract_from(thumb)
 
         data = {
-            "id"       : extr('data-codename="', '"'),
-            "type"     : extr('data-mediatype="', '"'),
+            "id": extr('data-codename="', '"'),
+            "type": extr('data-mediatype="', '"'),
             "thumbnail": extr('class="static" src="', '"'),
-            "title"    : extr(' alt="', '"'),
+            "title": extr(' alt="', '"'),
         }
         data["url"] = data["thumbnail"].replace("thumb", data["type"])
 
@@ -120,30 +122,30 @@ class MotherlessExtractor(Extractor):
             return text.parse_datetime(dt, "%d  %b  %Y")
 
         value = text.parse_int(dt[:-5])
-        delta = timedelta(0, value*3600) if dt[-5] == "h" else timedelta(value)
-        return (util.datetime_utcnow() - delta).replace(
-            hour=0, minute=0, second=0)
+        delta = timedelta(0, value * 3600) if dt[-5] == "h" else timedelta(value)
+        return (util.datetime_utcnow() - delta).replace(hour=0, minute=0, second=0)
 
     @memcache(keyarg=2)
     def _extract_gallery_title(self, page, gallery_id):
         title = text.extr(
             text.extr(page, '<h1 class="content-title">', "</h1>"),
-            "From the gallery:", "<")
+            "From the gallery:",
+            "<",
+        )
         if title:
             return text.unescape(title.strip())
 
         pos = page.find(f' href="/G{gallery_id}"')
         if pos >= 0:
-            return text.unescape(text.extract(
-                page, ' title="', '"', pos)[0])
+            return text.unescape(text.extract(page, ' title="', '"', pos)[0])
 
         return ""
 
     @memcache(keyarg=2)
     def _extract_group_title(self, page, group_id):
         title = text.extr(
-            text.extr(page, '<h1 class="group-bio-name">', "</h1>"),
-            ">", "<")
+            text.extr(page, '<h1 class="group-bio-name">', "</h1>"), ">", "<"
+        )
         if title:
             return text.unescape(title.strip())
 
@@ -152,10 +154,9 @@ class MotherlessExtractor(Extractor):
 
 class MotherlessMediaExtractor(MotherlessExtractor):
     """Extractor for a single image/video from motherless.com"""
+
     subcategory = "media"
-    pattern = (BASE_PATTERN +
-               r"/((?:g/[^/?#]+/|G[IV]?[A-Z0-9]+/)?"
-               r"(?!G)[A-Z0-9]+)")
+    pattern = BASE_PATTERN + r"/((?:g/[^/?#]+/|G[IV]?[A-Z0-9]+/)?" r"(?!G)[A-Z0-9]+)"
     example = "https://motherless.com/ABC123"
 
     def items(self):
@@ -167,9 +168,9 @@ class MotherlessMediaExtractor(MotherlessExtractor):
 
 class MotherlessGalleryExtractor(MotherlessExtractor):
     """Extractor for a motherless.com gallery"""
+
     subcategory = "gallery"
-    directory_fmt = ("{category}", "{uploader}",
-                     "{gallery_id} {gallery_title}")
+    directory_fmt = ("{category}", "{uploader}", "{gallery_id} {gallery_title}")
     archive_fmt = "{gallery_id}_{id}"
     pattern = BASE_PATTERN + "/G([IVG])?([A-Z0-9]+)/?$"
     example = "https://motherless.com/GABC123"
@@ -204,8 +205,7 @@ class MotherlessGalleryExtractor(MotherlessExtractor):
 
 class MotherlessGroupExtractor(MotherlessExtractor):
     subcategory = "group"
-    directory_fmt = ("{category}", "{uploader}",
-                     "{group_id} {group_title}")
+    directory_fmt = ("{category}", "{uploader}", "{group_id} {group_title}")
     archive_fmt = "{group_id}_{id}"
     pattern = BASE_PATTERN + "/g([iv]?)/?([a-z0-9_]+)/?$"
     example = "https://motherless.com/g/abc123"

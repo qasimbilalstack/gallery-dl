@@ -12,11 +12,14 @@ from .. import text, exception
 
 class UrlgalleriesGalleryExtractor(GalleryExtractor):
     """Base class for Urlgalleries extractors"""
+
     category = "urlgalleries"
     root = "https://urlgalleries.net"
     request_interval = (0.5, 1.5)
-    pattern = (r"(?:https?://)()(?:(\w+)\.)?urlgalleries\.net"
-               r"/(?:b/([^/?#]+)/)?(?:[\w-]+-)?(\d+)")
+    pattern = (
+        r"(?:https?://)()(?:(\w+)\.)?urlgalleries\.net"
+        r"/(?:b/([^/?#]+)/)?(?:[\w-]+-)?(\d+)"
+    )
     example = "https://urlgalleries.net/b/BLOG/gallery-12345/TITLE"
 
     def items(self):
@@ -28,7 +31,8 @@ class UrlgalleriesGalleryExtractor(GalleryExtractor):
         with self.request(url, allow_redirects=False, fatal=...) as response:
             if 300 <= response.status_code < 500:
                 if response.headers.get("location", "").endswith(
-                        "/not_found_adult.php"):
+                    "/not_found_adult.php"
+                ):
                     raise exception.NotFoundError("gallery")
                 raise exception.HttpError(None, response)
             page = response.text
@@ -49,11 +53,12 @@ class UrlgalleriesGalleryExtractor(GalleryExtractor):
         return {
             "gallery_id": self.gallery_id,
             "_site": extr(' title="', '"'),  # site name
-            "blog" : text.unescape(extr(' title="', '"')),
+            "blog": text.unescape(extr(' title="', '"')),
             "_rprt": extr(' title="', '"'),  # report button
             "title": text.unescape(extr(' title="', '"').strip()),
-            "date" : text.parse_datetime(
-                extr(" images in gallery | ", "<"), "%B %d, %Y"),
+            "date": text.parse_datetime(
+                extr(" images in gallery | ", "<"), "%B %d, %Y"
+            ),
         }
 
     def images(self, page):

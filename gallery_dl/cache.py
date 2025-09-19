@@ -16,8 +16,9 @@ import functools
 from . import config, util
 
 
-class CacheDecorator():
+class CacheDecorator:
     """Simplified in-memory cache"""
+
     def __init__(self, func, keyarg):
         self.func = func
         self.cache = {}
@@ -46,6 +47,7 @@ class CacheDecorator():
 
 class MemoryCacheDecorator(CacheDecorator):
     """In-memory cache"""
+
     def __init__(self, func, keyarg, maxage):
         CacheDecorator.__init__(self, func, keyarg)
         self.maxage = maxage
@@ -67,8 +69,9 @@ class MemoryCacheDecorator(CacheDecorator):
         self.cache[key] = value, int(time.time()) + self.maxage
 
 
-class DatabaseCacheDecorator():
+class DatabaseCacheDecorator:
     """Database cache"""
+
     db = None
     _init = True
 
@@ -154,17 +157,22 @@ class DatabaseCacheDecorator():
 
 def memcache(maxage=None, keyarg=None):
     if maxage:
+
         def wrap(func):
             return MemoryCacheDecorator(func, keyarg, maxage)
+
     else:
+
         def wrap(func):
             return CacheDecorator(func, keyarg)
+
     return wrap
 
 
 def cache(maxage=3600, keyarg=None):
     def wrap(func):
         return DatabaseCacheDecorator(func, keyarg, maxage)
+
     return wrap
 
 
@@ -184,7 +192,7 @@ def clear(module):
             cursor.execute(
                 "DELETE FROM data "
                 "WHERE key LIKE 'gallery_dl.extractor.' || ? || '.%'",
-                (module.lower(),)
+                (module.lower(),),
             )
     except sqlite3.OperationalError:
         pass  # database not initialized, cannot be modified, etc.
@@ -219,7 +227,8 @@ def _init():
         os.close(os.open(dbfile, os.O_CREAT | os.O_RDONLY, 0o600))
 
         DatabaseCacheDecorator.db = sqlite3.connect(
-            dbfile, timeout=60, check_same_thread=False)
+            dbfile, timeout=60, check_same_thread=False
+        )
     except (OSError, TypeError, sqlite3.OperationalError):
         global cache
         cache = memcache

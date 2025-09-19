@@ -31,6 +31,7 @@ def main():
             config.load(args.configs_json, strict=True)
         if args.configs_yaml:
             import yaml
+
             config.load(args.configs_yaml, strict=True, loads=yaml.safe_load)
         if args.configs_toml:
             try:
@@ -68,8 +69,7 @@ def main():
                 profile = None
             else:
                 profile, _, container = profile.partition("::")
-            config.set((), "cookies", (
-                browser, profile, keyring, container, domain))
+            config.set((), "cookies", (browser, profile, keyring, container, domain))
         if args.options_pp:
             config.set((), "postprocessor-options", args.options_pp)
         for opts in args.options:
@@ -80,6 +80,7 @@ def main():
         # signals
         if signals := config.get((), "signals-ignore"):
             import signal
+
             if isinstance(signals, str):
                 signals = signals.split(",")
             for signal_name in signals:
@@ -91,11 +92,13 @@ def main():
 
         if signals := config.get((), "signals-actions"):
             from . import actions
+
             actions.parse_signals(signals)
 
         # enable ANSI escape sequences on Windows
         if util.WINDOWS and config.get(("output",), "ansi", output.COLORS):
             from ctypes import windll, wintypes, byref
+
             kernel32 = windll.kernel32
             mode = wintypes.DWORD()
 
@@ -123,6 +126,7 @@ def main():
         # format string separator
         if separator := config.get((), "format-separator"):
             from . import formatter
+
             formatter._SEPARATOR = separator
 
         # eval globals
@@ -146,12 +150,13 @@ def main():
                 extra = ""
 
             log.debug("Version %s%s", __version__, extra)
-            log.debug("Python %s - %s",
-                      platform.python_version(), platform.platform())
+            log.debug("Python %s - %s", platform.python_version(), platform.platform())
             try:
-                log.debug("requests %s - urllib3 %s",
-                          requests.__version__,
-                          requests.packages.urllib3.__version__)
+                log.debug(
+                    "requests %s - urllib3 %s",
+                    requests.__version__,
+                    requests.packages.urllib3.__version__,
+                )
             except AttributeError:
                 pass
 
@@ -159,6 +164,7 @@ def main():
 
         if args.clear_cache:
             from . import cache
+
             log = logging.getLogger("cache")
             cnt = cache.clear(args.clear_cache)
 
@@ -166,8 +172,12 @@ def main():
                 log.error("Database file not available")
                 return 1
 
-            log.info("Deleted %d entr%s from '%s'",
-                     cnt, "y" if cnt == 1 else "ies", cache._path())
+            log.info(
+                "Deleted %d entr%s from '%s'",
+                cnt,
+                "y" if cnt == 1 else "ies",
+                cache._path(),
+            )
             return 0
 
         if args.config:
@@ -180,10 +190,12 @@ def main():
 
         if args.print_traffic:
             import requests
+
             requests.packages.urllib3.connection.HTTPConnection.debuglevel = 1
 
         if args.update:
             from . import update
+
             extr = update.UpdateExtractor.from_url("update:" + args.update)
             ujob = update.UpdateJob(extr)
             return ujob.run()
@@ -207,6 +219,7 @@ def main():
 
         if sources:
             import os
+
             modules = []
 
             for source in sources:
@@ -216,13 +229,18 @@ def main():
                         files = os.listdir(path)
                         modules.append(extractor._modules_path(path, files))
                     except Exception as exc:
-                        log.warning("Unable to load modules from %s (%s: %s)",
-                                    path, exc.__class__.__name__, exc)
+                        log.warning(
+                            "Unable to load modules from %s (%s: %s)",
+                            path,
+                            exc.__class__.__name__,
+                            exc,
+                        )
                 else:
                     modules.append(extractor._modules_internal())
 
             if len(modules) > 1:
                 import itertools
+
                 extractor._module_iter = itertools.chain(*modules)
             elif not modules:
                 extractor._module_iter = ()
@@ -235,22 +253,23 @@ def main():
 
         elif args.list_extractors is not None:
             write = sys.stdout.write
-            fmt = ("{}{}\nCategory: {} - Subcategory: {}"
-                   "\nExample : {}\n\n").format
+            fmt = ("{}{}\nCategory: {} - Subcategory: {}" "\nExample : {}\n\n").format
 
             extractors = extractor.extractors()
             if args.list_extractors:
-                fltr = util.build_extractor_filter(
-                    args.list_extractors, negate=False)
+                fltr = util.build_extractor_filter(args.list_extractors, negate=False)
                 extractors = filter(fltr, extractors)
 
             for extr in extractors:
-                write(fmt(
-                    extr.__name__,
-                    "\n" + extr.__doc__ if extr.__doc__ else "",
-                    extr.category, extr.subcategory,
-                    extr.example,
-                ))
+                write(
+                    fmt(
+                        extr.__name__,
+                        "\n" + extr.__doc__ if extr.__doc__ else "",
+                        extr.category,
+                        extr.subcategory,
+                        extr.example,
+                    )
+                )
 
         else:
             if input_files := config.get((), "input-files"):
@@ -261,12 +280,14 @@ def main():
 
             if not args.urls and not args.input_files:
                 if args.cookies_from_browser or config.interpolate(
-                        ("extractor",), "cookies"):
+                    ("extractor",), "cookies"
+                ):
                     args.urls.append("noop")
                 else:
                     parser.error(
                         "The following arguments are required: URL\nUse "
-                        "'gallery-dl --help' to get a list of all options.")
+                        "'gallery-dl --help' to get a list of all options."
+                    )
 
             if args.list_urls:
                 jobtype = job.UrlJob
@@ -284,14 +305,16 @@ def main():
 
             # unsupported file logging handler
             if handler := output.setup_logging_handler(
-                    "unsupportedfile", fmt="{message}"):
+                "unsupportedfile", fmt="{message}"
+            ):
                 ulog = job.Job.ulog = logging.getLogger("unsupported")
                 ulog.addHandler(handler)
                 ulog.propagate = False
 
             # error file logging handler
             if handler := output.setup_logging_handler(
-                    "errorfile", fmt="{message}", mode="a"):
+                "errorfile", fmt="{message}", mode="a"
+            ):
                 elog = input_manager.err = logging.getLogger("errorfile")
                 elog.addHandler(handler)
                 elog.propagate = False
@@ -309,26 +332,30 @@ def main():
                         return getattr(exc, "code", 128)
 
             pformat = config.get(("output",), "progress", True)
-            if pformat and len(input_manager.urls) > 1 and \
-                    args.loglevel < logging.ERROR:
+            if (
+                pformat
+                and len(input_manager.urls) > 1
+                and args.loglevel < logging.ERROR
+            ):
                 input_manager.progress(pformat)
 
             if catmap := config.interpolate(("extractor",), "category-map"):
                 if catmap == "compat":
                     catmap = {
-                        "coomer"       : "coomerparty",
-                        "kemono"       : "kemonoparty",
+                        "coomer": "coomerparty",
+                        "kemono": "kemonoparty",
                         "schalenetwork": "koharu",
-                        "naver-blog"   : "naver",
-                        "naver-chzzk"  : "chzzk",
+                        "naver-blog": "naver",
+                        "naver-chzzk": "chzzk",
                         "naver-webtoon": "naverwebtoon",
-                        "pixiv-novel"  : "pixiv",
-                        "pixiv-novel:novel"   : ("pixiv", "novel"),
-                        "pixiv-novel:user"    : ("pixiv", "novel-user"),
-                        "pixiv-novel:series"  : ("pixiv", "novel-series"),
+                        "pixiv-novel": "pixiv",
+                        "pixiv-novel:novel": ("pixiv", "novel"),
+                        "pixiv-novel:user": ("pixiv", "novel-user"),
+                        "pixiv-novel:series": ("pixiv", "novel-series"),
                         "pixiv-novel:bookmark": ("pixiv", "novel-bookmark"),
                     }
                 from .extractor import common
+
                 common.CATEGORY_MAP = catmap
 
             # process input URLs
@@ -371,12 +398,13 @@ def main():
         pass
     except OSError as exc:
         import errno
+
         if exc.errno != errno.EPIPE:
             raise
     return 1
 
 
-class InputManager():
+class InputManager:
 
     def __init__(self):
         self.urls = []
@@ -476,15 +504,16 @@ class InputManager():
                 key, sep, value = line.partition("=")
                 if not sep:
                     raise exception.InputFileError(
-                        f"Invalid KEY=VALUE pair '{line}' "
-                        f"on line {n+1} in {path}")
+                        f"Invalid KEY=VALUE pair '{line}' " f"on line {n+1} in {path}"
+                    )
 
                 try:
                     value = util.json_loads(value.strip())
                 except ValueError as exc:
                     self.log.debug("%s: %s", exc.__class__.__name__, exc)
                     raise exception.InputFileError(
-                        f"Unable to parse '{value}' on line {n+1} in {path}")
+                        f"Unable to parse '{value}' on line {n+1} in {path}"
+                    )
 
                 key = key.strip().split(".")
                 conf.append((key[:-1], key[-1], value))
@@ -545,8 +574,8 @@ class InputManager():
                 fp.writelines(lines)
         except Exception as exc:
             self.log.warning(
-                "Unable to update '%s' (%s: %s)",
-                path, exc.__class__.__name__, exc)
+                "Unable to update '%s' (%s: %s)", path, exc.__class__.__name__, exc
+            )
 
     def _action_comment(self, lines, indicies):
         for i in indicies:
@@ -574,16 +603,21 @@ class InputManager():
         self._url = url
 
         if self._pformat:
-            output.stderr_write(self._pformat({
-                "total"  : len(self.urls),
-                "current": self._index + 1,
-                "url"    : url,
-            }))
+            output.stderr_write(
+                self._pformat(
+                    {
+                        "total": len(self.urls),
+                        "current": self._index + 1,
+                        "url": url,
+                    }
+                )
+            )
         return url
 
 
-class ExtendedUrl():
+class ExtendedUrl:
     """URL with attached config key-value pairs"""
+
     __slots__ = ("value", "gconfig", "lconfig")
 
     def __init__(self, url, gconf, lconf):

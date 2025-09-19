@@ -16,6 +16,7 @@ from .. import text, util
 
 class E621Extractor(danbooru.DanbooruExtractor):
     """Base class for e621 extractors"""
+
     basecategory = "E621"
     page_limit = 750
     page_start = None
@@ -30,8 +31,8 @@ class E621Extractor(danbooru.DanbooruExtractor):
             elif not isinstance(includes, (list, tuple)):
                 includes = ("notes", "pools")
 
-        notes = ("notes" in includes)
-        pools = ("pools" in includes)
+        notes = "notes" in includes
+        pools = "pools" in includes
 
         data = self.metadata()
         for post in self.posts():
@@ -39,62 +40,66 @@ class E621Extractor(danbooru.DanbooruExtractor):
 
             if not file["url"]:
                 md5 = file["md5"]
-                file["url"] = (f"https://static1.{self.root[8:]}/data"
-                               f"/{md5[0:2]}/{md5[2:4]}/{md5}.{file['ext']}")
+                file["url"] = (
+                    f"https://static1.{self.root[8:]}/data"
+                    f"/{md5[0:2]}/{md5[2:4]}/{md5}.{file['ext']}"
+                )
 
             if notes and post.get("has_notes"):
                 post["notes"] = self._get_notes(post["id"])
 
             if pools and post["pools"]:
-                post["pools"] = self._get_pools(
-                    ",".join(map(str, post["pools"])))
+                post["pools"] = self._get_pools(",".join(map(str, post["pools"])))
 
             post["filename"] = file["md5"]
             post["extension"] = file["ext"]
             post["date"] = text.parse_datetime(
-                post["created_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
+                post["created_at"], "%Y-%m-%dT%H:%M:%S.%f%z"
+            )
 
             post.update(data)
             yield Message.Directory, post
             yield Message.Url, file["url"], post
 
     def _get_notes(self, id):
-        return self.request_json(
-            f"{self.root}/notes.json?search[post_id]={id}")
+        return self.request_json(f"{self.root}/notes.json?search[post_id]={id}")
 
     @memcache(keyarg=1)
     def _get_pools(self, ids):
-        pools = self.request_json(
-            f"{self.root}/pools.json?search[id]={ids}")
+        pools = self.request_json(f"{self.root}/pools.json?search[id]={ids}")
         for pool in pools:
             pool["name"] = pool["name"].replace("_", " ")
         return pools
 
 
-BASE_PATTERN = E621Extractor.update({
-    "e621": {
-        "root": "https://e621.net",
-        "pattern": r"e621\.(?:net|cc)",
-    },
-    "e926": {
-        "root": "https://e926.net",
-        "pattern": r"e926\.net",
-    },
-    "e6ai": {
-        "root": "https://e6ai.net",
-        "pattern": r"e6ai\.net",
-    },
-})
+BASE_PATTERN = E621Extractor.update(
+    {
+        "e621": {
+            "root": "https://e621.net",
+            "pattern": r"e621\.(?:net|cc)",
+        },
+        "e926": {
+            "root": "https://e926.net",
+            "pattern": r"e926\.net",
+        },
+        "e6ai": {
+            "root": "https://e6ai.net",
+            "pattern": r"e6ai\.net",
+        },
+    }
+)
 
 
 class E621TagExtractor(E621Extractor, danbooru.DanbooruTagExtractor):
     """Extractor for e621 posts from tag searches"""
+
     pattern = BASE_PATTERN + r"/posts?(?:\?[^#]*?tags=|/index/\d+/)([^&#]*)"
     example = "https://e621.net/posts?tags=TAG"
 
 
 class E621PoolExtractor(E621Extractor, danbooru.DanbooruPoolExtractor):
     """Extractor for e621 pools"""
+
     pattern = BASE_PATTERN + r"/pool(?:s|/show)/(\d+)"
     example = "https://e621.net/pools/12345"
 
@@ -104,7 +109,8 @@ class E621PoolExtractor(E621Extractor, danbooru.DanbooruPoolExtractor):
         id_to_post = {
             post["id"]: post
             for post in self._pagination(
-                "/posts.json", {"tags": "pool:" + self.pool_id})
+                "/posts.json", {"tags": "pool:" + self.pool_id}
+            )
         }
 
         posts = []
@@ -120,6 +126,7 @@ class E621PoolExtractor(E621Extractor, danbooru.DanbooruPoolExtractor):
 
 class E621PostExtractor(E621Extractor, danbooru.DanbooruPostExtractor):
     """Extractor for single e621 posts"""
+
     pattern = BASE_PATTERN + r"/post(?:s|/show)/(\d+)"
     example = "https://e621.net/posts/12345"
 
@@ -130,6 +137,7 @@ class E621PostExtractor(E621Extractor, danbooru.DanbooruPostExtractor):
 
 class E621PopularExtractor(E621Extractor, danbooru.DanbooruPopularExtractor):
     """Extractor for popular images from e621"""
+
     pattern = BASE_PATTERN + r"/explore/posts/popular(?:\?([^#]*))?"
     example = "https://e621.net/explore/posts/popular"
 
@@ -139,6 +147,7 @@ class E621PopularExtractor(E621Extractor, danbooru.DanbooruPopularExtractor):
 
 class E621FavoriteExtractor(E621Extractor):
     """Extractor for e621 favorites"""
+
     subcategory = "favorite"
     directory_fmt = ("{category}", "Favorites", "{user_id}")
     archive_fmt = "f_{user_id}_{id}"
@@ -155,6 +164,7 @@ class E621FavoriteExtractor(E621Extractor):
 
 class E621FrontendExtractor(Extractor):
     """Extractor for alternative e621 frontends"""
+
     basecategory = "E621"
     category = "e621"
     subcategory = "frontend"

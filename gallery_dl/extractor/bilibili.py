@@ -12,6 +12,7 @@ from .. import text, util, exception
 
 class BilibiliExtractor(Extractor):
     """Base class for bilibili extractors"""
+
     category = "bilibili"
     root = "https://www.bilibili.com"
     request_interval = (3.0, 6.0)
@@ -31,9 +32,11 @@ class BilibiliExtractor(Extractor):
 
 class BilibiliArticleExtractor(BilibiliExtractor):
     """Extractor for a bilibili article"""
+
     subcategory = "article"
-    pattern = (r"(?:https?://)?"
-               r"(?:t\.bilibili\.com|(?:www\.)?bilibili.com/opus)/(\d+)")
+    pattern = (
+        r"(?:https?://)?" r"(?:t\.bilibili\.com|(?:www\.)?bilibili.com/opus)/(\d+)"
+    )
     example = "https://www.bilibili.com/opus/12345"
     directory_fmt = ("{category}", "{username}")
     filename_fmt = "{id}_{num}.{extension}"
@@ -47,8 +50,11 @@ class BilibiliArticleExtractor(BilibiliExtractor):
         modules = {}
         for module in article["detail"]["modules"]:
             if module["module_type"] == "MODULE_TYPE_BLOCKED":
-                self.log.warning("%s: Blocked Article\n%s", article_id,
-                                 module["module_blocked"].get("hint_message"))
+                self.log.warning(
+                    "%s: Blocked Article\n%s",
+                    article_id,
+                    module["module_blocked"].get("hint_message"),
+                )
             del module["module_type"]
             modules.update(module)
         article["detail"]["modules"] = modules
@@ -83,9 +89,9 @@ class BilibiliArticleExtractor(BilibiliExtractor):
 
 class BilibiliUserArticlesExtractor(BilibiliExtractor):
     """Extractor for a bilibili user's articles"""
+
     subcategory = "user-articles"
-    pattern = (r"(?:https?://)?space\.bilibili\.com/(\d+)"
-               r"/(?:article|upload/opus)")
+    pattern = r"(?:https?://)?space\.bilibili\.com/(\d+)" r"/(?:article|upload/opus)"
     example = "https://space.bilibili.com/12345/article"
 
     def articles(self):
@@ -94,8 +100,7 @@ class BilibiliUserArticlesExtractor(BilibiliExtractor):
 
 class BilibiliUserArticlesFavoriteExtractor(BilibiliExtractor):
     subcategory = "user-articles-favorite"
-    pattern = (r"(?:https?://)?space\.bilibili\.com"
-               r"/(\d+)/favlist\?fid=opus")
+    pattern = r"(?:https?://)?space\.bilibili\.com" r"/(\d+)/favlist\?fid=opus"
     example = "https://space.bilibili.com/12345/favlist?fid=opus"
     _warning = True
 
@@ -107,7 +112,7 @@ class BilibiliUserArticlesFavoriteExtractor(BilibiliExtractor):
         return self.api.user_favlist()
 
 
-class BilibiliAPI():
+class BilibiliAPI:
     def __init__(self, extractor):
         self.extractor = extractor
 
@@ -141,12 +146,14 @@ class BilibiliAPI():
         while True:
             page = self.extractor.request(url).text
             try:
-                return util.json_loads(text.extr(
-                    page, "window.__INITIAL_STATE__=", "};") + "}")
+                return util.json_loads(
+                    text.extr(page, "window.__INITIAL_STATE__=", "};") + "}"
+                )
             except Exception:
                 if "window._riskdata_" not in page:
                     raise exception.AbortExtraction(
-                        f"{article_id}: Unable to extract INITIAL_STATE data")
+                        f"{article_id}: Unable to extract INITIAL_STATE data"
+                    )
             self.extractor.wait(seconds=300)
 
     def user_favlist(self):
@@ -168,8 +175,7 @@ class BilibiliAPI():
 
         if data["code"] != 0:
             self.extractor.log.debug("Server response: %s", data)
-            raise exception.AbortExtraction(
-                "API request failed. Are you logges in?")
+            raise exception.AbortExtraction("API request failed. Are you logges in?")
         try:
             return data["data"]["profile"]["mid"]
         except Exception:

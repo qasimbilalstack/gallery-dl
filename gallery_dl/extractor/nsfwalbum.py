@@ -14,6 +14,7 @@ from .. import text
 
 class NsfwalbumAlbumExtractor(GalleryExtractor):
     """Extractor for image albums on nsfwalbum.com"""
+
     category = "nsfwalbum"
     subcategory = "album"
     root = "https://nsfwalbum.com"
@@ -32,9 +33,9 @@ class NsfwalbumAlbumExtractor(GalleryExtractor):
         extr = text.extract_from(page)
         return {
             "album_id": text.parse_int(self.album_id),
-            "title"   : text.unescape(extr('<h6>', '</h6>')),
-            "models"  : text.split_html(extr('"models"> Models:', '</div>')),
-            "studio"  : text.remove_html(extr('"models"> Studio:', '</div>')),
+            "title": text.unescape(extr("<h6>", "</h6>")),
+            "models": text.split_html(extr('"models"> Models:', "</div>")),
+            "studio": text.remove_html(extr('"models"> Studio:', "</div>")),
         }
 
     def images(self, page):
@@ -49,9 +50,13 @@ class NsfwalbumAlbumExtractor(GalleryExtractor):
             while tries <= retries:
                 try:
                     if not spirit:
-                        spirit = self._annihilate(text.extract(
-                            self.request(iframe + image_id).text,
-                            'giraffe.annihilate("', '"')[0])
+                        spirit = self._annihilate(
+                            text.extract(
+                                self.request(iframe + image_id).text,
+                                'giraffe.annihilate("',
+                                '"',
+                            )[0]
+                        )
                         params = {"spirit": spirit, "photo": image_id}
                     data = self.request_json(backend, params=params)
                     break
@@ -62,20 +67,20 @@ class NsfwalbumAlbumExtractor(GalleryExtractor):
                 continue
 
             yield data[0], {
-                "id"    : text.parse_int(image_id),
-                "width" : text.parse_int(data[1]),
+                "id": text.parse_int(image_id),
+                "width": text.parse_int(data[1]),
                 "height": text.parse_int(data[2]),
                 "_http_validate": self._validate_response,
-                "_fallback": (f"{self.root}/imageProxy.php"
-                              f"?photoId={image_id}&spirit={spirit}",),
+                "_fallback": (
+                    f"{self.root}/imageProxy.php"
+                    f"?photoId={image_id}&spirit={spirit}",
+                ),
             }
 
     def _validate_response(self, response):
         return not response.url.endswith(
-            ("/no_image.jpg", "/placeholder.png", "/error.jpg"))
+            ("/no_image.jpg", "/placeholder.png", "/error.jpg")
+        )
 
     def _annihilate(self, value, base=6):
-        return "".join(
-            chr(ord(char) ^ base)
-            for char in value
-        )
+        return "".join(chr(ord(char) ^ base) for char in value)

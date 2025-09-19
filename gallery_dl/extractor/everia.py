@@ -55,12 +55,10 @@ class EveriaPostExtractor(EveriaExtractor):
         urls = util.re(r'img.*?lazy-src="([^"]+)').findall(content)
 
         data = {
-            "title": text.unescape(
-                text.extr(page, 'itemprop="headline">', "</h")),
+            "title": text.unescape(text.extr(page, 'itemprop="headline">', "</h")),
             "tags": list(text.extract_iter(page, 'rel="tag">', "</a>")),
             "post_url": text.unquote(url),
-            "post_category": text.extr(
-                page, "post-in-category-", " ").capitalize(),
+            "post_category": text.extr(page, "post-in-category-", " ").capitalize(),
             "count": len(urls),
         }
 
@@ -84,8 +82,7 @@ class EveriaCategoryExtractor(EveriaExtractor):
 
 class EveriaDateExtractor(EveriaExtractor):
     subcategory = "date"
-    pattern = (BASE_PATTERN +
-               r"(/\d{4}(?:/\d{2})?(?:/\d{2})?)(?:/page/\d+)?/?$")
+    pattern = BASE_PATTERN + r"(/\d{4}(?:/\d{2})?(?:/\d{2})?)(?:/page/\d+)?/?$"
     example = "https://everia.club/0000/00/00"
 
 

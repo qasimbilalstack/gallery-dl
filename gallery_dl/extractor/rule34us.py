@@ -20,7 +20,8 @@ class Rule34usExtractor(BooruExtractor):
 
     def _init(self):
         self._find_tags = util.re(
-            r'<li class="([^-"]+)-tag"[^>]*><a href="[^;"]+;q=([^"]+)').findall
+            r'<li class="([^-"]+)-tag"[^>]*><a href="[^;"]+;q=([^"]+)'
+        ).findall
 
     def _parse_post(self, post_id):
         url = f"{self.root}/index.php?r=posts/view&id={post_id}"
@@ -28,13 +29,12 @@ class Rule34usExtractor(BooruExtractor):
         extr = text.extract_from(page)
 
         post = {
-            "id"      : post_id,
-            "tags"    : text.unescape(extr(
-                'name="keywords" content="', '"').rstrip(", ")),
-            "uploader": text.extract(extr('Added by: ', '</li>'), ">", "<")[0],
-            "score"   : text.extract(extr('Score: ', '> - <'), ">", "<")[0],
-            "width"   : extr('Size: ', 'w'),
-            "height"  : extr(' x ', 'h'),
+            "id": post_id,
+            "tags": text.unescape(extr('name="keywords" content="', '"').rstrip(", ")),
+            "uploader": text.extract(extr("Added by: ", "</li>"), ">", "<")[0],
+            "score": text.extract(extr("Score: ", "> - <"), ">", "<")[0],
+            "width": extr("Size: ", "w"),
+            "height": extr(" x ", "h"),
             "file_url": extr('<source src="', '"') or extr('<img src="', '"'),
         }
 
@@ -70,8 +70,8 @@ class Rule34usTagExtractor(Rule34usExtractor):
     def posts(self):
         url = self.root + "/index.php"
         params = {
-            "r"   : "posts/index",
-            "q"   : self.tags,
+            "r": "posts/index",
+            "q": self.tags,
             "page": self.page_start,
         }
 

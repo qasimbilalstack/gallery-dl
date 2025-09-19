@@ -13,6 +13,7 @@ from ..cache import memcache
 
 class MisskeyExtractor(BaseExtractor):
     """Base class for Misskey extractors"""
+
     basecategory = "misskey"
     directory_fmt = ("misskey", "{instance}", "{user[username]}")
     filename_fmt = "{category}_{id}_{file[id]}.{extension}"
@@ -49,12 +50,14 @@ class MisskeyExtractor(BaseExtractor):
             note["instance_remote"] = note["user"]["host"]
             note["count"] = len(files)
             note["date"] = text.parse_datetime(
-                note["createdAt"], "%Y-%m-%dT%H:%M:%S.%f%z")
+                note["createdAt"], "%Y-%m-%dT%H:%M:%S.%f%z"
+            )
 
             yield Message.Directory, note
             for note["num"], file in enumerate(files, 1):
                 file["date"] = text.parse_datetime(
-                    file["createdAt"], "%Y-%m-%dT%H:%M:%S.%f%z")
+                    file["createdAt"], "%Y-%m-%dT%H:%M:%S.%f%z"
+                )
                 note["file"] = file
                 url = file["url"]
                 yield Message.Url, url, text.nameext_from_url(url, note)
@@ -70,59 +73,68 @@ class MisskeyExtractor(BaseExtractor):
             url = text.parse_query(query).get("url") or path
 
         return {
-            "id"   : type,
-            "user" : user,
-            "files": ({
-                "id" : url.rpartition("/")[2].partition(".")[0],  # ID from URL
-                "url": url,
-                "createdAt": "",
-            },),
+            "id": type,
+            "user": user,
+            "files": (
+                {
+                    "id": url.rpartition("/")[2].partition(".")[0],  # ID from URL
+                    "url": url,
+                    "createdAt": "",
+                },
+            ),
             "createdAt": "",
         }
 
 
-BASE_PATTERN = MisskeyExtractor.update({
-    "misskey.io": {
-        "root": "https://misskey.io",
-        "pattern": r"misskey\.io",
-    },
-    "misskey.design": {
-        "root": "https://misskey.design",
-        "pattern": r"misskey\.design",
-    },
-    "misskey.art": {
-        "root": "https://misskey.art",
-        "pattern": r"misskey\.art",
-    },
-    "lesbian.energy": {
-        "root": "https://lesbian.energy",
-        "pattern": r"lesbian\.energy",
-    },
-    "sushi.ski": {
-        "root": "https://sushi.ski",
-        "pattern": r"sushi\.ski",
-    },
-})
+BASE_PATTERN = MisskeyExtractor.update(
+    {
+        "misskey.io": {
+            "root": "https://misskey.io",
+            "pattern": r"misskey\.io",
+        },
+        "misskey.design": {
+            "root": "https://misskey.design",
+            "pattern": r"misskey\.design",
+        },
+        "misskey.art": {
+            "root": "https://misskey.art",
+            "pattern": r"misskey\.art",
+        },
+        "lesbian.energy": {
+            "root": "https://lesbian.energy",
+            "pattern": r"lesbian\.energy",
+        },
+        "sushi.ski": {
+            "root": "https://sushi.ski",
+            "pattern": r"sushi\.ski",
+        },
+    }
+)
 
 
 class MisskeyUserExtractor(Dispatch, MisskeyExtractor):
     """Extractor for all images of a Misskey user"""
+
     subcategory = "user"
     pattern = BASE_PATTERN + r"/@([^/?#]+)/?$"
     example = "https://misskey.io/@USER"
 
     def items(self):
         base = f"{self.root}/@{self.item}/"
-        return self._dispatch_extractors((
-            (MisskeyInfoExtractor      , base + "info"),
-            (MisskeyAvatarExtractor    , base + "avatar"),
-            (MisskeyBackgroundExtractor, base + "banner"),
-            (MisskeyNotesExtractor     , base + "notes"),
-        ), ("notes",))
+        return self._dispatch_extractors(
+            (
+                (MisskeyInfoExtractor, base + "info"),
+                (MisskeyAvatarExtractor, base + "avatar"),
+                (MisskeyBackgroundExtractor, base + "banner"),
+                (MisskeyNotesExtractor, base + "notes"),
+            ),
+            ("notes",),
+        )
 
 
 class MisskeyNotesExtractor(MisskeyExtractor):
     """Extractor for a Misskey user's notes"""
+
     subcategory = "notes"
     pattern = BASE_PATTERN + r"/@([^/?#]+)/notes"
     example = "https://misskey.io/@USER/notes"
@@ -133,6 +145,7 @@ class MisskeyNotesExtractor(MisskeyExtractor):
 
 class MisskeyInfoExtractor(MisskeyExtractor):
     """Extractor for a Misskey user's profile data"""
+
     subcategory = "info"
     pattern = BASE_PATTERN + r"/@([^/?#]+)/info"
     example = "https://misskey.io/@USER/info"
@@ -144,6 +157,7 @@ class MisskeyInfoExtractor(MisskeyExtractor):
 
 class MisskeyAvatarExtractor(MisskeyExtractor):
     """Extractor for a Misskey user's avatar"""
+
     subcategory = "avatar"
     pattern = BASE_PATTERN + r"/@([^/?#]+)/avatar"
     example = "https://misskey.io/@USER/avatar"
@@ -156,6 +170,7 @@ class MisskeyAvatarExtractor(MisskeyExtractor):
 
 class MisskeyBackgroundExtractor(MisskeyExtractor):
     """Extractor for a Misskey user's banner image"""
+
     subcategory = "background"
     pattern = BASE_PATTERN + r"/@([^/?#]+)/ba(?:nner|ckground)"
     example = "https://misskey.io/@USER/banner"
@@ -168,6 +183,7 @@ class MisskeyBackgroundExtractor(MisskeyExtractor):
 
 class MisskeyFollowingExtractor(MisskeyExtractor):
     """Extractor for followed Misskey users"""
+
     subcategory = "following"
     pattern = BASE_PATTERN + r"/@([^/?#]+)/following"
     example = "https://misskey.io/@USER/following"
@@ -185,6 +201,7 @@ class MisskeyFollowingExtractor(MisskeyExtractor):
 
 class MisskeyNoteExtractor(MisskeyExtractor):
     """Extractor for images from a Note"""
+
     subcategory = "note"
     pattern = BASE_PATTERN + r"/notes/(\w+)"
     example = "https://misskey.io/notes/98765"
@@ -195,6 +212,7 @@ class MisskeyNoteExtractor(MisskeyExtractor):
 
 class MisskeyFavoriteExtractor(MisskeyExtractor):
     """Extractor for favorited notes"""
+
     subcategory = "favorite"
     pattern = BASE_PATTERN + r"/(?:my|api/i)/favorites"
     example = "https://misskey.io/my/favorites"
@@ -203,7 +221,7 @@ class MisskeyFavoriteExtractor(MisskeyExtractor):
         return self.api.i_favorites()
 
 
-class MisskeyAPI():
+class MisskeyAPI:
     """Interface for Misskey API
 
     https://github.com/misskey-dev/misskey

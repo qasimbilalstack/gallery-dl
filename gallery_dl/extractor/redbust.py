@@ -14,6 +14,7 @@ BASE_PATTERN = r"(?:https?://)?redbust\.com"
 
 class RedbustExtractor(Extractor):
     """Base class for RedBust extractors"""
+
     category = "redbust"
     root = "https://redbust.com"
     filename_fmt = "{filename}.{extension}"
@@ -33,8 +34,7 @@ class RedbustExtractor(Extractor):
 
         pnum = 1
         while True:
-            for post in text.extract_iter(
-                    page, '<h2 class="post-title">', "rel="):
+            for post in text.extract_iter(page, '<h2 class="post-title">', "rel="):
                 yield text.extr(post, 'href="', '"')
 
             pnum += 1
@@ -46,6 +46,7 @@ class RedbustExtractor(Extractor):
 
 class RedbustGalleryExtractor(GalleryExtractor, RedbustExtractor):
     """Extractor for RedBust galleries"""
+
     pattern = BASE_PATTERN + r"/([\w-]+)/?$"
     example = "https://redbust.com/TITLE/"
 
@@ -54,7 +55,8 @@ class RedbustGalleryExtractor(GalleryExtractor, RedbustExtractor):
         self.page = page = self.request(url).text
 
         self.gallery_id = gid = text.extr(
-            page, "<link rel='shortlink' href='https://redbust.com/?p=", "'")
+            page, "<link rel='shortlink' href='https://redbust.com/?p=", "'"
+        )
 
         if gid:
             self.page_url = False
@@ -70,8 +72,7 @@ class RedbustGalleryExtractor(GalleryExtractor, RedbustExtractor):
         pnum = 1
 
         while True:
-            for post in text.extract_iter(
-                    page, '<h2 class="post-title">', "rel="):
+            for post in text.extract_iter(page, '<h2 class="post-title">', "rel="):
                 url = text.extr(post, 'href="', '"')
                 yield Message.Queue, url, data
 
@@ -85,16 +86,15 @@ class RedbustGalleryExtractor(GalleryExtractor, RedbustExtractor):
         extr = text.extract_from(self.page)
 
         return {
-            "gallery_id"  : self.gallery_id,
+            "gallery_id": self.gallery_id,
             "gallery_slug": self.groups[0],
-            "categories"  : text.split_html(extr(
-                '<li class="category">', "</li>"))[::2],
-            "title"       : text.unescape(extr('class="post-title">', "<")),
-            "date"        : text.parse_datetime(
-                extr('class="post-byline">', "<").strip(), "%B %d, %Y"),
-            "views"       : text.parse_int(extr("</b>", "v").replace(",", "")),
-            "tags"        : text.split_html(extr(
-                'class="post-tags">', "</p"))[1:],
+            "categories": text.split_html(extr('<li class="category">', "</li>"))[::2],
+            "title": text.unescape(extr('class="post-title">', "<")),
+            "date": text.parse_datetime(
+                extr('class="post-byline">', "<").strip(), "%B %d, %Y"
+            ),
+            "views": text.parse_int(extr("</b>", "v").replace(",", "")),
+            "tags": text.split_html(extr('class="post-tags">', "</p"))[1:],
         }
 
     def images(self, _):
@@ -114,15 +114,16 @@ class RedbustGalleryExtractor(GalleryExtractor, RedbustExtractor):
         if not results:
             # fallback for older galleries
             for path in text.extract_iter(
-                    self.page, '<img src="/wp-content/uploads/', '"'):
-                results.append(
-                    (f"{self.root}/wp-content/uploads/{path}", None))
+                self.page, '<img src="/wp-content/uploads/', '"'
+            ):
+                results.append((f"{self.root}/wp-content/uploads/{path}", None))
 
         return results
 
 
 class RedbustTagExtractor(RedbustExtractor):
     """Extractor for RedBust tag searches"""
+
     subcategory = "tag"
     pattern = BASE_PATTERN + r"/tag/([\w-]+)"
     example = "https://redbust.com/tag/TAG/"
@@ -133,6 +134,7 @@ class RedbustTagExtractor(RedbustExtractor):
 
 class RedbustArchiveExtractor(RedbustExtractor):
     """Extractor for RedBust monthly archive collections"""
+
     subcategory = "archive"
     pattern = BASE_PATTERN + r"(/\d{4}/\d{2})"
     example = "https://redbust.com/2010/01/"
@@ -143,6 +145,7 @@ class RedbustArchiveExtractor(RedbustExtractor):
 
 class RedbustImageExtractor(RedbustExtractor):
     """Extractor for RedBust images"""
+
     subcategory = "image"
     directory_fmt = ("{category}", "{title}")
     pattern = BASE_PATTERN + r"/(?!tag/|\d{4}/)([\w-]+)/([\w-]+)/?$"
@@ -170,17 +173,20 @@ class RedbustImageExtractor(RedbustExtractor):
             return
 
         end = img_url.rpartition("-")[2]
-        data = text.nameext_from_url(img_url, {
-            "title"       : text.unescape(text.extr(
-                page, 'title="Return to ', '"')),
-            "image_id"    : text.extr(
-                page, "rel='shortlink' href='https://redbust.com/?p=", "'"),
-            "gallery_slug": gallery_slug,
-            "image_slug"  : image_slug,
-            "num"         : text.parse_int(end.partition(".")[0]),
-            "count"       : 1,
-            "url"         : img_url,
-        })
+        data = text.nameext_from_url(
+            img_url,
+            {
+                "title": text.unescape(text.extr(page, 'title="Return to ', '"')),
+                "image_id": text.extr(
+                    page, "rel='shortlink' href='https://redbust.com/?p=", "'"
+                ),
+                "gallery_slug": gallery_slug,
+                "image_slug": image_slug,
+                "num": text.parse_int(end.partition(".")[0]),
+                "count": 1,
+                "url": img_url,
+            },
+        )
 
         yield Message.Directory, data
         yield Message.Url, img_url, data

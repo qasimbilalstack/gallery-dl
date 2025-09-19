@@ -13,30 +13,33 @@ import itertools
 
 class LynxchanExtractor(BaseExtractor):
     """Base class for LynxChan extractors"""
+
     basecategory = "lynxchan"
 
 
-BASE_PATTERN = LynxchanExtractor.update({
-    "bbw-chan": {
-        "root": "https://bbw-chan.link",
-        "pattern": r"bbw-chan\.(?:link|nl)",
-    },
-    "kohlchan": {
-        "root": "https://kohlchan.net",
-        "pattern": r"kohlchan\.net",
-    },
-    "endchan": {
-        "root": None,
-        "pattern": r"endchan\.(?:org|net|gg)",
-    },
-})
+BASE_PATTERN = LynxchanExtractor.update(
+    {
+        "bbw-chan": {
+            "root": "https://bbw-chan.link",
+            "pattern": r"bbw-chan\.(?:link|nl)",
+        },
+        "kohlchan": {
+            "root": "https://kohlchan.net",
+            "pattern": r"kohlchan\.net",
+        },
+        "endchan": {
+            "root": None,
+            "pattern": r"endchan\.(?:org|net|gg)",
+        },
+    }
+)
 
 
 class LynxchanThreadExtractor(LynxchanExtractor):
     """Extractor for LynxChan threads"""
+
     subcategory = "thread"
-    directory_fmt = ("{category}", "{boardUri}",
-                     "{threadId} {subject|message[:50]}")
+    directory_fmt = ("{category}", "{boardUri}", "{threadId} {subject|message[:50]}")
     filename_fmt = "{postId}{num:?-//} {filename}.{extension}"
     archive_fmt = "{boardUri}_{postId}_{num}"
     pattern = BASE_PATTERN + r"/([^/?#]+)/res/(\d+)"
@@ -62,6 +65,7 @@ class LynxchanThreadExtractor(LynxchanExtractor):
 
 class LynxchanBoardExtractor(LynxchanExtractor):
     """Extractor for LynxChan boards"""
+
     subcategory = "board"
     pattern = BASE_PATTERN + r"/([^/?#]+)(?:/index|/catalog|/\d+|/?$)"
     example = "https://endchan.org/a/"

@@ -18,10 +18,11 @@ USER_PATTERN = BASE_PATTERN + r"/profile/([^/?#]+)"
 
 class ItakuExtractor(Extractor):
     """Base class for itaku extractors"""
+
     category = "itaku"
     root = "https://itaku.ee"
     directory_fmt = ("{category}", "{owner_username}")
-    filename_fmt = ("{id}{title:? //}.{extension}")
+    filename_fmt = "{id}{title:? //}.{extension}"
     archive_fmt = "{id}"
     request_interval = (0.5, 1.5)
 
@@ -33,10 +34,10 @@ class ItakuExtractor(Extractor):
         if images := self.images():
             for image in images:
                 image["date"] = text.parse_datetime(
-                    image["date_added"], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    image["date_added"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                )
                 for category, tags in image.pop("categorized_tags").items():
-                    image[f"tags_{category.lower()}"] = [
-                        t["name"] for t in tags]
+                    image[f"tags_{category.lower()}"] = [t["name"] for t in tags]
                 image["tags"] = [t["name"] for t in image["tags"]]
 
                 sections = []
@@ -61,14 +62,16 @@ class ItakuExtractor(Extractor):
                 images = post.pop("gallery_images") or ()
                 post["count"] = len(images)
                 post["date"] = text.parse_datetime(
-                    post["date_added"], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    post["date_added"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                )
                 post["tags"] = [t["name"] for t in post["tags"]]
 
                 yield Message.Directory, post
                 for post["num"], image in enumerate(images, 1):
                     post["file"] = image
                     image["date"] = text.parse_datetime(
-                        image["date_added"], "%Y-%m-%dT%H:%M:%S.%fZ")
+                        image["date_added"], "%Y-%m-%dT%H:%M:%S.%fZ"
+                    )
 
                     url = image["image"]
                     yield Message.Url, url, text.nameext_from_url(url, post)
@@ -87,23 +90,26 @@ class ItakuExtractor(Extractor):
 
 class ItakuGalleryExtractor(ItakuExtractor):
     """Extractor for an itaku user's gallery"""
+
     subcategory = "gallery"
     pattern = USER_PATTERN + r"/gallery(?:/(\d+))?"
     example = "https://itaku.ee/profile/USER/gallery"
 
     def images(self):
         user, section = self.groups
-        return self.api.galleries_images({
-            "owner"   : self.api.user_id(user),
-            "sections": section,
-        })
+        return self.api.galleries_images(
+            {
+                "owner": self.api.user_id(user),
+                "sections": section,
+            }
+        )
 
 
 class ItakuPostsExtractor(ItakuExtractor):
     """Extractor for an itaku user's posts"""
+
     subcategory = "posts"
-    directory_fmt = ("{category}", "{owner_username}", "Posts",
-                     "{id}{title:? //}")
+    directory_fmt = ("{category}", "{owner_username}", "Posts", "{id}{title:? //}")
     filename_fmt = "{file[id]}{file[title]:? //}.{extension}"
     archive_fmt = "{id}_{file[id]}"
     pattern = USER_PATTERN + r"/posts(?:/(\d+))?"
@@ -111,25 +117,31 @@ class ItakuPostsExtractor(ItakuExtractor):
 
     def posts(self):
         user, folder = self.groups
-        return self.api.posts({
-            "owner"  : self.api.user_id(user),
-            "folders": folder,
-        })
+        return self.api.posts(
+            {
+                "owner": self.api.user_id(user),
+                "folders": folder,
+            }
+        )
 
 
 class ItakuStarsExtractor(ItakuExtractor):
     """Extractor for an itaku user's starred images"""
+
     subcategory = "stars"
     pattern = USER_PATTERN + r"/stars(?:/(\d+))?"
     example = "https://itaku.ee/profile/USER/stars"
 
     def images(self):
         user, section = self.groups
-        return self.api.galleries_images({
-            "stars_of": self.api.user_id(user),
-            "sections": section,
-            "ordering": "-like_date",
-        }, "/user_starred_imgs")
+        return self.api.galleries_images(
+            {
+                "stars_of": self.api.user_id(user),
+                "sections": section,
+                "ordering": "-like_date",
+            },
+            "/user_starred_imgs",
+        )
 
 
 class ItakuFollowingExtractor(ItakuExtractor):
@@ -138,9 +150,11 @@ class ItakuFollowingExtractor(ItakuExtractor):
     example = "https://itaku.ee/profile/USER/following"
 
     def users(self):
-        return self.api.user_profiles({
-            "followed_by": self.api.user_id(self.groups[0]),
-        })
+        return self.api.user_profiles(
+            {
+                "followed_by": self.api.user_id(self.groups[0]),
+            }
+        )
 
 
 class ItakuFollowersExtractor(ItakuExtractor):
@@ -149,13 +163,16 @@ class ItakuFollowersExtractor(ItakuExtractor):
     example = "https://itaku.ee/profile/USER/followers"
 
     def users(self):
-        return self.api.user_profiles({
-            "followers_of": self.api.user_id(self.groups[0]),
-        })
+        return self.api.user_profiles(
+            {
+                "followers_of": self.api.user_id(self.groups[0]),
+            }
+        )
 
 
 class ItakuBookmarksExtractor(ItakuExtractor):
     """Extractor for an itaku bookmarks folder"""
+
     subcategory = "bookmarks"
     pattern = USER_PATTERN + r"/bookmarks/(image|user)/(\d+)"
     example = "https://itaku.ee/profile/USER/bookmarks/image/12345"
@@ -166,30 +183,38 @@ class ItakuBookmarksExtractor(ItakuExtractor):
         ItakuExtractor._init(self)
 
     def images(self):
-        return self.api.galleries_images({
-            "bookmark_folder": self.groups[2],
-        })
+        return self.api.galleries_images(
+            {
+                "bookmark_folder": self.groups[2],
+            }
+        )
 
     def users(self):
-        return self.api.user_profiles({
-            "bookmark_folder": self.groups[2],
-        })
+        return self.api.user_profiles(
+            {
+                "bookmark_folder": self.groups[2],
+            }
+        )
 
 
 class ItakuUserExtractor(Dispatch, ItakuExtractor):
     """Extractor for itaku user profiles"""
+
     pattern = USER_PATTERN + r"/?(?:$|\?|#)"
     example = "https://itaku.ee/profile/USER"
 
     def items(self):
         base = f"{self.root}/profile/{self.groups[0]}/"
-        return self._dispatch_extractors((
-            (ItakuGalleryExtractor  , base + "gallery"),
-            (ItakuPostsExtractor    , base + "posts"),
-            (ItakuFollowersExtractor, base + "followers"),
-            (ItakuFollowingExtractor, base + "following"),
-            (ItakuStarsExtractor    , base + "stars"),
-        ), ("gallery",))
+        return self._dispatch_extractors(
+            (
+                (ItakuGalleryExtractor, base + "gallery"),
+                (ItakuPostsExtractor, base + "posts"),
+                (ItakuFollowersExtractor, base + "followers"),
+                (ItakuFollowingExtractor, base + "following"),
+                (ItakuStarsExtractor, base + "stars"),
+            ),
+            ("gallery",),
+        )
 
 
 class ItakuImageExtractor(ItakuExtractor):
@@ -203,8 +228,7 @@ class ItakuImageExtractor(ItakuExtractor):
 
 class ItakuPostExtractor(ItakuExtractor):
     subcategory = "post"
-    directory_fmt = ("{category}", "{owner_username}", "Posts",
-                     "{id}{title:? //}")
+    directory_fmt = ("{category}", "{owner_username}", "Posts", "{id}{title:? //}")
     filename_fmt = "{file[id]}{file[title]:? //}.{extension}"
     archive_fmt = "{id}_{file[id]}"
     pattern = BASE_PATTERN + r"/posts/(\d+)"
@@ -224,8 +248,7 @@ class ItakuSearchExtractor(ItakuExtractor):
         negative_tags = []
         optional_tags = []
 
-        params = text.parse_query_list(
-            self.groups[0], {"tags", "maturity_rating"})
+        params = text.parse_query_list(self.groups[0], {"tags", "maturity_rating"})
         if tags := params.pop("tags", None):
             for tag in tags:
                 if not tag:
@@ -237,14 +260,16 @@ class ItakuSearchExtractor(ItakuExtractor):
                 else:
                     required_tags.append(tag)
 
-        return self.api.galleries_images({
-            "required_tags": required_tags,
-            "negative_tags": negative_tags,
-            "optional_tags": optional_tags,
-        })
+        return self.api.galleries_images(
+            {
+                "required_tags": required_tags,
+                "negative_tags": negative_tags,
+                "optional_tags": optional_tags,
+            }
+        )
 
 
-class ItakuAPI():
+class ItakuAPI:
 
     def __init__(self, extractor):
         self.extractor = extractor
@@ -256,12 +281,12 @@ class ItakuAPI():
     def galleries_images(self, params, path=""):
         endpoint = f"/galleries/images{path}/"
         params = {
-            "cursor"    : None,
+            "cursor": None,
             "date_range": "",
             "maturity_rating": ("SFW", "Questionable", "NSFW"),
-            "ordering"  : "-date_added",
-            "page"      : "1",
-            "page_size" : "30",
+            "ordering": "-date_added",
+            "page": "1",
+            "page_size": "30",
             "visibility": ("PUBLIC", "PROFILE_ONLY"),
             **params,
         }
@@ -270,12 +295,12 @@ class ItakuAPI():
     def posts(self, params):
         endpoint = "/posts/"
         params = {
-            "cursor"    : None,
+            "cursor": None,
             "date_range": "",
             "maturity_rating": ("SFW", "Questionable", "NSFW"),
-            "ordering"  : "-date_added",
-            "page"      : "1",
-            "page_size" : "30",
+            "ordering": "-date_added",
+            "page": "1",
+            "page_size": "30",
             **params,
         }
         return self._pagination(endpoint, params)
@@ -283,11 +308,11 @@ class ItakuAPI():
     def user_profiles(self, params):
         endpoint = "/user_profiles/"
         params = {
-            "cursor"   : None,
-            "ordering" : "-date_added",
-            "page"     : "1",
+            "cursor": None,
+            "ordering": "-date_added",
+            "page": "1",
             "page_size": "50",
-            "sfw_only" : "false",
+            "sfw_only": "false",
             **params,
         }
         return self._pagination(endpoint, params)
@@ -313,7 +338,8 @@ class ItakuAPI():
         if not endpoint.startswith("http"):
             endpoint = self.root + endpoint
         return self.extractor.request_json(
-            endpoint, params=params, headers=self.headers)
+            endpoint, params=params, headers=self.headers
+        )
 
     def _pagination(self, endpoint, params, extend=None):
         data = self._call(endpoint, params)

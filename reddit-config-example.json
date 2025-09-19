@@ -1,0 +1,27 @@
+{
+    "extractor": {
+        "base-directory": "./gallery-dl/",
+        
+        "reddit": {
+            "write_submission_json": true,
+            "submission_json_dir": "",
+            "submission_json_filename": "{id}.json",
+            "external_filename_prefix": true,
+            "parent-directory": true,
+            "parent-metadata": "_reddit"
+        },
+        
+        "reddit.user": {
+            "directory": ["{category}", "{author}"]
+        },
+        
+        "reddit.subreddit": {
+            "directory": ["{category}", "{subreddit}"]
+        },
+        
+        "reddit>*": {
+            "directory": [],
+            "filename": "{_reddit[id]}_{filename}"
+        }
+    }
+}

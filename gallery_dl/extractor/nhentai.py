@@ -16,6 +16,7 @@ import random
 
 class NhentaiGalleryExtractor(GalleryExtractor):
     """Extractor for image galleries from nhentai.net"""
+
     category = "nhentai"
     root = "https://nhentai.net"
     pattern = r"(?:https?://)?nhentai\.net/g/(\d+)"
@@ -42,41 +43,46 @@ class NhentaiGalleryExtractor(GalleryExtractor):
                 break
 
         return {
-            "title"     : title_en or title_ja,
-            "title_en"  : title_en,
-            "title_ja"  : title_ja,
+            "title": title_en or title_ja,
+            "title_en": title_en,
+            "title_ja": title_ja,
             "gallery_id": data["id"],
-            "media_id"  : text.parse_int(data["media_id"]),
-            "date"      : data["upload_date"],
-            "scanlator" : data["scanlator"],
-            "artist"    : info["artist"],
-            "group"     : info["group"],
-            "parody"    : info["parody"],
+            "media_id": text.parse_int(data["media_id"]),
+            "date": data["upload_date"],
+            "scanlator": data["scanlator"],
+            "artist": info["artist"],
+            "group": info["group"],
+            "parody": info["parody"],
             "characters": info["character"],
-            "tags"      : info["tag"],
-            "type"      : info["category"][0] if info["category"] else "",
-            "lang"      : util.language_to_code(language),
-            "language"  : language,
+            "tags": info["tag"],
+            "type": info["category"][0] if info["category"] else "",
+            "lang": util.language_to_code(language),
+            "language": language,
         }
 
     def images(self, _):
         exts = {"j": "jpg", "p": "png", "g": "gif", "w": "webp", "a": "avif"}
 
         data = self.data
-        ufmt = ("https://i{}.nhentai.net/galleries/" +
-                data["media_id"] + "/{}.{}").format
+        ufmt = (
+            "https://i{}.nhentai.net/galleries/" + data["media_id"] + "/{}.{}"
+        ).format
 
         return [
-            (ufmt(random.randint(1, 4), num, exts.get(img["t"], "jpg")), {
-                "width" : img["w"],
-                "height": img["h"],
-            })
+            (
+                ufmt(random.randint(1, 4), num, exts.get(img["t"], "jpg")),
+                {
+                    "width": img["w"],
+                    "height": img["h"],
+                },
+            )
             for num, img in enumerate(data["images"]["pages"], 1)
         ]
 
 
 class NhentaiExtractor(Extractor):
     """Base class for nhentai extractors"""
+
     category = "nhentai"
     root = "https://nhentai.net"
 
@@ -98,7 +104,7 @@ class NhentaiExtractor(Extractor):
 
         while True:
             page = self.request(url, params=params).text
-            yield from text.extract_iter(page, 'href="/g/', '/')
+            yield from text.extract_iter(page, 'href="/g/', "/")
             if 'class="next"' not in page:
                 return
             params["page"] += 1
@@ -106,15 +112,19 @@ class NhentaiExtractor(Extractor):
 
 class NhentaiTagExtractor(NhentaiExtractor):
     """Extractor for nhentai tag searches"""
+
     subcategory = "tag"
-    pattern = (r"(?:https?://)?nhentai\.net("
-               r"/(?:artist|category|character|group|language|parody|tag)"
-               r"/[^/?#]+(?:/popular[^/?#]*)?/?)(?:\?([^#]+))?")
+    pattern = (
+        r"(?:https?://)?nhentai\.net("
+        r"/(?:artist|category|character|group|language|parody|tag)"
+        r"/[^/?#]+(?:/popular[^/?#]*)?/?)(?:\?([^#]+))?"
+    )
     example = "https://nhentai.net/tag/TAG/"
 
 
 class NhentaiSearchExtractor(NhentaiExtractor):
     """Extractor for nhentai search results"""
+
     subcategory = "search"
     pattern = r"(?:https?://)?nhentai\.net(/search/?)\?([^#]+)"
     example = "https://nhentai.net/search/?q=QUERY"
@@ -122,6 +132,7 @@ class NhentaiSearchExtractor(NhentaiExtractor):
 
 class NhentaiFavoriteExtractor(NhentaiExtractor):
     """Extractor for nhentai favorites"""
+
     subcategory = "favorite"
     pattern = r"(?:https?://)?nhentai\.net(/favorites/?)(?:\?([^#]+))?"
     example = "https://nhentai.net/favorites/"

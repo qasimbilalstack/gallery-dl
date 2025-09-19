@@ -12,14 +12,17 @@ from .common import ChapterExtractor, Extractor, Message
 from .. import text, util, exception
 from ..cache import memcache
 
-BASE_PATTERN = (r"(?:https?://)?(?:www\.)?(?:"
-                r"(?:manga|comic|read)park\.(?:com|net|org|me|io|to)|"
-                r"parkmanga\.(?:com|net|org)|"
-                r"mpark\.to)")
+BASE_PATTERN = (
+    r"(?:https?://)?(?:www\.)?(?:"
+    r"(?:manga|comic|read)park\.(?:com|net|org|me|io|to)|"
+    r"parkmanga\.(?:com|net|org)|"
+    r"mpark\.to)"
+)
 
 
-class MangaparkBase():
+class MangaparkBase:
     """Base class for mangapark extractors"""
+
     category = "mangapark"
 
     def _parse_chapter_title(self, title):
@@ -54,24 +57,22 @@ class MangaparkBase():
         variables = {
             "sourceId": source_id,
         }
-        return self._request_graphql(
-            "get_content_source_chapterList", variables)
+        return self._request_graphql("get_content_source_chapterList", variables)
 
     def _request_graphql(self, opname, variables):
         url = self.root + "/apo/"
         data = {
-            "query"        : QUERIES[opname],
-            "variables"    : variables,
+            "query": QUERIES[opname],
+            "variables": variables,
             "operationName": opname,
         }
-        return self.request_json(
-            url, method="POST", json=data)["data"].popitem()[1]
+        return self.request_json(url, method="POST", json=data)["data"].popitem()[1]
 
 
 class MangaparkChapterExtractor(MangaparkBase, ChapterExtractor):
     """Extractor for manga-chapters from mangapark.net"""
-    pattern = (BASE_PATTERN +
-               r"/(?:title/[^/?#]+/|comic/\d+/[^/?#]+/[^/?#]+-i)(\d+)")
+
+    pattern = BASE_PATTERN + r"/(?:title/[^/?#]+/|comic/\d+/[^/?#]+/[^/?#]+-i)(\d+)"
     example = "https://mangapark.net/title/MANGA/12345-en-ch.01"
 
     def __init__(self, match):
@@ -87,21 +88,21 @@ class MangaparkChapterExtractor(MangaparkBase, ChapterExtractor):
         lang = chapter.get("lang") or "en"
 
         return {
-            "manga"     : manga["name"],
-            "manga_id"  : text.parse_int(manga["id"]),
-            "artist"    : manga["artists"],
-            "author"    : manga["authors"],
-            "genre"     : manga["genres"],
-            "volume"    : text.parse_int(vol),
-            "chapter"   : text.parse_int(ch),
+            "manga": manga["name"],
+            "manga_id": text.parse_int(manga["id"]),
+            "artist": manga["artists"],
+            "author": manga["authors"],
+            "genre": manga["genres"],
+            "volume": text.parse_int(vol),
+            "chapter": text.parse_int(ch),
             "chapter_minor": minor,
             "chapter_id": text.parse_int(chapter["id"]),
-            "title"     : title or "",
-            "lang"      : lang,
-            "language"  : util.code_to_language(lang),
-            "source"    : chapter["srcTitle"],
-            "source_id" : chapter["sourceId"],
-            "date"      : text.parse_timestamp(chapter["dateCreate"] // 1000),
+            "title": title or "",
+            "lang": lang,
+            "language": util.code_to_language(lang),
+            "source": chapter["srcTitle"],
+            "source_id": chapter["sourceId"],
+            "date": text.parse_timestamp(chapter["dateCreate"] // 1000),
         }
 
     def images(self, _):
@@ -110,6 +111,7 @@ class MangaparkChapterExtractor(MangaparkBase, ChapterExtractor):
 
 class MangaparkMangaExtractor(MangaparkBase, Extractor):
     """Extractor for manga from mangapark.net"""
+
     subcategory = "manga"
     pattern = BASE_PATTERN + r"/(?:title|comic)/(\d+)(?:[/-][^/?#]*)?/?$"
     example = "https://mangapark.net/title/12345-MANGA"
@@ -128,18 +130,17 @@ class MangaparkMangaExtractor(MangaparkBase, Extractor):
             lang = chapter.get("lang") or "en"
 
             data = {
-                "manga_id"  : self.manga_id,
-                "volume"    : text.parse_int(vol),
-                "chapter"   : text.parse_int(ch),
+                "manga_id": self.manga_id,
+                "volume": text.parse_int(vol),
+                "chapter": text.parse_int(ch),
                 "chapter_minor": minor,
                 "chapter_id": chapter["id"],
-                "title"     : chapter["title"] or title or "",
-                "lang"      : lang,
-                "language"  : util.code_to_language(lang),
-                "source"    : chapter["srcTitle"],
-                "source_id" : chapter["sourceId"],
-                "date"      : text.parse_timestamp(
-                    chapter["dateCreate"] // 1000),
+                "title": chapter["title"] or title or "",
+                "lang": lang,
+                "language": util.code_to_language(lang),
+                "source": chapter["srcTitle"],
+                "source_id": chapter["sourceId"],
+                "date": text.parse_timestamp(chapter["dateCreate"] // 1000),
                 "_extractor": MangaparkChapterExtractor,
             }
             yield Message.Queue, url, data
@@ -164,19 +165,20 @@ class MangaparkMangaExtractor(MangaparkBase, Extractor):
         group = group.lower()
 
         variables = {
-            "comicId"    : self.manga_id,
-            "dbStatuss"  : ["normal"],
+            "comicId": self.manga_id,
+            "dbStatuss": ["normal"],
             "haveChapter": True,
         }
-        for item in self._request_graphql(
-                "get_content_comic_sources", variables):
+        for item in self._request_graphql("get_content_comic_sources", variables):
             data = item["data"]
             if (not group or data["srcTitle"].lower() == group) and (
-                    not lang or data["lang"] == lang):
+                not lang or data["lang"] == lang
+            ):
                 return data["id"]
 
         raise exception.AbortExtraction(
-            f"'{source}' does not match any available source")
+            f"'{source}' does not match any available source"
+        )
 
 
 QUERIES = {
@@ -196,7 +198,6 @@ query Get_comicChapterList($comicId: ID!) {
     }
 }
 """,
-
     "Get_chapterNode": """
 query Get_chapterNode($getChapterNodeId: ID!) {
     get_chapterNode(id: $getChapterNodeId) {
@@ -217,7 +218,6 @@ query Get_chapterNode($getChapterNodeId: ID!) {
     }
 }
 """,
-
     "Get_comicNode": """
 query Get_comicNode($getComicNodeId: ID!) {
     get_comicNode(id: $getComicNodeId) {
@@ -231,7 +231,6 @@ query Get_comicNode($getComicNodeId: ID!) {
     }
 }
 """,
-
     "get_content_source_chapterList": """
   query get_content_source_chapterList($sourceId: Int!) {
     get_content_source_chapterList(
@@ -306,7 +305,6 @@ is_adm is_mod is_vip is_upr
     }
   }
 """,
-
     "get_content_comic_sources": """
   query get_content_comic_sources($comicId: Int!, $dbStatuss: [String] = [], $userId: Int, $haveChapter: Boolean, $sortFor: String) {
     get_content_comic_sources(

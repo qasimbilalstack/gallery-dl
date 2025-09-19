@@ -13,6 +13,7 @@ import os.path
 
 class GenericExtractor(Extractor):
     """Extractor for images in a generic web page."""
+
     category = "generic"
     directory_fmt = ("{category}", "{subcategory}", "{path}")
     archive_fmt = "{imageurl}"
@@ -27,37 +28,37 @@ class GenericExtractor(Extractor):
     # The generic extractor pattern should match (almost) any valid url
     # Based on: https://tools.ietf.org/html/rfc3986#appendix-B
     pattern += (
-        r"(?P<scheme>https?://)?"          # optional http(s) scheme
-        r"(?P<domain>[-\w\.]+)"            # required domain
-        r"(?P<path>/[^?#]*)?"              # optional path
-        r"(?:\?(?P<query>[^#]*))?"         # optional query
-        r"(?:\#(?P<fragment>.*))?"         # optional fragment
+        r"(?P<scheme>https?://)?"  # optional http(s) scheme
+        r"(?P<domain>[-\w\.]+)"  # required domain
+        r"(?P<path>/[^?#]*)?"  # optional path
+        r"(?:\?(?P<query>[^#]*))?"  # optional query
+        r"(?:\#(?P<fragment>.*))?"  # optional fragment
     )
     example = "generic:https://www.nongnu.org/lzip/"
 
     def __init__(self, match):
-        self.subcategory = match['domain']
+        self.subcategory = match["domain"]
         Extractor.__init__(self, match)
 
         # Strip the "g(eneric):" prefix
         # and inform about "forced" or "fallback" mode
-        if match['generic']:
+        if match["generic"]:
             self.url = match[0].partition(":")[2]
         else:
             self.log.info("Falling back on generic information extractor.")
             self.url = match[0]
 
         # Make sure we have a scheme, or use https
-        if match['scheme']:
-            self.scheme = match['scheme']
+        if match["scheme"]:
+            self.scheme = match["scheme"]
         else:
-            self.scheme = 'https://'
+            self.scheme = "https://"
             self.url = text.ensure_http_scheme(self.url, self.scheme)
 
-        self.path = match['path']
+        self.path = match["path"]
 
         # Used to resolve relative image urls
-        self.root = self.scheme + match['domain']
+        self.root = self.scheme + match["domain"]
 
     def items(self):
         """Get page, extract metadata & images, yield them in suitable messages
@@ -89,27 +90,20 @@ class GenericExtractor(Extractor):
     def metadata(self, page):
         """Extract generic webpage metadata, return them in a dict."""
         data = {
-            "title"         : text.extr(
-                page, "<title>", "</title>"),
-            "description"   : text.extr(
-                page, '<meta name="description" content="', '"'),
-            "keywords"      : text.extr(
-                page, '<meta name="keywords" content="', '"'),
-            "language"      : text.extr(
-                page, '<meta name="language" content="', '"'),
-            "name"          : text.extr(
-                page, '<meta itemprop="name" content="', '"'),
-            "copyright"     : text.extr(
-                page, '<meta name="copyright" content="', '"'),
-            "og_site"       : text.extr(
-                page, '<meta property="og:site" content="', '"'),
-            "og_site_name"  : text.extr(
-                page, '<meta property="og:site_name" content="', '"'),
-            "og_title"      : text.extr(
-                page, '<meta property="og:title" content="', '"'),
+            "title": text.extr(page, "<title>", "</title>"),
+            "description": text.extr(page, '<meta name="description" content="', '"'),
+            "keywords": text.extr(page, '<meta name="keywords" content="', '"'),
+            "language": text.extr(page, '<meta name="language" content="', '"'),
+            "name": text.extr(page, '<meta itemprop="name" content="', '"'),
+            "copyright": text.extr(page, '<meta name="copyright" content="', '"'),
+            "og_site": text.extr(page, '<meta property="og:site" content="', '"'),
+            "og_site_name": text.extr(
+                page, '<meta property="og:site_name" content="', '"'
+            ),
+            "og_title": text.extr(page, '<meta property="og:title" content="', '"'),
             "og_description": text.extr(
-                page, '<meta property="og:description" content="', '"'),
-
+                page, '<meta property="og:description" content="', '"'
+            ),
         }
 
         data = {k: text.unescape(v) for k, v in data.items() if v}
@@ -146,9 +140,9 @@ class GenericExtractor(Extractor):
 
         imageurl_pattern_src = (
             r"(?i)"
-            r"<(?:img|video|source)\s[^>]*"    # <img>, <video> or <source>
-            r"src(?:set)?=[\"']?"              # src or srcset attributes
-            r"(?P<URL>[^\"'\s>]+)"             # url
+            r"<(?:img|video|source)\s[^>]*"  # <img>, <video> or <source>
+            r"src(?:set)?=[\"']?"  # src or srcset attributes
+            r"(?P<URL>[^\"'\s>]+)"  # url
         )
 
         """
@@ -165,10 +159,10 @@ class GenericExtractor(Extractor):
 
         imageurl_pattern_ext = (
             r"(?i)"
-            r"(?:[^?&#\"'>\s]+)"           # anything until dot+extension
-                                           # dot + image/video extensions
+            r"(?:[^?&#\"'>\s]+)"  # anything until dot+extension
+            # dot + image/video extensions
             r"\.(?:jpe?g|jpe|png|gif|web[mp]|mp4|mkv|og[gmv]|opus)"
-            r"(?:[^\"'<>\s]*)?"            # optional query and fragment
+            r"(?:[^\"'<>\s]*)?"  # optional query and fragment
         )
 
         imageurls_src = util.re(imageurl_pattern_src).findall(page)
@@ -181,14 +175,15 @@ class GenericExtractor(Extractor):
         # by prepending a suitable base url.
         #
         # If the page contains a <base> element, use it as base url
-        basematch = util.re(
-            r"(?i)(?:<base\s.*?href=[\"']?)(?P<url>[^\"' >]+)").search(page)
+        basematch = util.re(r"(?i)(?:<base\s.*?href=[\"']?)(?P<url>[^\"' >]+)").search(
+            page
+        )
         if basematch:
-            self.baseurl = basematch['url'].rstrip('/')
+            self.baseurl = basematch["url"].rstrip("/")
         # Otherwise, extract the base url from self.url
         else:
             if self.url.endswith("/"):
-                self.baseurl = self.url.rstrip('/')
+                self.baseurl = self.url.rstrip("/")
             else:
                 self.baseurl = os.path.dirname(self.url)
 
@@ -196,23 +191,23 @@ class GenericExtractor(Extractor):
         absimageurls = []
         for u in imageurls:
             # Absolute urls are taken as-is
-            if u.startswith('http'):
+            if u.startswith("http"):
                 absimageurls.append(u)
             # // relative urls are prefixed with current scheme
-            elif u.startswith('//'):
-                absimageurls.append(self.scheme + u.lstrip('/'))
+            elif u.startswith("//"):
+                absimageurls.append(self.scheme + u.lstrip("/"))
             # / relative urls are prefixed with current scheme+domain
-            elif u.startswith('/'):
+            elif u.startswith("/"):
                 absimageurls.append(self.root + u)
             # other relative urls are prefixed with baseurl
             else:
-                absimageurls.append(self.baseurl + '/' + u)
+                absimageurls.append(self.baseurl + "/" + u)
 
         # Remove duplicates
         absimageurls = dict.fromkeys(absimageurls)
 
         # Create the image metadata dict and add imageurl to it
         # (image filename and extension are added by items())
-        images = [(u, {'imageurl': u}) for u in absimageurls]
+        images = [(u, {"imageurl": u}) for u in absimageurls]
 
         return images

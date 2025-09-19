@@ -49,36 +49,39 @@ class ImhentaiExtractor(BaseExtractor):
             url = href
 
 
-BASE_PATTERN = ImhentaiExtractor.update({
-    "imhentai": {
-        "root": "https://imhentai.xxx",
-        "pattern": r"(?:www\.)?imhentai\.xxx",
-    },
-    "hentaiera": {
-        "root": "https://hentaiera.com",
-        "pattern": r"(?:www\.)?hentaiera\.com",
-    },
-    "hentairox": {
-        "root": "https://hentairox.com",
-        "pattern": r"(?:www\.)?hentairox\.com",
-    },
-    "hentaifox": {
-        "root": "https://hentaifox.com",
-        "pattern": r"(?:www\.)?hentaifox\.com",
-    },
-    "hentaienvy": {
-        "root": "https://hentaienvy.com",
-        "pattern": r"(?:www\.)?hentaienvy\.com",
-    },
-    "hentaizap": {
-        "root": "https://hentaizap.com",
-        "pattern": r"(?:www\.)?hentaizap\.com",
-    },
-})
+BASE_PATTERN = ImhentaiExtractor.update(
+    {
+        "imhentai": {
+            "root": "https://imhentai.xxx",
+            "pattern": r"(?:www\.)?imhentai\.xxx",
+        },
+        "hentaiera": {
+            "root": "https://hentaiera.com",
+            "pattern": r"(?:www\.)?hentaiera\.com",
+        },
+        "hentairox": {
+            "root": "https://hentairox.com",
+            "pattern": r"(?:www\.)?hentairox\.com",
+        },
+        "hentaifox": {
+            "root": "https://hentaifox.com",
+            "pattern": r"(?:www\.)?hentaifox\.com",
+        },
+        "hentaienvy": {
+            "root": "https://hentaienvy.com",
+            "pattern": r"(?:www\.)?hentaienvy\.com",
+        },
+        "hentaizap": {
+            "root": "https://hentaizap.com",
+            "pattern": r"(?:www\.)?hentaizap\.com",
+        },
+    }
+)
 
 
 class ImhentaiGalleryExtractor(ImhentaiExtractor, GalleryExtractor):
     """Extractor for imhentai galleries"""
+
     pattern = BASE_PATTERN + r"/(?:gallery|view)/(\d+)"
     example = "https://imhentai.xxx/gallery/12345/"
 
@@ -95,15 +98,15 @@ class ImhentaiGalleryExtractor(ImhentaiExtractor, GalleryExtractor):
 
         data = {
             "gallery_id": text.parse_int(self.gallery_id),
-            "title"     : text.unescape(title),
-            "title_alt" : text.unescape(title_alt),
-            "parody"    : self._split(extr(">Parodies", end)),
-            "character" : self._split(extr(">Characters", end)),
-            "tags"      : self._split(extr(">Tags", end)),
-            "artist"    : self._split(extr(">Artists", end)),
-            "group"     : self._split(extr(">Groups", end)),
-            "language"  : self._split(extr(">Languages", end)),
-            "type"      : extr("href='/category/", "/"),
+            "title": text.unescape(title),
+            "title_alt": text.unescape(title_alt),
+            "parody": self._split(extr(">Parodies", end)),
+            "character": self._split(extr(">Characters", end)),
+            "tags": self._split(extr(">Tags", end)),
+            "artist": self._split(extr(">Artists", end)),
+            "group": self._split(extr(">Groups", end)),
+            "language": self._split(extr(">Languages", end)),
+            "type": extr("href='/category/", "/"),
         }
 
         if data["language"]:
@@ -114,7 +117,7 @@ class ImhentaiGalleryExtractor(ImhentaiExtractor, GalleryExtractor):
     def _split(self, html):
         results = []
         for tag in text.extract_iter(html, ">", "</a>"):
-            badge = ("badge'>" in tag or "class='badge" in tag)
+            badge = "badge'>" in tag or "class='badge" in tag
             tag = text.remove_html(tag)
             if badge:
                 tag = tag.rpartition(" ")[0]
@@ -128,22 +131,30 @@ class ImhentaiGalleryExtractor(ImhentaiExtractor, GalleryExtractor):
         exts = {"j": "jpg", "p": "png", "g": "gif", "w": "webp", "a": "avif"}
 
         results = []
-        for i in map(str, range(1, len(data)+1)):
+        for i in map(str, range(1, len(data) + 1)):
             ext, width, height = data[i].split(",")
             url = base + i + "." + exts[ext]
-            results.append((url, {
-                "width" : text.parse_int(width),
-                "height": text.parse_int(height),
-            }))
+            results.append(
+                (
+                    url,
+                    {
+                        "width": text.parse_int(width),
+                        "height": text.parse_int(height),
+                    },
+                )
+            )
         return results
 
 
 class ImhentaiTagExtractor(ImhentaiExtractor):
     """Extractor for imhentai tag searches"""
+
     subcategory = "tag"
-    pattern = (BASE_PATTERN + r"(/(?:"
-               r"artist|category|character|group|language|parody|tag"
-               r")/([^/?#]+))")
+    pattern = (
+        BASE_PATTERN + r"(/(?:"
+        r"artist|category|character|group|language|parody|tag"
+        r")/([^/?#]+))"
+    )
     example = "https://imhentai.xxx/tag/TAG/"
 
     def items(self):
@@ -153,6 +164,7 @@ class ImhentaiTagExtractor(ImhentaiExtractor):
 
 class ImhentaiSearchExtractor(ImhentaiExtractor):
     """Extractor for imhentai search results"""
+
     subcategory = "search"
     pattern = BASE_PATTERN + r"/search(/?\?[^#]+|/[^/?#]+/?)"
     example = "https://imhentai.xxx/search/?key=QUERY"

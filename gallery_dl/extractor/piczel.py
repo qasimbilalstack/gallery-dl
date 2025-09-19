@@ -16,6 +16,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?piczel\.tv"
 
 class PiczelExtractor(Extractor):
     """Base class for piczel extractors"""
+
     category = "piczel"
     directory_fmt = ("{category}", "{user[username]}")
     filename_fmt = "{category}_{id}_{title}_{num:>02}.{extension}"
@@ -27,7 +28,8 @@ class PiczelExtractor(Extractor):
         for post in self.posts():
             post["tags"] = [t["title"] for t in post["tags"] if t["title"]]
             post["date"] = text.parse_datetime(
-                post["created_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
+                post["created_at"], "%Y-%m-%dT%H:%M:%S.%f%z"
+            )
 
             if post["multi"]:
                 images = post["images"]
@@ -66,6 +68,7 @@ class PiczelExtractor(Extractor):
 
 class PiczelUserExtractor(PiczelExtractor):
     """Extractor for all images from a user's gallery"""
+
     subcategory = "user"
     pattern = BASE_PATTERN + r"/gallery/([^/?#]+)/?$"
     example = "https://piczel.tv/gallery/USER"
@@ -77,6 +80,7 @@ class PiczelUserExtractor(PiczelExtractor):
 
 class PiczelFolderExtractor(PiczelExtractor):
     """Extractor for images inside a user's folder"""
+
     subcategory = "folder"
     directory_fmt = ("{category}", "{user[username]}", "{folder[name]}")
     archive_fmt = "f{folder[id]}_{id}_{num}"
@@ -90,6 +94,7 @@ class PiczelFolderExtractor(PiczelExtractor):
 
 class PiczelImageExtractor(PiczelExtractor):
     """Extractor for individual images"""
+
     subcategory = "image"
     pattern = BASE_PATTERN + r"/gallery/image/(\d+)"
     example = "https://piczel.tv/gallery/image/12345"

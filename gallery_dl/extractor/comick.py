@@ -15,14 +15,16 @@ from ..cache import memcache
 BASE_PATTERN = r"(?:https?://)?(?:www\.)?comick\.io"
 
 
-class ComickBase():
+class ComickBase:
     """Base class for comick.io extractors"""
+
     category = "comick"
     root = "https://comick.io"
 
 
 class ComickCoversExtractor(ComickBase, GalleryExtractor):
     """Extractor for comick.io manga covers"""
+
     subcategory = "covers"
     directory_fmt = ("{category}", "{manga}", "Covers")
     filename_fmt = "{volume:>02}_{lang}.{extension}"
@@ -32,7 +34,7 @@ class ComickCoversExtractor(ComickBase, GalleryExtractor):
 
     def metadata(self, page):
         manga = _manga_info(self, self.groups[0])
-        self.slug = manga['manga_slug']
+        self.slug = manga["manga_slug"]
         return manga
 
     def images(self, page):
@@ -44,24 +46,29 @@ class ComickCoversExtractor(ComickBase, GalleryExtractor):
         covers.reverse()
 
         return [
-            (f"https://meo.comick.pictures/{cover['b2key']}", {
-                "id"    : cover["id"],
-                "width" : cover["w"],
-                "height": cover["h"],
-                "size"  : cover["s"],
-                "lang"  : cover["locale"],
-                "volume": text.parse_int(cover["vol"]),
-                "cover" : cover,
-            })
+            (
+                f"https://meo.comick.pictures/{cover['b2key']}",
+                {
+                    "id": cover["id"],
+                    "width": cover["w"],
+                    "height": cover["h"],
+                    "size": cover["s"],
+                    "lang": cover["locale"],
+                    "volume": text.parse_int(cover["vol"]),
+                    "cover": cover,
+                },
+            )
             for cover in covers
         ]
 
 
 class ComickChapterExtractor(ComickBase, ChapterExtractor):
     """Extractor for comick.io manga chapters"""
+
     archive_fmt = "{chapter_hid}_{page}"
-    pattern = (BASE_PATTERN + r"/comic/([\w-]+)"
-               r"/(\w+(?:-(?:chapter|volume)-[^/?#]+)?)")
+    pattern = (
+        BASE_PATTERN + r"/comic/([\w-]+)" r"/(\w+(?:-(?:chapter|volume)-[^/?#]+)?)"
+    )
     example = "https://comick.io/comic/MANGA/ID-chapter-123-en"
 
     def metadata(self, page):
@@ -74,8 +81,7 @@ class ComickChapterExtractor(ComickBase, ChapterExtractor):
             except exception.HttpError as exc:
                 if exc.response.status_code != 404:
                     raise
-                if exc.response.headers.get(
-                        "Content-Type", "").startswith("text/html"):
+                if exc.response.headers.get("Content-Type", "").startswith("text/html"):
                     if locals().get("_retry_buildid"):
                         raise
                     self.log.debug("Updating Next.js build ID")
@@ -106,42 +112,47 @@ class ComickChapterExtractor(ComickBase, ChapterExtractor):
 
         return {
             **manga,
-            "title"   : props["chapTitle"],
-            "volume"  : text.parse_int(ch["vol"]),
-            "chapter" : text.parse_int(chapter),
-            "chapter_minor" : sep + minor,
-            "chapter_id"    : ch["id"],
-            "chapter_hid"   : ch["hid"],
+            "title": props["chapTitle"],
+            "volume": text.parse_int(ch["vol"]),
+            "chapter": text.parse_int(chapter),
+            "chapter_minor": sep + minor,
+            "chapter_id": ch["id"],
+            "chapter_hid": ch["hid"],
             "chapter_string": chstr,
-            "group"   : ch["group_name"],
-            "date"    : text.parse_datetime(
-                ch["created_at"][:19], "%Y-%m-%dT%H:%M:%S"),
-            "date_updated"  : text.parse_datetime(
-                ch["updated_at"][:19], "%Y-%m-%dT%H:%M:%S"),
-            "lang"    : ch["lang"],
+            "group": ch["group_name"],
+            "date": text.parse_datetime(ch["created_at"][:19], "%Y-%m-%dT%H:%M:%S"),
+            "date_updated": text.parse_datetime(
+                ch["updated_at"][:19], "%Y-%m-%dT%H:%M:%S"
+            ),
+            "lang": ch["lang"],
         }
 
     def images(self, page):
         if not self._images[0].get("b2key") and all(
-                not img.get("b2key") for img in self._images):
+            not img.get("b2key") for img in self._images
+        ):
             self.log.error(
-                "%s: Broken Chapter (missing 'b2key' for all pages)",
-                self.groups[1])
+                "%s: Broken Chapter (missing 'b2key' for all pages)", self.groups[1]
+            )
             return ()
 
         return [
-            (f"https://meo.comick.pictures/{img['b2key']}", {
-                "width"    : img["w"],
-                "height"   : img["h"],
-                "size"     : img["s"],
-                "optimized": img["optimized"],
-            })
+            (
+                f"https://meo.comick.pictures/{img['b2key']}",
+                {
+                    "width": img["w"],
+                    "height": img["h"],
+                    "size": img["s"],
+                    "optimized": img["optimized"],
+                },
+            )
             for img in self._images
         ]
 
 
 class ComickMangaExtractor(ComickBase, MangaExtractor):
     """Extractor for comick.io manga"""
+
     pattern = BASE_PATTERN + r"/comic/([\w-]+)/?(?:\?([^#]+))?"
     example = "https://comick.io/comic/MANGA"
 
@@ -155,15 +166,19 @@ class ComickMangaExtractor(ComickBase, MangaExtractor):
             ch["_extractor"] = ComickChapterExtractor
 
             if chapter := ch["chap"]:
-                url = (f"{self.root}/comic/{slug}"
-                       f"/{ch['hid']}-chapter-{chapter}-{ch['lang']}")
+                url = (
+                    f"{self.root}/comic/{slug}"
+                    f"/{ch['hid']}-chapter-{chapter}-{ch['lang']}"
+                )
                 chapter, sep, minor = chapter.partition(".")
                 ch["volume"] = text.parse_int(ch["vol"])
                 ch["chapter"] = text.parse_int(chapter)
                 ch["chapter_minor"] = sep + minor
             elif volume := ch["vol"]:
-                url = (f"{self.root}/comic/{slug}"
-                       f"/{ch['hid']}-volume-{volume}-{ch['lang']}")
+                url = (
+                    f"{self.root}/comic/{slug}"
+                    f"/{ch['hid']}-volume-{volume}-{ch['lang']}"
+                )
                 ch["volume"] = text.parse_int(volume)
                 ch["chapter"] = 0
                 ch["chapter_minor"] = ""
@@ -202,8 +217,7 @@ class ComickMangaExtractor(ComickBase, MangaExtractor):
         elif chap_order := query.get("chap-order"):
             params["chap-order"] = chap_order
         else:
-            params["chap-order"] = \
-                "0" if self.config("chapter-reverse", False) else "1"
+            params["chap-order"] = "0" if self.config("chapter-reverse", False) else "1"
 
         group = query.get("group")
         if group == "0":
@@ -253,10 +267,8 @@ def _manga_info(self, slug):
             format = item["name"]
 
     if mu := comic["mu_comics"]:
-        tags = [c["mu_categories"]["title"]
-                for c in mu["mu_comic_categories"]]
-        publisher = [p["mu_publishers"]["title"]
-                     for p in mu["mu_comic_publishers"]]
+        tags = [c["mu_categories"]["title"] for c in mu["mu_comic_categories"]]
+        publisher = [p["mu_publishers"]["title"] for p in mu["mu_comic_publishers"]]
     else:
         tags = publisher = ()
 
@@ -268,10 +280,10 @@ def _manga_info(self, slug):
         "manga_titles": [t["title"] for t in comic["md_titles"]],
         "artist": [a["name"] for a in props["artists"]],
         "author": [a["name"] for a in props["authors"]],
-        "genre" : genre,
-        "theme" : theme,
+        "genre": genre,
+        "theme": theme,
         "format": format,
-        "tags"  : tags,
+        "tags": tags,
         "publisher": publisher,
         "published": text.parse_int(comic["year"]),
         "description": comic["desc"],
@@ -279,17 +291,16 @@ def _manga_info(self, slug):
         "origin": comic["iso639_1"],
         "mature": props["matureContent"],
         "rating": comic["content_rating"],
-        "rank"  : comic["follow_rank"],
-        "score" : text.parse_float(comic["bayesian_rating"]),
+        "rank": comic["follow_rank"],
+        "score": text.parse_float(comic["bayesian_rating"]),
         "status": "Complete" if comic["status"] == 2 else "Ongoing",
-        "links" : comic["links"],
+        "links": comic["links"],
         "_build_id": data["buildId"],
     }
 
 
 def _chapter_info(self, manga, chstr):
-    slug = manga['manga_slug']
-    url = (f"{self.root}/_next/data/{manga['_build_id']}"
-           f"/comic/{slug}/{chstr}.json")
+    slug = manga["manga_slug"]
+    url = f"{self.root}/_next/data/{manga['_build_id']}" f"/comic/{slug}/{chstr}.json"
     params = {"slug": slug, "chapter": chstr}
     return self.request_json(url, params=params)["pageProps"]

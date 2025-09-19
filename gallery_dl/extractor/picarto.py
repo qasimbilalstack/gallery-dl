@@ -14,6 +14,7 @@ from .. import text
 
 class PicartoGalleryExtractor(Extractor):
     """Extractor for picarto galleries"""
+
     category = "picarto"
     subcategory = "gallery"
     root = "https://picarto.tv"
@@ -29,8 +30,7 @@ class PicartoGalleryExtractor(Extractor):
 
     def items(self):
         for post in self.posts():
-            post["date"] = text.parse_datetime(
-                post["created_at"], "%Y-%m-%d %H:%M:%S")
+            post["date"] = text.parse_datetime(post["created_at"], "%Y-%m-%d %H:%M:%S")
             variations = post.pop("variations", ())
             yield Message.Directory, post
 

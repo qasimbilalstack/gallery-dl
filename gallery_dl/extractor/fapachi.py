@@ -12,14 +12,16 @@ from .. import text
 
 class FapachiPostExtractor(Extractor):
     """Extractor for individual posts on fapachi.com"""
+
     category = "fapachi"
     subcategory = "post"
     root = "https://fapachi.com"
     directory_fmt = ("{category}", "{user}")
     filename_fmt = "{user}_{id}.{extension}"
     archive_fmt = "{user}_{id}"
-    pattern = (r"(?:https?://)?(?:www\.)?fapachi\.com"
-               r"/(?!search/)([^/?#]+)/media/(\d+)")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?fapachi\.com" r"/(?!search/)([^/?#]+)/media/(\d+)"
+    )
     example = "https://fapachi.com/MODEL/media/12345"
 
     def __init__(self, match):
@@ -29,22 +31,27 @@ class FapachiPostExtractor(Extractor):
     def items(self):
         data = {
             "user": self.user,
-            "id"  : self.id,
+            "id": self.id,
         }
         page = self.request(f"{self.root}/{self.user}/media/{self.id}").text
-        url = self.root + text.extract(
-            page, 'data-src="', '"', page.index('class="media-img'))[0]
+        url = (
+            self.root
+            + text.extract(page, 'data-src="', '"', page.index('class="media-img'))[0]
+        )
         yield Message.Directory, data
         yield Message.Url, url, text.nameext_from_url(url, data)
 
 
 class FapachiUserExtractor(Extractor):
     """Extractor for all posts from a fapachi user"""
+
     category = "fapachi"
     subcategory = "user"
     root = "https://fapachi.com"
-    pattern = (r"(?:https?://)?(?:www\.)?fapachi\.com"
-               r"/(?!search(?:/|$))([^/?#]+)(?:/page/(\d+))?$")
+    pattern = (
+        r"(?:https?://)?(?:www\.)?fapachi\.com"
+        r"/(?!search(?:/|$))([^/?#]+)(?:/page/(\d+))?$"
+    )
     example = "https://fapachi.com/MODEL"
 
     def __init__(self, match):

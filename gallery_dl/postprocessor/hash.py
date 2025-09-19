@@ -41,10 +41,7 @@ class HashPP(PostProcessor):
         job.register_hooks({event: self.run for event in events}, options)
 
     def run(self, pathfmt):
-        hashes = [
-            (key, hashlib.new(name))
-            for key, name in self.hashes
-        ]
+        hashes = [(key, hashlib.new(name)) for key, name in self.hashes]
 
         size = self.chunk_size
         with self._open(pathfmt) as fp:

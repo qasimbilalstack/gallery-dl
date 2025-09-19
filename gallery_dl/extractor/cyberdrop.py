@@ -15,6 +15,7 @@ BASE_PATTERN = r"(?:https?://)?(?:www\.)?cyberdrop\.(?:me|to)"
 
 class CyberdropAlbumExtractor(lolisafe.LolisafeAlbumExtractor):
     """Extractor for cyberdrop albums"""
+
     category = "cyberdrop"
     root = "https://cyberdrop.me"
     root_api = "https://api.cyberdrop.me"
@@ -37,20 +38,21 @@ class CyberdropAlbumExtractor(lolisafe.LolisafeAlbumExtractor):
         extr = text.extract_from(page)
 
         desc = extr('property="og:description" content="', '"')
-        if desc.startswith("A privacy-focused censorship-resistant file "
-                           "sharing platform free for everyone."):
+        if desc.startswith(
+            "A privacy-focused censorship-resistant file "
+            "sharing platform free for everyone."
+        ):
             desc = ""
         extr('id="title"', "")
 
         album = {
-            "album_id"   : album_id,
-            "album_name" : text.unescape(extr('title="', '"')),
-            "album_size" : text.parse_bytes(extr(
-                '<p class="title">', "B")),
-            "date"       : text.parse_datetime(extr(
-                '<p class="title">', '<'), "%d.%m.%Y"),
-            "description": text.unescape(text.unescape(  # double
-                desc.rpartition(" [R")[0])),
+            "album_id": album_id,
+            "album_name": text.unescape(extr('title="', '"')),
+            "album_size": text.parse_bytes(extr('<p class="title">', "B")),
+            "date": text.parse_datetime(extr('<p class="title">', "<"), "%d.%m.%Y"),
+            "description": text.unescape(
+                text.unescape(desc.rpartition(" [R")[0])  # double
+            ),
         }
 
         file_ids = list(text.extract_iter(page, 'id="file" href="/f/', '"'))
@@ -65,8 +67,7 @@ class CyberdropAlbumExtractor(lolisafe.LolisafeAlbumExtractor):
                 auth = self.request_json(file["auth_url"])
                 file["url"] = auth["url"]
             except Exception as exc:
-                self.log.warning("%s (%s: %s)",
-                                 file_id, exc.__class__.__name__, exc)
+                self.log.warning("%s (%s: %s)", file_id, exc.__class__.__name__, exc)
                 continue
 
             yield file
@@ -74,6 +75,7 @@ class CyberdropAlbumExtractor(lolisafe.LolisafeAlbumExtractor):
 
 class CyberdropMediaExtractor(CyberdropAlbumExtractor):
     """Extractor for cyberdrop media links"""
+
     subcategory = "media"
     directory_fmt = ("{category}",)
     pattern = BASE_PATTERN + r"/f/([^/?#]+)"
@@ -81,9 +83,9 @@ class CyberdropMediaExtractor(CyberdropAlbumExtractor):
 
     def fetch_album(self, album_id):
         return self._extract_files((album_id,)), {
-            "album_id"   : "",
-            "album_name" : "",
-            "album_size" : -1,
+            "album_id": "",
+            "album_name": "",
+            "album_size": -1,
             "description": "",
-            "count"      : 1,
+            "count": 1,
         }

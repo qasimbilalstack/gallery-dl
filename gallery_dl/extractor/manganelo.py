@@ -17,28 +17,31 @@ class ManganeloExtractor(BaseExtractor):
     basecategory = "manganelo"
 
 
-BASE_PATTERN = ManganeloExtractor.update({
-    "nelomanga": {
-        "root"   : "https://www.nelomanga.net",
-        "pattern": r"(?:www\.)?nelomanga\.net",
-    },
-    "natomanga": {
-        "root"   : "https://www.natomanga.com",
-        "pattern": r"(?:www\.)?natomanga\.com",
-    },
-    "manganato": {
-        "root"   : "https://www.manganato.gg",
-        "pattern": r"(?:www\.)?manganato\.gg",
-    },
-    "mangakakalot": {
-        "root"   : "https://www.mangakakalot.gg",
-        "pattern": r"(?:www\.)?mangakakalot\.gg",
-    },
-})
+BASE_PATTERN = ManganeloExtractor.update(
+    {
+        "nelomanga": {
+            "root": "https://www.nelomanga.net",
+            "pattern": r"(?:www\.)?nelomanga\.net",
+        },
+        "natomanga": {
+            "root": "https://www.natomanga.com",
+            "pattern": r"(?:www\.)?natomanga\.com",
+        },
+        "manganato": {
+            "root": "https://www.manganato.gg",
+            "pattern": r"(?:www\.)?manganato\.gg",
+        },
+        "mangakakalot": {
+            "root": "https://www.mangakakalot.gg",
+            "pattern": r"(?:www\.)?mangakakalot\.gg",
+        },
+    }
+)
 
 
 class ManganeloChapterExtractor(ManganeloExtractor, ChapterExtractor):
     """Extractor for manganelo manga chapters"""
+
     pattern = BASE_PATTERN + r"(/manga/[^/?#]+/chapter-[^/?#]+)"
     example = "https://www.mangakakalot.gg/manga/MANGA_NAME/chapter-123"
 
@@ -50,15 +53,17 @@ class ManganeloChapterExtractor(ManganeloExtractor, ChapterExtractor):
         extr = text.extract_from(page)
 
         data = {
-            "date"        : text.parse_datetime(extr(
-                '"datePublished": "', '"')[:19], "%Y-%m-%dT%H:%M:%S"),
-            "date_updated": text.parse_datetime(extr(
-                '"dateModified": "', '"')[:19], "%Y-%m-%dT%H:%M:%S"),
-            "manga_id"    : text.parse_int(extr("comic_id =", ";")),
-            "chapter_id"  : text.parse_int(extr("chapter_id =", ";")),
-            "manga"       : extr("comic_name =", ";").strip('" '),
-            "lang"        : "en",
-            "language"    : "English",
+            "date": text.parse_datetime(
+                extr('"datePublished": "', '"')[:19], "%Y-%m-%dT%H:%M:%S"
+            ),
+            "date_updated": text.parse_datetime(
+                extr('"dateModified": "', '"')[:19], "%Y-%m-%dT%H:%M:%S"
+            ),
+            "manga_id": text.parse_int(extr("comic_id =", ";")),
+            "chapter_id": text.parse_int(extr("chapter_id =", ";")),
+            "manga": extr("comic_name =", ";").strip('" '),
+            "lang": "en",
+            "language": "English",
         }
 
         chapter_name = extr("chapter_name =", ";").strip('" ')
@@ -77,14 +82,12 @@ class ManganeloChapterExtractor(ManganeloExtractor, ChapterExtractor):
         if cdns[-1] != "/":
             cdns += "/"
 
-        return [
-            (cdns + path, None)
-            for path in imgs
-        ]
+        return [(cdns + path, None) for path in imgs]
 
 
 class ManganeloMangaExtractor(ManganeloExtractor, MangaExtractor):
     """Extractor for manganelo manga"""
+
     chapterclass = ManganeloChapterExtractor
     pattern = BASE_PATTERN + r"(/manga/[^/?#]+)$"
     example = "https://www.mangakakalot.gg/manga/MANGA_NAME"
@@ -99,30 +102,36 @@ class ManganeloMangaExtractor(ManganeloExtractor, MangaExtractor):
         manga = text.unescape(extr("<h1>", "<"))
         author = text.remove_html(extr("<li>Author(s) :", "</a>"))
         status = extr("<li>Status :", "<").strip()
-        update = text.parse_datetime(extr(
-            "<li>Last updated :", "<").strip(), "%b-%d-%Y %I:%M:%S %p")
+        update = text.parse_datetime(
+            extr("<li>Last updated :", "<").strip(), "%b-%d-%Y %I:%M:%S %p"
+        )
         tags = text.split_html(extr(">Genres :", "</li>"))[::2]
 
         results = []
-        for chapter in text.extract_iter(page, '<div class="row">', '</div>'):
+        for chapter in text.extract_iter(page, '<div class="row">', "</div>"):
             url, pos = text.extract(chapter, '<a href="', '"')
-            title, pos = text.extract(chapter, '>', '</a>', pos)
+            title, pos = text.extract(chapter, ">", "</a>", pos)
             date, pos = text.extract(chapter, '<span title="', '"', pos)
             chapter, sep, minor = url.rpartition("/chapter-")[2].partition("-")
 
             if url[0] == "/":
                 url = self.root + url
-            results.append((url, {
-                "manga"   : manga,
-                "author"  : author,
-                "status"  : status,
-                "tags"    : tags,
-                "date_updated": update,
-                "chapter" : text.parse_int(chapter),
-                "chapter_minor": (sep and ".") + minor,
-                "title"   : title.partition(": ")[2],
-                "date"    : text.parse_datetime(date, "%b-%d-%Y %H:%M"),
-                "lang"    : "en",
-                "language": "English",
-            }))
+            results.append(
+                (
+                    url,
+                    {
+                        "manga": manga,
+                        "author": author,
+                        "status": status,
+                        "tags": tags,
+                        "date_updated": update,
+                        "chapter": text.parse_int(chapter),
+                        "chapter_minor": (sep and ".") + minor,
+                        "title": title.partition(": ")[2],
+                        "date": text.parse_datetime(date, "%b-%d-%Y %H:%M"),
+                        "lang": "en",
+                        "language": "English",
+                    },
+                )
+            )
         return results

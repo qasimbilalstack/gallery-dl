@@ -11,21 +11,24 @@
 from .common import GalleryExtractor, Extractor, Message
 from .. import text, util
 
-BASE_PATTERN = (r"(?:https?://)?(?:www\.)?xvideos\.com"
-                r"/(?:profiles|(?:amateur-|model-)?channels)")
+BASE_PATTERN = (
+    r"(?:https?://)?(?:www\.)?xvideos\.com"
+    r"/(?:profiles|(?:amateur-|model-)?channels)"
+)
 
 
-class XvideosBase():
+class XvideosBase:
     """Base class for xvideos extractors"""
+
     category = "xvideos"
     root = "https://www.xvideos.com"
 
 
 class XvideosGalleryExtractor(XvideosBase, GalleryExtractor):
     """Extractor for user profile galleries on xvideos.com"""
+
     subcategory = "gallery"
-    directory_fmt = ("{category}", "{user[name]}",
-                     "{gallery[id]} {gallery[title]}")
+    directory_fmt = ("{category}", "{user[name]}", "{gallery[id]} {gallery[title]}")
     filename_fmt = "{category}_{gallery[id]}_{num:>03}.{extension}"
     archive_fmt = "{gallery[id]}_{num}"
     pattern = BASE_PATTERN + r"/([^/?#]+)/photos/(\d+)"
@@ -39,22 +42,21 @@ class XvideosGalleryExtractor(XvideosBase, GalleryExtractor):
     def metadata(self, page):
         extr = text.extract_from(page)
         user = {
-            "id"     : text.parse_int(extr('"id_user":', ',')),
+            "id": text.parse_int(extr('"id_user":', ",")),
             "display": extr('"display":"', '"'),
-            "sex"    : extr('"sex":"', '"'),
-            "name"   : self.user,
+            "sex": extr('"sex":"', '"'),
+            "name": self.user,
         }
         title = extr('"title":"', '"')
-        user["description"] = extr(
-            '<small class="mobile-hide">', '</small>').strip()
-        tags = extr('<em>Tagged:</em>', '<').strip()
+        user["description"] = extr('<small class="mobile-hide">', "</small>").strip()
+        tags = extr("<em>Tagged:</em>", "<").strip()
 
         return {
             "user": user,
             "gallery": {
-                "id"   : text.parse_int(self.gallery_id),
+                "id": text.parse_int(self.gallery_id),
                 "title": text.unescape(title),
-                "tags" : text.unescape(tags).split(", ") if tags else [],
+                "tags": text.unescape(tags).split(", ") if tags else [],
             },
         }
 
@@ -62,7 +64,8 @@ class XvideosGalleryExtractor(XvideosBase, GalleryExtractor):
         results = [
             (url, None)
             for url in text.extract_iter(
-                page, '<a class="embed-responsive-item" href="', '"')
+                page, '<a class="embed-responsive-item" href="', '"'
+            )
         ]
 
         if not results:
@@ -76,7 +79,8 @@ class XvideosGalleryExtractor(XvideosBase, GalleryExtractor):
             results.extend(
                 (url, None)
                 for url in text.extract_iter(
-                    page, '<a class="embed-responsive-item" href="', '"')
+                    page, '<a class="embed-responsive-item" href="', '"'
+                )
             )
 
         return results
@@ -84,6 +88,7 @@ class XvideosGalleryExtractor(XvideosBase, GalleryExtractor):
 
 class XvideosUserExtractor(XvideosBase, Extractor):
     """Extractor for user profiles on xvideos.com"""
+
     subcategory = "user"
     categorytransfer = True
     pattern = BASE_PATTERN + r"/([^/?#]+)/?(?:#.*)?$"
@@ -96,8 +101,7 @@ class XvideosUserExtractor(XvideosBase, Extractor):
     def items(self):
         url = f"{self.root}/profiles/{self.user}"
         page = self.request(url, notfound=self.subcategory).text
-        data = util.json_loads(text.extr(
-            page, "xv.conf=", ";</script>"))["data"]
+        data = util.json_loads(text.extr(page, "xv.conf=", ";</script>"))["data"]
 
         if not isinstance(data["galleries"], dict):
             return
@@ -106,7 +110,7 @@ class XvideosUserExtractor(XvideosBase, Extractor):
 
         galleries = [
             {
-                "id"   : text.parse_int(gid),
+                "id": text.parse_int(gid),
                 "title": text.unescape(gdata["title"]),
                 "count": gdata["nb_pics"],
                 "_extractor": XvideosGalleryExtractor,

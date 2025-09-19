@@ -12,12 +12,12 @@ from .. import text, util
 
 class WikifeetGalleryExtractor(GalleryExtractor):
     """Extractor for image galleries from wikifeet.com"""
+
     category = "wikifeet"
     directory_fmt = ("{category}", "{celebrity}")
     filename_fmt = "{category}_{celeb}_{pid}.{extension}"
     archive_fmt = "{type}_{celeb}_{pid}"
-    pattern = (r"(?:https?://)(?:(?:www\.)?wikifeetx?|"
-               r"men\.wikifeet)\.com/([^/?#]+)")
+    pattern = r"(?:https?://)(?:(?:www\.)?wikifeetx?|" r"men\.wikifeet)\.com/([^/?#]+)"
     example = "https://www.wikifeet.com/CELEB"
 
     def __init__(self, match):
@@ -31,14 +31,15 @@ class WikifeetGalleryExtractor(GalleryExtractor):
     def metadata(self, page):
         extr = text.extract_from(page)
         return {
-            "celeb"     : self.celeb,
-            "type"      : self.type,
+            "celeb": self.celeb,
+            "type": self.type,
             "birthplace": text.unescape(extr('"bplace":"', '"')),
-            "birthday"  : text.parse_datetime(text.unescape(
-                extr('"bdate":"', '"'))[:10], "%Y-%m-%d"),
-            "shoesize"  : text.unescape(extr('"ssize":', ',')),
-            "rating"    : text.parse_float(extr('"score":', ',')),
-            "celebrity" : text.unescape(extr('"cname":"', '"')),
+            "birthday": text.parse_datetime(
+                text.unescape(extr('"bdate":"', '"'))[:10], "%Y-%m-%d"
+            ),
+            "shoesize": text.unescape(extr('"ssize":', ",")),
+            "rating": text.parse_float(extr('"score":', ",")),
+            "celebrity": text.unescape(extr('"cname":"', '"')),
         }
 
     def images(self, page):
@@ -51,17 +52,17 @@ class WikifeetGalleryExtractor(GalleryExtractor):
             "B": "Barefoot",
         }
 
-        gallery = text.extr(page, '"gallery":[', '],')
+        gallery = text.extr(page, '"gallery":[', "],")
         base = f"https://pics.wikifeet.com/{self.celeb}-Feet-"
         return [
-            (f"{base}{data['pid']}.jpg", {
-                "pid"   : data["pid"],
-                "width" : data["pw"],
-                "height": data["ph"],
-                "tags"  : [
-                    tagmap[tag]
-                    for tag in data["tags"] if tag in tagmap
-                ],
-            })
+            (
+                f"{base}{data['pid']}.jpg",
+                {
+                    "pid": data["pid"],
+                    "width": data["pw"],
+                    "height": data["ph"],
+                    "tags": [tagmap[tag] for tag in data["tags"] if tag in tagmap],
+                },
+            )
             for data in util.json_loads(f"[{gallery}]")
         ]
