@@ -9,11 +9,11 @@
 """Extractors for https://www.reddit.com/"""
 
 import os
+import json
 from .common import Extractor, Message
-from .. import text, util, exception
+from .. import text, util, exception, path
 
 from ..cache import cache
-from .reddit_json import save_submission_json
 
 
 class RedditExtractor(Extractor):
@@ -31,6 +31,58 @@ class RedditExtractor(Extractor):
     submission_json_filename = "{id}.json"
     # Config for external media filename prefixing
     external_filename_prefix = True
+
+    def _save_submission_json(self, submission, directory):
+        """
+        Save Reddit submission JSON to a sidecar file in the specified directory.
+        
+        Args:
+            submission (dict): The Reddit submission data
+            directory (str): The directory path where JSON should be saved
+            
+        Returns:
+            str or None: The path to the written JSON file, or None on failure
+        """
+        try:
+            sub_id = submission.get("id")
+            if not sub_id:
+                raise ValueError("Submission dict missing 'id'")
+                
+            # Get configuration
+            subdir = self.config("submission_json_dir", self.submission_json_dir)
+            filename_template = self.config("submission_json_filename", self.submission_json_filename)
+            
+            # Build filename from template
+            filename = filename_template.format(**submission)
+            
+            # Determine output directory
+            if subdir:
+                out_dir = os.path.join(directory, subdir)
+            else:
+                out_dir = directory
+                
+            # Create directory if needed
+            os.makedirs(out_dir, exist_ok=True)
+            
+            # Build full path
+            out_path = os.path.join(out_dir, filename)
+            
+            # Write JSON atomically
+            tmp_path = out_path + ".tmp"
+            with open(tmp_path, "w", encoding="utf-8") as fp:
+                json.dump(submission, fp, ensure_ascii=False, indent=2)
+                fp.write("\n")
+            
+            # Atomic move
+            os.replace(tmp_path, out_path)
+            return out_path
+            
+        except Exception as exc:
+            if hasattr(self, "log"):
+                self.log.warning(f"Failed to write Reddit submission JSON: {exc}")
+            else:
+                print(f"Failed to write Reddit submission JSON: {exc}")
+            return None
 
     def items(self):
         self.api = RedditAPI(self)
@@ -72,31 +124,18 @@ class RedditExtractor(Extractor):
                         if self.config(
                             "write_submission_json", self.write_submission_json
                         ):
-                            # Resolve destination root
-                            dest_root = (
-                                getattr(self, "destination", None)
-                                or getattr(
-                                    getattr(self, "request", None), "destination", None
-                                )
-                                or getattr(
-                                    getattr(self, "config", {}), "destination", None
-                                )
-                                or os.getcwd()
-                            )
-                            subdir = self.config(
-                                "submission_json_dir", self.submission_json_dir
-                            )
-                            filename_template = self.config(
-                                "submission_json_filename",
-                                self.submission_json_filename,
-                            )
-                            save_submission_json(
-                                submission,
-                                dest_root,
-                                subdir=subdir,
-                                filename_template=filename_template,
-                                logger=getattr(self, "log", None),
-                            )
+                            # Calculate the proper Reddit directory path using PathFormat
+                            # This ensures JSON files are placed in the same directory as media
+                            pathfmt = path.PathFormat(self)
+                            
+                            # Add category for directory formatting (normally done by Message.Directory)
+                            submission_with_category = submission.copy()
+                            submission_with_category["category"] = self.category
+                            
+                            pathfmt.set_directory(submission_with_category)
+                            
+                            # Save JSON to the same directory as media files
+                            self._save_submission_json(submission, pathfmt.realdirectory)
                         else:
                             pass  # JSON saving disabled
                     except Exception as exc:
@@ -224,6 +263,9 @@ class RedditExtractor(Extractor):
 
                             # Add reddit_id field for external extractors that support it
                             external_data["reddit_id"] = reddit_id
+                            
+                            # Add _reddit metadata for parent-metadata config
+                            external_data["_reddit"] = data
 
                             # Override filename format to include Reddit ID prefix
                             # This will work for extractors that check for custom filename_fmt
@@ -231,13 +273,15 @@ class RedditExtractor(Extractor):
                                 f"{reddit_id}_{{filename}}.{{extension}}"
                             )
 
-                            # Override directory format to match Reddit extractor
-                            # This ensures external media goes to the same folder as Reddit content
-                            external_data["directory_fmt"] = self.directory_fmt
-
                             yield Message.Queue, text.unescape(url), external_data
                         else:
-                            yield Message.Queue, text.unescape(url), data
+                            # Still add _reddit metadata even without filename prefix
+                            if "id" in data and "comment" not in data:
+                                external_data = data.copy()
+                                external_data["_reddit"] = data
+                                yield Message.Queue, text.unescape(url), external_data
+                            else:
+                                yield Message.Queue, text.unescape(url), data
 
                         if "_fallback" in data:
                             del data["_fallback"]
