@@ -228,6 +228,20 @@ class RedditExtractor(Extractor):
                             for url in text.extract_iter(html, ' href="', '"'):
                                 urls.append((url, data))
 
+                # Pre-process URLs to count external media per submission
+                submission_url_counts = {}
+                for url, data in urls:
+                    if (not url or url[0] == "#" or 
+                        url.startswith(("https://www.reddit.com/message/compose",
+                                       "https://reddit.com/message/compose",
+                                       "https://preview.redd.it/")) or
+                        "comment" in data):
+                        continue
+                    
+                    submission_id = data.get("id")
+                    if submission_id:
+                        submission_url_counts[submission_id] = submission_url_counts.get(submission_id, 0) + 1
+
                 for url, data in urls:
                     if not url or url[0] == "#":
                         continue
@@ -248,8 +262,11 @@ class RedditExtractor(Extractor):
                         if previews and "comment" not in data and "preview" in data:
                             data["_fallback"] = self._previews(data)
 
-                        # Increment num for external URLs to get proper numbering
-                        if "comment" not in data:
+                        # Only increment num for external URLs if there are multiple media items
+                        submission_id = data.get("id")
+                        has_multiple_media = submission_url_counts.get(submission_id, 0) > 1
+                        
+                        if "comment" not in data and has_multiple_media:
                             data["num"] += 1
 
                         # Add Reddit post ID to external extractor data for filename prefixing
@@ -269,7 +286,15 @@ class RedditExtractor(Extractor):
                             external_data["reddit_id"] = reddit_id
                             
                             # Add _reddit metadata for parent-metadata config
-                            external_data["_reddit"] = data
+                            reddit_metadata = data.copy()
+                            # Only include num in _reddit if there are multiple media items
+                            submission_id = data.get("id")
+                            has_multiple_media = submission_url_counts.get(submission_id, 0) > 1
+                            if has_multiple_media:
+                                reddit_metadata["num"] = f"_{data['num']:02d}"
+                            else:
+                                reddit_metadata["num"] = ""
+                            external_data["_reddit"] = reddit_metadata
 
                             # Override filename format to include Reddit ID prefix
                             # This will work for extractors that check for custom filename_fmt
@@ -282,7 +307,15 @@ class RedditExtractor(Extractor):
                             # Still add _reddit metadata even without filename prefix
                             if "id" in data and "comment" not in data:
                                 external_data = data.copy()
-                                external_data["_reddit"] = data
+                                reddit_metadata = data.copy()
+                                # Only include num in _reddit if there are multiple media items
+                                submission_id = data.get("id")
+                                has_multiple_media = submission_url_counts.get(submission_id, 0) > 1
+                                if has_multiple_media:
+                                    reddit_metadata["num"] = f"_{data['num']:02d}"
+                                else:
+                                    reddit_metadata["num"] = ""
+                                external_data["_reddit"] = reddit_metadata
                                 yield Message.Queue, text.unescape(url), external_data
                             else:
                                 yield Message.Queue, text.unescape(url), data
