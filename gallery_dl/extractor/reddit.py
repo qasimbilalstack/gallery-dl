@@ -248,6 +248,10 @@ class RedditExtractor(Extractor):
                         if previews and "comment" not in data and "preview" in data:
                             data["_fallback"] = self._previews(data)
 
+                        # Increment num for external URLs to get proper numbering
+                        if "comment" not in data:
+                            data["num"] += 1
+
                         # Add Reddit post ID to external extractor data for filename prefixing
                         if (
                             self.config(

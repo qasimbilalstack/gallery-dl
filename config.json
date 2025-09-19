@@ -21,7 +21,7 @@
         
         "reddit>*": {
             "directory": [],
-            "filename": "{_reddit[id]}_{filename}"
+            "filename": "{_reddit[id]}_{_reddit[num]:>02}"
         }
     }
 }
